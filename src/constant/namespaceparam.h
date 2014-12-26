@@ -1,9 +1,9 @@
 #ifndef FILE_PARAM
 #define FILE_PARAM
-//ÎÄ¼şÃû³¤¶È
+//æ–‡ä»¶åé•¿åº¦
 const int file_name_max_length = 256;
-//¸¸Ä¿Â¼Ó³Éä³¤¶È
+//çˆ¶ç›®å½•æ˜ å°„é•¿åº¦
 const int parent_dir_hash_length = 10;
-//×ÓÄ¿Â¼Ó°Éä³¤¶È
+//å­ç›®å½•å½±å°„é•¿åº¦
 const int child_dir_hash_legth = 1024;
 #endif

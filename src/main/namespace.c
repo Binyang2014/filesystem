@@ -8,17 +8,17 @@
 #define PARENT_HASH_LENGTH 10
 #define CHILD_HASH_LENGTH 10
 /*
- * ¸¸Ä¿Â¼½ÚµãÊı¾İ½á¹¹
+ * çˆ¶ç›®å½•èŠ‚ç‚¹æ•°æ®ç»“æ„
  */
 typedef struct FileDirNode{
-	char file_name[255]; 		/*ÎÄ¼şÃû³Æ*/
-	int *id; 					/*ÎÄ¼şËùÔÚ»úÆ÷IDÁĞ±í*/
-	int access;					/*ÎÄ¼ş·ÃÎÊÈ¨ÏŞ*/
-	char owner[255]; 			/*ÎÄ¼şÓµÓĞÕß*/
+	char file_name[255]; 		/*æ–‡ä»¶åç§°*/
+	int *id; 					/*æ–‡ä»¶æ‰€åœ¨æœºå™¨IDåˆ—è¡¨*/
+	int access;					/*æ–‡ä»¶è®¿é—®æƒé™*/
+	char owner[255]; 			/*æ–‡ä»¶æ‹¥æœ‰è€…*/
 	struct FileDirNode *next;
-	int is_dir; 				/*ÎÄ¼şÊÇ·ñÊÇÄ¿Â¼*/
+	int is_dir; 				/*æ–‡ä»¶æ˜¯å¦æ˜¯ç›®å½•*/
 	struct FileDirNode *child;
-	int file_num;				//Ä¿Â¼ÏÂµÄÎÄ¼ş¸öÊı
+	int file_num;				//ç›®å½•ä¸‹çš„æ–‡ä»¶ä¸ªæ•°
 }FileDirNode;
 
 /**
@@ -58,10 +58,10 @@ void init(){
 }
 
 /**
- * ´´½¨ÎÄ¼ş
- * @dir  Ä¿Â¼Ãû³Æ
- * @file ÎÄ¼şÃû³Æ
- * @return ·µ»Ø´´½¨ÎÄ¼ş½á¹ûÂë
+ * åˆ›å»ºæ–‡ä»¶
+ * @dir  ç›®å½•åç§°
+ * @file æ–‡ä»¶åç§°
+ * @return è¿”å›åˆ›å»ºæ–‡ä»¶ç»“æœç 
  */
 int create_file(char * dir, char *file)
 {
@@ -87,10 +87,10 @@ int create_file(char * dir, char *file)
 }
 
 /**
- * @parent_dir ¸¸Ä¿Â¼Ãû³Æ
- * @dir		    Ä¿Â¼Ãû³Æ
- * 1. ¸¸Ä¿Â¼²»´æÔÚ
- * 2. Ä¿Â¼Ãû³Æ²»ºÏ·¨(Ãû³Æ¸ñÊ½ ³¤¶È)
+ * @parent_dir çˆ¶ç›®å½•åç§°
+ * @dir		    ç›®å½•åç§°
+ * 1. çˆ¶ç›®å½•ä¸å­˜åœ¨
+ * 2. ç›®å½•åç§°ä¸åˆæ³•(åç§°æ ¼å¼ é•¿åº¦)
  * 3.
  */
 int create_dir(char *path){
@@ -174,7 +174,7 @@ void hehe(char *c){
 
 int main(){
 	init();
-	printf("´´½¨ÎÄ¼ş·µ»Ø=%d\n", create_dir("/"));
+	printf("åˆ›å»ºæ–‡ä»¶è¿”å›=%d\n", create_dir("/"));
 	print_dir();
 	return 0;
 }

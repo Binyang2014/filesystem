@@ -4,9 +4,9 @@
 const char * legal_file_path = "";
 const char file_dir_separator = '/';
 /**
- * ½«path·ÖÎªÄ¿Â¼Ãû + ÎÄ¼şÃû
- * @parent_dir_name ±£´æÄ¿Â¼Ãû³Æ
- * @file_name ±£´æÎÄ¼şÃû³Æ
+ * å°†pathåˆ†ä¸ºç›®å½•å + æ–‡ä»¶å
+ * @parent_dir_name ä¿å­˜ç›®å½•åç§°
+ * @file_name ä¿å­˜æ–‡ä»¶åç§°
  */
 int parse_path(char *parent_dir_name, char *file_name, const char *path)
 {

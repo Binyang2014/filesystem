@@ -1,10 +1,10 @@
-//ÎÄ¼şÃû²»ºÏ·¨
+//æ–‡ä»¶åä¸åˆæ³•
 const int illegal_file_name = 1000;
-//ÎÄ¼şÃûÒÑ´æÔÚ
+//æ–‡ä»¶åå·²å­˜åœ¨
 const int file_exists = 1001;
-//Ä¿Â¼ÒÑ¾­´æÔÚ
+//ç›®å½•å·²ç»å­˜åœ¨
 const int dir_exists = 1002;
-//Ä¿Â¼²»´æÔÚ
+//ç›®å½•ä¸å­˜åœ¨
 const int dir_not_exists = 1003;
-//´´½¨³É¹¦
+//åˆ›å»ºæˆåŠŸ
 const int create_success = 2000;
