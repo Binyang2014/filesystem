@@ -1,20 +1,46 @@
 #include <stdlib.h>
+#include <string.h>
 #include "../constant/namespaceparam.h"
+#include "../constant/namespacestatus.h"
 
-const char * legal_file_path = "";
 const char file_dir_separator = '/';
+
+/**
+ * 路径格式校验
+ * 1. 必须以'/'开头
+ * 2.
+ */
+int file_path_verify(const char *file_path){
+	return 1;
+}
+
+/**
+ * 对路径进行预处理
+ * 比如: /foo/bar//// -> /foo/bar
+ */
+void path_pre_handle(char *path){
+	int length = strlen(path);
+	int tmp = length -1;
+	while(tmp >= 1 && *(path + tmp) == '/'){
+		*(path + tmp--) = 0;
+	}
+}
+
 /**
  * 将path分为目录名 + 文件名
  * @parent_dir_name 保存目录名称
  * @file_name 保存文件名称
  */
-int parse_path(char *parent_dir_name, char *file_name, const char *path)
-{
-	char *tmp_path = (char*)malloc(sizeof(char) * file_name_max_length);
+int parse_path(char *parent_dir_name, char *file_name,  char *path, int len) {
+	if(!file_path_verify(path))
+		return illegal_path;
+	path_pre_handle(path);
+	char *tmp_path = (char*) malloc(sizeof(char) * len);
 	strcpy(tmp_path, path);
-	char *file_name_start = strrchr(tmp_path, file_dir_separator) + 1;
-	strcpy(file_name, file_name_start);
+	char *file_name_start = strrchr(tmp_path, '/');
+	strcpy(file_name, file_name_start + 1);
 	*file_name_start = 0;
 	strcpy(parent_dir_name, tmp_path);
 	free(tmp_path);
+	return 0;
 }
