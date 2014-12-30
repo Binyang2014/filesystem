@@ -1,10 +1,10 @@
 
 /**
- * 文件命名空间接口
- * 1. mkdir 创建目录
- * 2. touch 创建文件
- * 3. cd	工作目录
- * 4. open  打开文件
+ * 鏂囦欢鍛藉悕绌洪棿鎺ュ彛
+ * 1. mkdir 鍒涘缓鐩綍
+ * 2. touch 鍒涘缓鏂囦欢
+ * 3. cd	宸ヤ綔鐩綍
+ * 4. open  鎵撳紑鏂囦欢
  * 5.
  */
 void handle_request(){
