@@ -6,8 +6,8 @@
  * 表示一个mpi环境中机器
  */
 struct mpi_machine{
-	MPI_Comm
-	int id;
+	MPI_Comm comm;
+	int rank;
 };
 /**
  * master MPI_COMM_WORLD id
