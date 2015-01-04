@@ -11,21 +11,28 @@
 #include "client.h"
 
 int queue_empty(){
-
+	return queue_size == 0;
 }
 
-int in_queue(){
-
+void in_queue(const struct request_queue *request){
+	queue_size++;
+	queue_tail->next_request = request;
+	queue_tail=request;
 }
 
-int de_queue(){
-
+struct request_queue* de_queue(){
+	if(queue_empty())
+		return 0;
+	queue_size--;
+	struct request_queue *head = queue_head;
+	queue_head = queue_head->next_request;
+	return head;
 }
 
 void init(){
-	queue = (struct message_queue *)calloc(1, sizeof(struct message_queue));
-	queue->queue_size = 0;
-	queue->
+	queue_head = (struct message_queue *)calloc(1, sizeof(struct message_queue));
+	queue_size = 0;
+	queue_head = calloc(1, sizeof(struct request_queue));
 }
 
 

@@ -31,15 +31,13 @@ struct request_queue{
 /**
  * 请求事件队列节点
  */
-struct message_queue{
-	int queue_size;
-	struct request_queue *request;
-};
 
 void client_server();
 
 extern struct mpi_machine *master;
 
-struct message_queue *queue;
+int queue_size;
+
+struct request_queue *queue_head, *queue_tail;
 
 #endif /* SRC_MAIN_CLIENT_H_ */
