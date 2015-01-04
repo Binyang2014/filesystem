@@ -30,13 +30,13 @@ struct request_queue* de_queue(){
 }
 
 void init(){
-	queue_head = (struct message_queue *)calloc(1, sizeof(struct message_queue));
 	queue_size = 0;
-	queue_head = calloc(1, sizeof(struct request_queue));
+	queue_tail = queue_head = 0;
 }
 
 
 void client_server() {
+	init();
 	struct request_queue *request;
 	int send_status = MPI_Send((const void*) request,
 			sizeof(struct request_queue), MPI_BYTE, master->rank, 1,
