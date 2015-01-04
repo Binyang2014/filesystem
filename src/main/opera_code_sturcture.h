@@ -24,7 +24,6 @@ const int renmae_dir_code = 105;
 struct file_des{
 	char *file_name;
 	int name_length;
-
 };
 
 /**

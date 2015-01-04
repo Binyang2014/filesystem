@@ -11,7 +11,6 @@ const int parent_dir_hash_length = 10;
 const int child_dir_hash_legth = 1024;
 
 
-
 //文件名不合法
 const int illegal_file_name = 1000;
 //文件名已存在

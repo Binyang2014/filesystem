@@ -39,4 +39,6 @@ int del_dir(char *name);
 
 void list_dir_file(char *name);
 
+void test_create_dir();
+
 #endif

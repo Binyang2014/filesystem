@@ -8,6 +8,7 @@
 #ifndef SRC_MAIN_MASTER_H_
 #define SRC_MAIN_MASTER_H_
 #include "opera_code_sturcture.h"
+#include "namespace.h"
 
 /**
  * master维护的数据服务器状态

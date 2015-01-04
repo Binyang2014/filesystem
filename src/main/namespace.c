@@ -202,6 +202,11 @@ void list_dir_file(char *name){
 
 }
 
+int test_create_dir(){
+	puts("创建目录成功");
+	return 0;
+}
+
 //int main(){
 //	init();
 //	printf("创建文件返回=%d\n", create_dir("/123"));

@@ -16,7 +16,7 @@ int file_path_verify(const char *file_path)
  */
 int dir_path_verify()
 {
-
+	return 0;
 }
 
 void path_pre_handle(char *path){
