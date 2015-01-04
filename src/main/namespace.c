@@ -1,32 +1,7 @@
-#include <string.h>
-#include <stdio.h>
-#include "file_name_handle.h"
-#include "../constant/namespacestatus.h"
-#include "../constant/namespaceparam.h"
-#include "../tool/hash.h"
 
-#define PARENT_HASH_LENGTH 10
-#define CHILD_HASH_LENGTH 10
-/*
- * 父目录节点数据结构
- */
-typedef struct file_dir_node{
-	char *file_name; 					/*文件名称,包含路径*/
-	int *id; 							/*文件所在机器ID列表*/
-	int access;							/*文件访问权限*/
-	char owner[255]; 					/*文件拥有者*/
-	struct file_dir_node *next_dir;		/*下一个目录*/
-	struct file_dir_node *next_file;		/*下一个文件*/
-	int is_dir; 						/*文件是否是目录*/
-	struct file_dir_node **child;			//记录目录下的所有文件,包含目录
-	int file_num;						//目录下的文件个数
-}file_dir_node;
+#include "namespace.h"
 
-/**
- *
- */
 struct file_dir_node *par_dirs[PARENT_HASH_LENGTH];
-
 
 void print_dir(){
 	int i = 0, j;
@@ -123,10 +98,6 @@ int create_file(const char * file_path)
 	return 0;
 }
 
-void set_file_dir_node(char *file_name){
-
-}
-
 /**
  * @parent_dir 父目录名称
  * @dir		    目录名称
@@ -134,7 +105,8 @@ void set_file_dir_node(char *file_name){
  * 2. 目录名称不合法(名称格式 长度)
  * 3.
  */
-int create_dir(const char *path){
+int create_dir(const char *path)
+{
 	int length = strlen(path) + 1;
 	char *parent_dir = (char *)malloc(sizeof(char) * length);
 	char *child_dir = (char *)malloc(sizeof(char) * length);
@@ -142,8 +114,9 @@ int create_dir(const char *path){
 	strcpy(tmp_path, path);
 
 	int status = parse_path(parent_dir, child_dir, tmp_path, length);
-	if(status == illegal_path)
+	if(status == illegal_path){
 		return illegal_path;
+	}
 
 	//目录 文件 路径的hash映射
 	int path_hash_code = bkdr_hash(tmp_path, PARENT_HASH_LENGTH);
@@ -154,7 +127,8 @@ int create_dir(const char *path){
 	struct file_dir_node *parent_node, *child_node;			//目录节点指针 文件节点指针
 
 	//查找目录是否已经存在
-	while(1){
+	while(1)
+	{
 		if(!tmp_node)
 			break;
 		if(strcmp(tmp_node->file_name, tmp_path) == 0)
@@ -164,7 +138,8 @@ int create_dir(const char *path){
 
 	tmp_node = par_dirs[dir_hash_code];
 	//查找父目录是否存在
-	while(tmp_node){
+	while(tmp_node)
+	{
 		if(!tmp_node)
 			return dir_not_exists;
 		if(strcmp(tmp_node->file_name, parent_dir) == 0)
@@ -199,18 +174,38 @@ int create_dir(const char *path){
 	return create_success;
 }
 
-int del_dir(){
+int rename_file(const char *old_name, const char *new_name)
+{
+	int new_name_length = strlen(new_name);
+	int old_name_length = strlen(old_name);
+	char *old_dir, *old_file, *old_path, *new_dir, *new_file, *newpath;
 
+	//int new_status = parse_path()
+	return 0;
+}
+
+int rename_dir()
+{
+	return 0;
+}
+
+int del_dir()
+{
+	return 0;
 }
 
 int del_file(char *file_name){
-
-}
-
-int main(){
-	init();
-	printf("创建文件返回=%d\n", create_dir("/123"));
-	printf("创建文件返回=%d\n", create_dir("/123/34"));
-	print_dir();
 	return 0;
 }
+
+void list_dir_file(char *name){
+
+}
+
+//int main(){
+//	init();
+//	printf("创建文件返回=%d\n", create_dir("/123"));
+//	printf("创建文件返回=%d\n", create_dir("/123/34"));
+//	print_dir();
+//	return 0;
+//}

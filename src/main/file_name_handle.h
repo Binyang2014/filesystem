@@ -1,23 +1,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../constant/namespaceparam.h"
-#include "../constant/namespacestatus.h"
 
 const char file_dir_separator = '/';
-
 /**
- * 路径格式校验
- * 1. 必须以'/'开头
- * 2.
+ * 鏍￠獙鏂囦欢璺緞
  */
-int file_path_verify(const char *file_path){
+int file_path_verify(const char *file_path)
+{
 	return 1;
 }
 
 /**
- * 对路径进行预处理
- * 比如: /foo/bar//// -> /foo/bar
+ * 鏍￠獙鐩綍璺緞
  */
+int dir_path_verify()
+{
+
+}
+
 void path_pre_handle(char *path){
 	int length = strlen(path);
 	int tmp = length -1;
