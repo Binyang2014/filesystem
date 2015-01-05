@@ -33,7 +33,6 @@ struct dir_des
 {
 	char *dir_name;
 	int name_length;
-
 };
 
 /**

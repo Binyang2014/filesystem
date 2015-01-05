@@ -9,6 +9,8 @@ struct mpi_machine{
 	MPI_Comm comm;
 	int rank;
 };
+
+const int necessary_machine_num = 3;
 /**
  * master MPI_COMM_WORLD id
  */
