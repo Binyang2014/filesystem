@@ -25,6 +25,10 @@ struct file_dir_node
 	int file_num;						//目录下的文件个数
 };
 
+struct file_request_queue{
+
+};
+
 int create_file(char *name, int lenght, int size);
 
 int create_dir(char *name, int length);

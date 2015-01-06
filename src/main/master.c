@@ -11,6 +11,7 @@ void master_init(int rank)
 	master->rank = rank;
 	master->comm = MPI_COMM_WORLD;
 	pthread_create(&thread_master_namespace, NULL, namespace_control(), NULL);
+	pthread_create(&thread_master_log_backup, NULL, log_backup(), NULL);
 }
 
 void master_server(){

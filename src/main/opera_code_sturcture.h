@@ -16,6 +16,8 @@ const int del_fir_code = 103;
 const int rename_file_code = 104;
 const int renmae_dir_code = 105;
 
+pthread_mutex_t lock_namespace;
+
 #endif /* SRC_MAIN_OPERA_CODE_STURCTURE_H_ */
 
 /**

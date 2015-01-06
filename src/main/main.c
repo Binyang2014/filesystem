@@ -9,10 +9,6 @@
 #include "master.h"
 #include "pthread.h"
 
-void init()
-{
-}
-
 int main(int argc, char *argv) 
 {
 	int rank, size;
@@ -26,7 +22,7 @@ int main(int argc, char *argv)
 		return MPI_Finalize();
 	}
 	if(rank == 0){
-		master_init();
+		master_init(0);
 		return 0;
 	}
 
