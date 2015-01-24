@@ -14,6 +14,9 @@ void master_init(int rank)
 	pthread_create(&thread_master_log_backup, NULL, log_backup(), NULL);
 }
 
+/**
+ *
+ */
 void master_server(){
 
 }
@@ -22,10 +25,16 @@ void log_backup(){
 
 }
 
+/*
+ *
+ */
 void heart_blood(){
 
 }
 
+/**
+ *
+ */
 void namespace_control(){
 	while(1){
 
