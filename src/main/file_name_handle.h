@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "../constant/namespaceparam.h"
+#include "namespaceparam.h"
 
 const char file_dir_separator = '/';
 /**
