@@ -29,3 +29,14 @@ int get_current_imformation(data_server * server_imf)
 	fclose(fp);
 	return 0;
 }
+
+void init_dataserver()
+{
+	char* total_blocks = (char *)malloc(sizeof(char) * CHUNK_SIZE);
+	if(total_blocks == NULL)
+	{
+		perror("can not alloc such big memory");
+		return;
+	}
+	printf("alloc successfully\n");
+}
