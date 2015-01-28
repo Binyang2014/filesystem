@@ -8,6 +8,7 @@
 #ifndef SRC_MAIN_OPERA_CODE_STURCTURE_H_
 #define SRC_MAIN_OPERA_CODE_STURCTURE_H_
 #include "mpi.h"
+#include <pthread.h>
 
 const int create_file_code = 100;
 const int create_dir_code = 101;
