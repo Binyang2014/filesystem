@@ -32,7 +32,7 @@ int get_current_imformation(data_server * server_imf)
 
 void init_dataserver()
 {
-	char* total_blocks = (char *)malloc(sizeof(char) * CHUNK_SIZE);
+	char* total_blocks = (char *)malloc(sizeof(char) * MAX_ALLOC_SIZE);
 	if(total_blocks == NULL)
 	{
 		perror("can not alloc such big memory");

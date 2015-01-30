@@ -5,8 +5,7 @@ int main()
 {
 	data_server first;
 	int ret;
-	pthread_mutex_t m;
-	printf("%d\n", sizeof(m));
+	printf("%lu\n", sizeof(super_block));
 	init_dataserver();
 	ret = get_current_imformation(&first);
 	if(ret == 1)

@@ -5,6 +5,7 @@
  */
 #ifndef _BITMAP_H_
 #define _BITMAP_H_
+
 #include <string.h>
 #include <linux/types.h>
 
@@ -62,6 +63,7 @@ static inline int weight64(__u64 w)
 }
 int bitmap_weight(const unsigned long *bitmap, int nbits);
 int find_first_zero_bit();
+int bitmap_empty(unsigned long *bitmap, int nbits);
 void bitmap_set();
 void bitmap_clear();
 #endif

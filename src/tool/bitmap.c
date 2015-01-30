@@ -31,3 +31,7 @@ int bitmap_weight(const unsigned long *bitmap, int nbits)
 		weight = weight + weight_long(bitmap[limit] & BITMAP_LAST_WORD_MASK(nbits));
 	return weight;
 }
+int bitmap_empty(unsigned long *bitmap, int nbits)
+{
+	return 1;
+}
