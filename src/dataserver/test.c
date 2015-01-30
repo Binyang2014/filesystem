@@ -3,7 +3,7 @@
 #include <pthread.h>
 int main()
 {
-	data_server first;
+	struct data_server first;
 	int ret;
 	printf("%lu\n", sizeof(super_block));
 	init_dataserver();
