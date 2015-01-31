@@ -1,8 +1,9 @@
 #include "dataserver.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 //this is a demo, there are many things to add
-int get_current_imformation(data_server * server_imf)
+int get_current_imformation(struct data_server * server_imf)
 {
 	FILE* fp;
 	char temp[100];

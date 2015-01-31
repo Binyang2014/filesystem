@@ -3,15 +3,16 @@
  *
  * created on 2015.1.130
  * author:Binyang
+ *
  * this file is describe some basic structure in file system
+ * our file system only support 4G space(MAX, if block size is 4096). We think block size
+ * will large than 4096, so we do not need much room to store this index
  */
 #ifndef _BASIC_STRUCTURE_H_
 #define _BASIC_STRUCTURE_H_
 
-#include <pthread.h>
-
 #define MAX_ALLOC_SIZE 1<<30//这部分应该在配置文件中配置
-#define BLOCK_SIZE (1<<20)
+#define BLOCK_SIZE (1<<12)
 #define N_BLOCKS 14//建立chunck号和block号的对应关系索引
 struct super_block
 {
@@ -23,51 +24,48 @@ struct super_block
 	unsigned short s_is_error;
 	unsigned short s_status;
 	unsigned int s_version;
-	unsigned int s_mount_time;
-	unsigned int s_last_write_time;
+	unsigned long s_mount_time;
+	unsigned long s_last_write_time;
 	unsigned int s_direct_blocks[N_BLOCKS];//保存指向数据块的指针,即块号
 	unsigned int s_first_blocks[N_BLOCKS];//间接索引节点表
 	unsigned int s_second_block[N_BLOCKS];//二次间接索引节点表
 	unsigned int s_in_sec_block[N_BLOCKS][N_BLOCKS];//二次间接索引表包含的内容，指向实际的块号
-	unsigned int reserved[9];
+	unsigned int s_blocks_per_group;//number of group = s_blocks_count / s_blocks_per_group
+	unsigned int reserved[5];
 }super_block;
 
-//位图以byte为单位
-char bitmap[BLOCK_SIZE];
-
-
-//below is logic structure
-
-struct super_block_operations
+//多个组可以保存在一个块中，当块大小为4096时，位图可以控制128MB的空间，如此对于一个4G的空间需要32
+//个组，当然此时组信息还是可以存储到一个块中。一个块可以控制16G的空间
+struct group_desc_block
 {
-	pthread_mutex_t s_mutex;
-	unsigned int (*get_blocks_count)();
-	unsigned int (*get_free_block_count)();
-	unsigned int (*get_filesystem_version)();
-	time_t (*get_last_write_time)();
-	unsigned int(*find_a_block_num)(unsigned int chunk_num);
+	unsigned int bg_block_bitmap;//块位图的块号
+	unsigned int bg_free_blocks_count;
+	unsigned int reserved[6];
 };
 
-struct file_operations
-{
-	int (*read)(unsigned int start_pos, unsigned int len);
-	int (*open)(char *filename, int mode);
-};
+//位图以byte为单位,只有在逻辑上才存在，实际中不需要
+//struct bitmap
+//{
+//	char bitmap[BLOCK_SIZE];
+//};
 
-//only one copy in memory
-struct datasetver_super_block
-{
-	struct super_block_operations *s_op;
-};
+//4 blocks used to store logs
+//struct log_block
+//{
+//	char log_blocks[4][BLOCK_SIZE];
+//};
 
-//once open a file, this structure should be built
-struct dataserver_file//I think we need a file structure to point opening files
+enum TOTAL_SIZE
 {
-	struct dataserver_file* head_list;//应该有个双向循环链表
-	char file_name[256];
-	unsigned int cur_off_side;
-	unsigned int file_len;
-	struct file_operations *f_op;
+	SMALLEST = 1 << 12,	//4KB
+	SMALL = 1 << 14,	//16KB
+	MIDDLE = 1 << 16,	//64KB
+	LARGE = 1 << 18,	//256KB
+	LARGEST = 1 << 20	//1MB
 };
-
+typedef enum TOTAL_SIZE total_size_t;
+typedef struct super_block super_block_t;
+typedef struct group_desc_block group_desc_block_t;
+char* init_mem_file_system(total_size_t size, int dev_num);
+void init_mem_super_block(super_block_t * mem_super_block, int blocks_count, int blocks_per_group, int dev_num);
 #endif
