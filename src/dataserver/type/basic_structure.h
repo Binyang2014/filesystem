@@ -57,15 +57,15 @@ struct group_desc_block
 
 enum TOTAL_SIZE
 {
-	SMALLEST = 1 << 12,	//4KB
-	SMALL = 1 << 14,	//16KB
-	MIDDLE = 1 << 16,	//64KB
-	LARGE = 1 << 18,	//256KB
-	LARGEST = 1 << 20	//1MB
+	SMALLEST = 24,	//16MB
+	SMALL = 26,		//64MB
+	MIDDLE = 28,	//256MB
+	LARGE = 30,		//1GB
+	LARGEST = 32	//4GB
 };
 typedef enum TOTAL_SIZE total_size_t;
 typedef struct super_block super_block_t;
 typedef struct group_desc_block group_desc_block_t;
-char* init_mem_file_system(total_size_t size, int dev_num);
+char* init_mem_file_system(total_size_t t_size, int dev_num);
 void init_mem_super_block(super_block_t * mem_super_block, int blocks_count, int blocks_per_group, int dev_num);
 #endif
