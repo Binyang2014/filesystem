@@ -54,10 +54,10 @@ static int __bitmap_full(const unsigned long *bitmap, unsigned int bits)
  */
 static unsigned long bitmap_find_next_zero_area_off(unsigned long *map,
                          unsigned long size,
-						 unsigned long start,
-						 unsigned int nr,
-						 unsigned long align_mask,
-						 unsigned long align_offset)
+                         unsigned long start,
+                         unsigned int nr,
+                         unsigned long align_mask,
+                         unsigned long align_offset)
 {
 	unsigned long index, end, i;
 again:
@@ -264,9 +264,9 @@ found_middle:
  */
 unsigned long bitmap_find_next_zero_area(unsigned long *map,
                                               unsigned long size,
-											  unsigned long start,
-											  unsigned int nr,
-											  unsigned long align_mask)
+                                              unsigned long start,
+                                              unsigned int nr,
+                                              unsigned long align_mask)
 {
 	return bitmap_find_next_zero_area_off(map, size, start, nr,
 						      align_mask, 0);
