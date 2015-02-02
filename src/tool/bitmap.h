@@ -20,7 +20,8 @@ static const BITS_PER_LONG = sizeof(long) * 8;
 	((nbits) % BITS_PER_LONG) ?							\
 		(1UL<<((nbits) % BITS_PER_LONG))-1 : ~0UL		\
 )
-/*
+#define __ALIGN_MASK(x, mask) (((x) + (mask)) & ~(mask))
+/**
 * ffz - find first zero in word.
 * @word: The word to search
 *
@@ -28,7 +29,11 @@ static const BITS_PER_LONG = sizeof(long) * 8;
 */
 #define ffz(x) __ffs(~(x))
 
-//I don't want to see this function again detail see ffs
+
+/**
+ * find first set bit, this not return 0 when word is 0, the complete
+ * function finished in ffs()
+ */
 static inline unsigned long __ffs(unsigned long word)
 {
 	int num = 0;
@@ -64,7 +69,7 @@ static inline unsigned long __ffs(unsigned long word)
 	return num;
 }
 
-/*
+/**
  *set dst bitmap to zero,we do not sure nbit is valid
  *programmer must confirm it
  */
@@ -78,7 +83,7 @@ static inline void bitmap_zero(unsigned long *dst, int nbits)
 		memset(dst, 0, len);
 	}
 }
-/*
+/**
  * set bitmap to 1
  */
 static inline void bitmap_fill(unsigned long *dst, int nbits)
@@ -110,7 +115,10 @@ static inline int weight64(__u64 w)
 	return weight;
 }
 
-//complete in bitmap.c
+
+/**
+ * complete in bitmap.c
+ */
 int bitmap_weight(const unsigned long *bitmap, int nbits);
 int bitmap_empty(unsigned long *bitmap, int nbits);
 int bitmap_full(const unsigned long *src, unsigned int nbits);
@@ -118,9 +126,14 @@ void bitmap_set(unsigned long *bitmap, unsigned int start, int len);
 void bitmap_clear(unsigned long *bitmap, unsigned int start, int len);
 int ffs(int x);
 unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size);
-//unsigned long bitmap_find_next_zero_area(unsigned long *map,
-//			   	   	   	   	   	   	   	   	  unsigned long size,
-//											  unsigned long start,
-//											  unsigned int nr,
-//											  unsigned long align_mask);
+unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
+											unsigned long offset);
+unsigned long bitmap_find_next_zero_area(unsigned long *map,
+			   	   	   	   	   	   	   	   	  unsigned long size,
+											  unsigned long start,
+											  unsigned int nr,
+											  unsigned long align_mask);
+unsigned long find_first_bit(const unsigned long *addr, unsigned long size);
+unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
+								unsigned long offset);
 #endif
