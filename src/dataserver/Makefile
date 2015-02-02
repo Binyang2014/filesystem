@@ -1,9 +1,9 @@
 objects = test.o dataserver.o
 
 test:$(objects)
-	gcc -o test $(objects)
-dataserver.o:dataserver.h
-	gcc -c -g dataserver.c
+	cc -o test $(objects)
+dataserver.o:dataserver.h dataserver.c
+	cc -c -g dataserver.c
 
 .PHONY:clean
 clean:
