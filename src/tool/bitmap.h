@@ -129,11 +129,11 @@ unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
 unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
 											unsigned long offset);
 unsigned long bitmap_find_next_zero_area(unsigned long *map,
-			   	   	   	   	   	   	   	   	  unsigned long size,
+                                              unsigned long size,
 											  unsigned long start,
 											  unsigned int nr,
 											  unsigned long align_mask);
 unsigned long find_first_bit(const unsigned long *addr, unsigned long size);
 unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
-								unsigned long offset);
+                               unsigned long offset);
 #endif

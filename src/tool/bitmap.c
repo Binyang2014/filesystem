@@ -53,11 +53,11 @@ static int __bitmap_full(const unsigned long *bitmap, unsigned int bits)
  * is multiple of that power of 2.
  */
 static unsigned long bitmap_find_next_zero_area_off(unsigned long *map,
-					     unsigned long size,
-					     unsigned long start,
-					     unsigned int nr,
-					     unsigned long align_mask,
-					     unsigned long align_offset)
+                         unsigned long size,
+						 unsigned long start,
+						 unsigned int nr,
+						 unsigned long align_mask,
+						 unsigned long align_offset)
 {
 	unsigned long index, end, i;
 again:
@@ -211,7 +211,7 @@ found:
 }
 
 unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
-											unsigned long offset)
+                                     unsigned long offset)
 {
 	const unsigned long *p = addr + BIT_WORD(offset);
 	unsigned long result = offset & ~(BITS_PER_LONG-1);
@@ -263,7 +263,7 @@ found_middle:
  * power of 2. A @align_mask of 0 means no alignment is required.
  */
 unsigned long bitmap_find_next_zero_area(unsigned long *map,
-			   	   	   	   	   	   	   	   	  unsigned long size,
+                                              unsigned long size,
 											  unsigned long start,
 											  unsigned int nr,
 											  unsigned long align_mask)
@@ -302,7 +302,7 @@ unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
 * Find the next set bit in a memory region.
 */
 unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
-								unsigned long offset)
+                               unsigned long offset)
 {
 	const unsigned long *p = addr + BIT_WORD(offset);
 	unsigned long result = offset & ~(BITS_PER_LONG-1);
