@@ -16,6 +16,7 @@ void init_mem_super_block(super_block_t * mem_super_block, int blocks_count, int
 	mem_super_block->s_block_size = BLOCK_SIZE;
 	mem_super_block->s_blocks_count = blocks_count;
 	mem_super_block->s_blocks_per_group = blocks_per_group;
+	mem_super_block->s_groups_count = blocks_count / blocks_per_group;
 	mem_super_block->s_dev_num = dev_num;
 	mem_super_block->s_first_data_block = 0;
 	mem_super_block->s_free_blocks_count = blocks_count - (1 + 1 + 1 + 4) * (blocks_count / blocks_per_group);
@@ -86,6 +87,7 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 	}
 	cur_mem_pos = cur_mem_pos - groups_count * sizeof(group_desc_block_t) + BLOCK_SIZE;
 	bitmap_zero((unsigned long*)cur_mem_pos, blocks_per_group);
+	bitmap_set((unsigned long*)cur_mem_pos, 0, 7);
 
 	cur_mem_pos = mem_file_system;
 	for(i = 1; i < groups_count; i++)

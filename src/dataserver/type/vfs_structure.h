@@ -10,7 +10,7 @@
 #define _VFS_STRUCTURE_H_
 
 #include <pthread.h>
-#include "basic_structrue.h"
+#include "basic_structure.h"
 
 struct super_block_operations
 {
@@ -18,8 +18,10 @@ struct super_block_operations
 	unsigned int (*get_blocks_count)();
 	unsigned int (*get_free_block_count)();
 	unsigned int (*get_filesystem_version)();
+	unsigned int (*get_groups_conut)();
 	time_t (*get_last_write_time)();
 	unsigned int(*find_a_block_num)(unsigned int chunk_num);
+	void (*print_sb_imf)();
 };
 
 struct file_operations

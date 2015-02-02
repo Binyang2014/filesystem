@@ -14,6 +14,7 @@
 #define MAX_ALLOC_SIZE 1<<30//这部分应该在配置文件中配置
 #define BLOCK_SIZE (1<<12)
 #define N_BLOCKS 14//建立chunck号和block号的对应关系索引
+//sizeof(super_blocl) = 1028
 struct super_block
 {
 	unsigned int s_dev_num;
@@ -30,8 +31,9 @@ struct super_block
 	unsigned int s_first_blocks[N_BLOCKS];//间接索引节点表
 	unsigned int s_second_block[N_BLOCKS];//二次间接索引节点表
 	unsigned int s_in_sec_block[N_BLOCKS][N_BLOCKS];//二次间接索引表包含的内容，指向实际的块号
-	unsigned int s_blocks_per_group;//number of group = s_blocks_count / s_blocks_per_group
-	unsigned int reserved[5];
+	unsigned int s_blocks_per_group;
+	unsigned int s_groups_count;//number of group = s_blocks_count / s_blocks_per_group
+	unsigned int reserved[8];
 }super_block;
 
 //多个组可以保存在一个块中，当块大小为4096时，位图可以控制128MB的空间，如此对于一个4G的空间需要32
@@ -63,6 +65,7 @@ enum TOTAL_SIZE
 	LARGE = 30,		//1GB
 	LARGEST = 32	//4GB
 };
+
 typedef enum TOTAL_SIZE total_size_t;
 typedef struct super_block super_block_t;
 typedef struct group_desc_block group_desc_block_t;
