@@ -1,0 +1,27 @@
+#
+##########################################
+#
+# the user must define the following:
+#
+#
+# TARGET_TO_MAKE
+#
+# BIN_OR_LIB = BIN or LIB
+#
+# TRUESRC
+#
+# DEPENDINCLUDE
+#
+# TRUEINCLUDES
+#
+# OTHERFILES
+#
+# LIBOBJ
+# BINOBJ
+#
+# LIBS
+#
+# ########################################
+
+%.$(OBJSUF): %.c
+	$(CC) $(CFLAGS) -c $< $(OUTPUT_OPTION)

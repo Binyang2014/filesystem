@@ -1,10 +1,18 @@
+TOPDIR = ../..
+
+include $(TOPDIR)/GlobalMakefile
 object = bitmap_test.o bitmap.o
+
+DEPENDINCLUDE = bitmap.h
+
+deault:: $(DEPENDINCLUDE)
+
 bitmap_test: $(object)
 	cc -g -o bitmap_test $(object)
-bitmap.o:bitmap.c
-	cc -g -c bitmap.c
-bitmap_test.o:bitmap_test.c
-	cc -g -c bitmap_test.c
-.PHONY:clean
-clean:
+
+include $(TOPDIR)/GlobalRules
+
+include $(object:.$(OBJSUF)=.d)
+
+clean::
 	rm -f *.o  bitmap_test

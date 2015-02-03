@@ -11,7 +11,7 @@
 #include <string.h>
 #include <linux/types.h>
 
-static const BITS_PER_LONG = sizeof(long) * 8;
+static const int BITS_PER_LONG = sizeof(long) * 8;
 #define BITS_TO_LONG(nbits) ( (nbits + BITS_PER_LONG - 1) / BITS_PER_LONG)//除法的时候向上取整
 #define BIT_WORD(nr) ( (nr) / BITS_PER_LONG)
 #define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) % BITS_PER_LONG))
