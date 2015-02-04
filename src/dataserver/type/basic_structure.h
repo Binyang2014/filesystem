@@ -27,10 +27,14 @@ struct super_block
 	unsigned int s_version;
 	unsigned long s_mount_time;
 	unsigned long s_last_write_time;
-	unsigned int s_direct_blocks[N_BLOCKS];//保存指向数据块的指针,即块号
-	unsigned int s_first_blocks[N_BLOCKS];//间接索引节点表
-	unsigned int s_second_block[N_BLOCKS];//二次间接索引节点表
-	unsigned int s_in_sec_block[N_BLOCKS][N_BLOCKS];//二次间接索引表包含的内容，指向实际的块号
+	//下面部分需要重新设计
+//	unsigned int s_direct_blocks[N_BLOCKS];//保存指向数据块的指针,即块号
+//	unsigned int s_first_blocks[N_BLOCKS];//间接索引节点表
+//	unsigned int s_second_block[N_BLOCKS];//二次间接索引节点表
+//	unsigned int s_in_sec_block[N_BLOCKS][N_BLOCKS];//二次间接索引表包含的内容，指向实际的块号
+//建立一个hash结构来保存chunks到blocks的映射关系，由于动态增长，故保存在内存中，必要情况下可写入磁盘
+
+	unsigned int logs_len;//日志记录长度
 	unsigned int s_blocks_per_group;
 	unsigned int s_groups_count;//number of group = s_blocks_count / s_blocks_per_group
 	unsigned int reserved[8];

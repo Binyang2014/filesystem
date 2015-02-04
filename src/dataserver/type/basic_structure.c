@@ -21,6 +21,9 @@ void init_mem_super_block(super_block_t * mem_super_block, int blocks_count, int
 	mem_super_block->s_first_data_block = 0;
 	mem_super_block->s_free_blocks_count = blocks_count - (1 + 1 + 1 + 4) * (blocks_count / blocks_per_group);
 	//1 for super block 1 for group descibe 1 for bit map 4 for logs
+
+	//memset(mem_super_block->s_direct_blocks, 0, sizeof(unsigned int) * N_BLOCKS * (N_BLOCKS + 3));
+
 	mem_super_block->s_is_error = 0;
 	mem_super_block->s_last_write_time = time(NULL);
 	mem_super_block->s_mount_time = time(NULL);
