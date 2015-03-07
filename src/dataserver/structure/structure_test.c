@@ -8,6 +8,7 @@ int main()
 	super_block_t *mem_super_block;
 	group_desc_block_t *mem_group_block;
 
+	printf("%d\n", sizeof(super_block));
 	//format file system
 	mem_file_system = init_mem_file_system(LARGE, 0);
 	mem_super_block = (super_block_t *)mem_file_system;

@@ -60,7 +60,7 @@ struct dataserver_super_block
 	struct list_head s_files;
 	struct super_block_operations *s_op;
 	//You can redefine it
-	int hash_arr[12];
+	int hash_arr[12];//haven't finish this function
 };
 
 //once open a file, this structure should be built

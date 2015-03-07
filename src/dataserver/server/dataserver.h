@@ -7,7 +7,7 @@
 #ifndef _FILESYSTEM_DATASERVER_H_
 #define _FILESYSTEM_DATASERVER_H_
 
-#include "type/vfs_structure.h"
+#include "../structure/vfs_structure.h"
 
 struct data_server_operations
 {

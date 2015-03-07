@@ -1,18 +1,18 @@
 TOPDIR = ../..
+TEST_PROGRAM = bitmap_test
 
 include $(TOPDIR)/GlobalMakefile
-object = bitmap_test.o bitmap.o
+object = bitmap.o
 
-DEPENDINCLUDE = bitmap.h
+default:: $(object)
 
-deault:: $(DEPENDINCLUDE)
-
-bitmap_test: $(object)
-	cc -g -o bitmap_test $(object)
+bitmap_test: bitmap_test.o $(object)
+	cc -g -o bitmap_test bitmap_test.o $(object)
 
 include $(TOPDIR)/GlobalRules
 
 include $(object:.$(OBJSUF)=.d)
 
-clean::
-	rm -f *.o  bitmap_test
+ifeq ($(MAKECMDGOALS),bitmap_test)
+include bitmap_test.d
+endif

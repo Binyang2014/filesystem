@@ -19,11 +19,11 @@ void init_mem_super_block(super_block_t * mem_super_block, int blocks_count, int
 	mem_super_block->s_groups_count = blocks_count / blocks_per_group;
 	mem_super_block->s_dev_num = dev_num;
 	mem_super_block->s_first_data_block = 0;
-	mem_super_block->s_free_blocks_count = blocks_count - (1 + 1 + 1 + 4) * (blocks_count / blocks_per_group);
+	mem_super_block->s_logs_per_group = N_LOG_BLOCKS_PER_G;
+	mem_super_block->s_logs_len = 0;
+	mem_super_block->s_free_blocks_count = blocks_count -
+			(1 + 1 + 1 + mem_super_block->s_logs_per_group) * (blocks_count / blocks_per_group);
 	//1 for super block 1 for group descibe 1 for bit map 4 for logs
-
-	//memset(mem_super_block->s_direct_blocks, 0, sizeof(unsigned int) * N_BLOCKS * (N_BLOCKS + 3));
-
 	mem_super_block->s_is_error = 0;
 	mem_super_block->s_last_write_time = time(NULL);
 	mem_super_block->s_mount_time = time(NULL);
@@ -85,7 +85,7 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 	{
 		mem_group_desc_block = (group_desc_block_t*)cur_mem_pos;
 		mem_group_desc_block->bg_block_bitmap = first_bitmap_pos + i * blocks_per_group;
-		mem_group_desc_block->bg_free_blocks_count = blocks_per_group - 1 - 1 - 1 - 4;
+		mem_group_desc_block->bg_free_blocks_count = blocks_per_group - 1 - 1 - 1 - N_LOG_BLOCKS_PER_G;
 		cur_mem_pos = cur_mem_pos + sizeof(group_desc_block_t);
 	}
 	cur_mem_pos = cur_mem_pos - groups_count * sizeof(group_desc_block_t) + BLOCK_SIZE;

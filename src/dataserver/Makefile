@@ -1,10 +1,6 @@
-objects = test.o dataserver.o
+TOPDIR = ../..
 
-test:$(objects)
-	cc -o test $(objects)
-dataserver.o:dataserver.h dataserver.c
-	cc -c -g dataserver.c
+include $(TOPDIR)/GlobalMakefile
 
-.PHONY:clean
-clean:
-	rm test $(objects)
+SUBDIRS = server structure
+include $(TOPDIR)/GlobalSubDirs

@@ -1,7 +1,7 @@
 # This file define some var for compile and link options
 # You can only change this file if you need special options
 
-# The obkect code suffix
+# The object code suffix
 OBJSUF = o
 
 # The library suffix
@@ -10,8 +10,6 @@ LIBSUF = a
 CC = gcc
 CXX = g++
 
-CCDEPEND = 
-CXXDEPEND =
 AR = ar
 ARFLAG = 
 
@@ -20,5 +18,3 @@ LDFLAGS =
 
 INCLUDE = 
 CFLAGS = -Wall -g $(INCLUDE)
-
-SYSLIBS = 

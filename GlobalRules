@@ -22,6 +22,21 @@
 # LIBS
 #
 # ########################################
+clean:: dclean oclean test_clean
+
+dclean::
+	-rm -f *.d
+
+oclean::
+	-rm -f *.o
+
+test_clean::
+	-rm -f $(TEST_PROGRAM)
 
 %.$(OBJSUF): %.c
 	$(CC) $(CFLAGS) -c $< $(OUTPUT_OPTION)
+
+%.d:%.c
+	$(CC) -MM $< > $@.$$$$;\
+	sed 's/$*.o/$*.$(OBJSUF) $*.d/g' < $@.$$$$ > $@;\
+	rm -f $@.$$$$
