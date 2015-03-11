@@ -49,8 +49,8 @@ unsigned short get_superblock_status(dataserver_sb_t* this)
 }
 
 //----------------------------------------------------------------------------------
-//给定chunk号和block号，通过hash函数查找相应的hash number号
-unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num, unsigned int block_num)
+//给定chunk号，通过hash函数查找相应的block number号
+unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num)
 {
 	char str[MAX_NUM_SIZE + 1];
 	unsigned int hash_num;
@@ -59,34 +59,56 @@ unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num, unsigned 
 
 	//Programmer should make sure that at least a value in block_arr is -1
 	while(this->s_hash_table->blocks_arr[hash_num] != INF_UNSIGNED_INT &&
-			this->s_hash_table->blocks_arr[hash_num] != block_num)
+			this->s_hash_table->chunks_arr[hash_num] != chunk_num)
 	{
 		hash_num = (hash_num + 1) % (this->s_hash_table->hash_table_size);
 	}
 
-	if(this->s_hash_table->blocks_arr[hash_num] == block_num)
-		return hash_num;
+	if(this->s_hash_table->chunks_arr[hash_num] == chunk_num)
+		return this->s_hash_table->blocks_arr[hash_num];
+
+	fprintf(stderr, "Can not find certain chunk_num in this hash table\n");
+	return INF_UNSIGNED_INT;
+}
+static unsigned int find_a_block_with_hash_num(dataserver_sb_t* this, size_t chunk_num, unsigned int* t_hash_num)
+{
+	char str[MAX_NUM_SIZE + 1];
+	unsigned int hash_num = INF_UNSIGNED_INT;
+	ultoa(chunk_num, str);
+	hash_num = this->hash_function(str, this->s_hash_table->hash_table_size);
+	//Programmer should make sure that at least a value in block_arr is -1
+	while(this->s_hash_table->blocks_arr[hash_num] != INF_UNSIGNED_INT &&
+			this->s_hash_table->chunks_arr[hash_num] != chunk_num)
+	{
+		hash_num = (hash_num + 1) % (this->s_hash_table->hash_table_size);
+	}
+
+	if(this->s_hash_table->chunks_arr[hash_num] == chunk_num)
+	{
+		*t_hash_num = hash_num;
+		return this->s_hash_table->blocks_arr[hash_num];
+	}
 
 	fprintf(stderr, "Can not find certain chunk_num in this hash table\n");
 	return INF_UNSIGNED_INT;
 }
 
-//success return 0 fail return other number
-int find_serials_blocks(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, int* blocks_arr, unsigned int* hash_arr)
+//success return address of array fail return null
+unsigned int* find_serials_blocks(dataserver_sb_t* this, int arr_size,
+			size_t* chunks_arr, unsigned int* blocks_arr)
 {
 	int i;
-	unsigned int t_hash_number;
+	unsigned int t_block_number;
 
 	for(i = 0; i < arr_size; i++)
 	{
-		t_hash_number = find_a_block_num(this, chunks_arr[i], blocks_arr[i]);
-		if(t_hash_number != INF_UNSIGNED_INT)
-			hash_arr[i] = t_hash_number;
+		t_block_number = find_a_block_num(this, chunks_arr[i]);
+		if(t_block_number != INF_UNSIGNED_INT)
+			blocks_arr[i] = t_block_number;
 		else
-			return 1;
+			return NULL;
 	}
-	return 0;
+	return blocks_arr;
 }
 
 //This function just find a suitable place to store a block of data, and return
@@ -103,6 +125,7 @@ unsigned int alloc_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int
 	if(this->s_hash_table->blocks_arr[hash_num] == INF_UNSIGNED_INT)
 	{
 		this->s_hash_table->blocks_arr[hash_num] = block_num;
+		this->s_hash_table->chunks_arr[hash_num] = chunk_num;
 		return hash_num;
 	}
 
@@ -110,8 +133,8 @@ unsigned int alloc_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int
 	return INF_UNSIGNED_INT;
 }
 
-int alloc_blocks(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, int* blocks_arr, unsigned int* hash_arr)
+unsigned int* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
+			size_t* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr)
 {
 	int i;
 	unsigned int t_hash_num;
@@ -121,37 +144,68 @@ int alloc_blocks(dataserver_sb_t* this, int arr_size,
 		if(t_hash_num != INF_UNSIGNED_INT)
 			hash_arr[i] = t_hash_num;
 		else
-			return 1;
+			return NULL;
 	}
-	return 0;
+	return hash_arr;
 }
 
-//just like above, do not care really blocks and just modifies hash table
-unsigned int free_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int block_num)
-{
-	unsigned int hash_num;
-	hash_num = find_a_block_num(this, chunk_num, block_num);
-	if(hash_num == INF_UNSIGNED_INT)
-	{
-		fprintf(stderr, "free a block fails\n");
-		return INF_UNSIGNED_INT;
-	}
-	this->s_hash_table->blocks_arr[hash_num] = INF_UNSIGNED_INT;
-	return hash_num;
-}
-
-int free_blocks(dataserver_sb_t* this, int arr_size,
-		size_t* chunks_arr, int* blocks_arr, unsigned int* hash_arr)
+int alloc_blocks(dataserver_sb_t* this, int arr_size,
+			size_t* chunks_arr, unsigned int* blocks_arr)
 {
 	int i;
 	unsigned int t_hash_num;
 	for(i = 0; i < arr_size; i++)
 	{
-		t_hash_num = free_a_block(this, chunks_arr[i], blocks_arr[i]);
+		t_hash_num = alloc_a_block(this, chunks_arr[i], blocks_arr[i]);
 		if(t_hash_num != INF_UNSIGNED_INT)
-			hash_arr[i] = t_hash_num;
+			continue;
 		else
-			return 1;
+			return INF_UNSIGNED_INT;
+	}
+	return 0;
+}
+
+//just like above, do not care really blocks and just modifies hash table
+unsigned int free_a_block(dataserver_sb_t* this, size_t chunk_num)
+{
+	unsigned int block_num, hash_num;
+	block_num = find_a_block_with_hash_num(this, chunk_num, &hash_num);
+	if(block_num == INF_UNSIGNED_INT)
+	{
+		fprintf(stderr, "free a block fails\n");
+		return INF_UNSIGNED_INT;
+	}
+	this->s_hash_table->blocks_arr[hash_num] = INF_UNSIGNED_INT;
+	this->s_hash_table->chunks_arr[hash_num] = INF_UNSIGNED_LONG;
+	return block_num;
+}
+
+unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
+		size_t* chunks_arr, unsigned int* blocks_arr)
+{
+	int i;
+	unsigned int t_block_num;
+	for(i = 0; i < arr_size; i++)
+	{
+		t_block_num = free_a_block(this, chunks_arr[i]);
+		if(t_block_num != INF_UNSIGNED_INT)
+			blocks_arr[i] = t_block_num;
+		else
+			return NULL;
+	}
+	return blocks_arr;
+}
+
+int free_blocks(dataserver_sb_t* this, int arr_size, size_t* chunks_arr)
+{
+	int i;
+	unsigned int t_block_num;
+	for(i = 0; i < arr_size; i++)		{
+		t_block_num = free_a_block(this, chunks_arr[i]);
+		if(t_block_num != INF_UNSIGNED_INT)
+			continue;
+		else
+			return INF_UNSIGNED_INT;
 	}
 	return 0;
 }

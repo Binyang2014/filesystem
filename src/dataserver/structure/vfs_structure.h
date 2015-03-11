@@ -8,6 +8,7 @@
  */
 #ifndef _VFS_STRUCTURE_H_
 #define _VFS_STRUCTURE_H_
+#define VFS_HASH_TBALE_SIZE ((1<<20) + (1<<19))
 
 #include <pthread.h>
 #include "basic_structure.h"
@@ -25,7 +26,8 @@ struct list_head
 struct vfs_hashtable
 {
 	int hash_table_size;
-	int *blocks_arr;
+	unsigned int *blocks_arr;
+	size_t *chunks_arr;
 };
 
 struct super_block_operations
@@ -37,19 +39,22 @@ struct super_block_operations
 	time_t (*get_last_write_time)(struct dataserver_super_block*);
 	unsigned short (*get_superblock_status)(struct dataserver_super_block*);
 
-	unsigned int(*find_a_block_num)(struct dataserver_super_block*, size_t chunk_num, unsigned int block_num);
-	int (*find_serials_blocks)(struct dataserver_super_block*, int arr_size,
-			size_t* chunks_arr, int* blocks_arr, unsigned int* hash_arr);
+	unsigned int(*find_a_block_num)(struct dataserver_super_block*, size_t chunk_num);
+	unsigned int* (*find_serials_blocks)(struct dataserver_super_block*, int arr_size,
+			size_t* chunks_arr, unsigned int* blocks_arr);
 
-	//用给定的chunk号数组和block号数组分配适量的blocks，返回指向这些数据空间的标号。这里相当于映射的创建与删除
-	//不提供数据块的写入服务（超出超级块的功能）
+	//use chunks number and blocks number to contribute hash table, so it will be convenient to search
+	//these functions do use really write to blocks or read from blocks
 	int (*alloc_blocks)(struct dataserver_super_block*, int arr_size,
-			size_t* chunks_arr, int* blocks_arr, unsigned int* hash_arr);
-	int (*free_blocks)(struct dataserver_super_block*, int arr_size, size_t* chunks_arr,
-			int* blocks_arr, unsigned int* hash_arr);
-	//success return block number else return 0
+				size_t* chunks_arr, unsigned int* blocks_arr);
+	unsigned int* (*alloc_blocks_with_hash)(struct dataserver_super_block*, int arr_size,
+			size_t* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
+	int (*free_blocks)(struct dataserver_super_block*, int arr_size, size_t* chunks_arr);
+	unsigned int* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size, size_t* chunks_arr,
+			unsigned int* blocks_arr);
+	//success return block number else return -1
 	unsigned int (*alloc_a_block)(struct dataserver_super_block*, size_t chunk_num, unsigned int block_num);;
-	unsigned int (*free_a_block)(struct dataserver_super_block*, size_t chunk_num, unsigned int block_num);
+	unsigned int (*free_a_block)(struct dataserver_super_block*, size_t chunk_num);
 
 	void (*print_sb_imf)(struct dataserver_super_block*);
 	//set chunk and block
@@ -95,7 +100,7 @@ struct dataserver_super_block
 //once open a file, this structure should be built
 struct dataserver_file//I think we need a file structure to point opening files
 {
-	struct list_head* f_open_list;//应该有个双向循环链表
+	struct list_head* f_open_list;//Should be a two-way circular list
 	struct dataserver_super_block *super_block;
 	char f_name[256];
 	size_t f_cur_offside;
@@ -109,8 +114,9 @@ typedef struct dataserver_super_block dataserver_sb_t;
 typedef struct dataserver_file dataserver_file_t;
 typedef struct vfs_hashtable vfs_hashtable_t;
 typedef struct super_block_operations superblock_op_t;
+typedef struct list_head list_head_t;
 
-//following functions is implement in file vfs_operations.c
+//following functions is implement in file vfs_operations.c about super block
 unsigned int get_blocks_count(dataserver_sb_t* this);
 unsigned int get_free_blocks_count(dataserver_sb_t* this);
 float get_filesystem_version(dataserver_sb_t* this);
@@ -118,13 +124,18 @@ unsigned int get_groups_conut(dataserver_sb_t* this);
 time_t get_last_write_time(dataserver_sb_t* this);
 unsigned short get_superblock_status(dataserver_sb_t* this);
 
-unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num, unsigned int block_num);
-int find_serials_blocks(struct dataserver_super_block*, int arr_size,
-			size_t* chunks_arr, int* blocks_arr, unsigned int* hash_arr);
+unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num);
+unsigned int* find_serials_blocks(struct dataserver_super_block*, int arr_size,
+			size_t* chunks_arr, unsigned int* blocks_arr);
 unsigned int alloc_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int block_num);
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, int* blocks_arr, unsigned int* hash_arr);
-unsigned int free_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int block_num);
+			size_t* chunks_arr, unsigned int* blocks_arr);
+unsigned int* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
+			size_t* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
+unsigned int free_a_block(dataserver_sb_t* this, size_t chunk_num);
+unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
+		size_t* chunks_arr, unsigned int* blocks_arr);
+int free_blocks(dataserver_sb_t* this, int arr_size, size_t* chunks_arr);
 
 void print_sb_imf(dataserver_sb_t* this);
 
