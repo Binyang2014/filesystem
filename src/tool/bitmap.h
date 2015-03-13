@@ -12,6 +12,7 @@
 #include <linux/types.h>
 
 static const int BITS_PER_LONG = sizeof(long) * 8;
+#define BIT_SHIFT_IN_WORD(offset) (1UL << ((offset) % BITS_PER_LONG))
 #define BITS_TO_LONG(nbits) ( (nbits + BITS_PER_LONG - 1) / BITS_PER_LONG)//除法的时候向上取整
 #define BIT_WORD(nr) ( (nr) / BITS_PER_LONG)
 #define BITMAP_FIRST_WORD_MASK(start) (~0UL << ((start) % BITS_PER_LONG))
@@ -20,6 +21,7 @@ static const int BITS_PER_LONG = sizeof(long) * 8;
 	((nbits) % BITS_PER_LONG) ?                         \
 		(1UL<<((nbits) % BITS_PER_LONG))-1 : ~0UL       \
 )
+//all set to 1 except this bit
 #define __ALIGN_MASK(x, mask) (((x) + (mask)) & ~(mask))
 /**
 * ffz - find first zero in word.
@@ -120,8 +122,10 @@ static inline int weight64(__u64 w)
  * complete in bitmap.c
  */
 int bitmap_weight(const unsigned long *bitmap, int nbits);
-int bitmap_empty(unsigned long *bitmap, int nbits);
+int bitmap_empty(const unsigned long *bitmap, int nbits);
+int bitmap_a_bit_empty(const unsigned long *bitmap, unsigned int bit_num);
 int bitmap_full(const unsigned long *src, unsigned int nbits);
+int bitmap_a_bit_full(const unsigned long *bitmap, unsigned int bit_num);
 void bitmap_set(unsigned long *bitmap, unsigned int start, int len);
 void bitmap_clear(unsigned long *bitmap, unsigned int start, int len);
 int ffs(int x);

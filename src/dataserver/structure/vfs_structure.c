@@ -48,9 +48,11 @@ static void init_sb_op(superblock_op_t* s_op)
 	s_op->get_blocks_count = get_blocks_count;
 	s_op->get_free_blocks_count = get_free_blocks_count;
 	s_op->get_groups_conut = get_groups_conut;
+	s_op->get_blocks_per_groups = get_blocks_per_groups;
 	s_op->get_filesystem_version = get_filesystem_version;
 	s_op->get_last_write_time = get_last_write_time;
 	s_op->get_superblock_status = get_superblock_status;
+	s_op->get_per_group_reserved = get_per_group_reserved;
 
 	s_op->find_a_block_num = find_a_block_num;
 	s_op->find_serials_blocks = find_serials_blocks;
@@ -121,3 +123,4 @@ dataserver_sb_t * init_vfs_sb(char* filesystem)
 
 	return dataserver_sb;
 }
+

@@ -10,14 +10,92 @@
 #include <stdlib.h>
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 #include "../../tool/hash.h"
 
+//------------------------block operations---------------------------------------------------
 //following functions maybe used by read or write function
-static void sb_set_block_bm(int block_num);
-static void sb_clear_block_bm(int block_num);
+//we do not want these functions to be see by upper layer because
+//we do not let upper layer programmer change super block structure
+static void __set_block_bm(super_block_t* super_block, unsigned int block_num)
+{
+	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	unsigned long *bitmap;
+
+	bitmap = __get_bitmap_block(super_block, block_num);
+	block_num_in_group = block_num % blocks_per_group;
+	bitmap_set(bitmap, block_num_in_group, 1);
+}
+static void __clear_block_bm(super_block_t* super_block, unsigned int block_num)
+{
+	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	unsigned long *bitmap;
+
+	bitmap = __get_bitmap_block(super_block, block_num);
+	block_num_in_group = block_num % blocks_per_group;
+	bitmap_clear(bitmap, block_num_in_group, 1);
+}
+static int __bm_block_set(super_block_t* super_block, unsigned int block_num)
+{
+	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	unsigned long *bitmap;
+
+	bitmap = __get_bitmap_block(super_block, block_num);
+	block_num_in_group = block_num % blocks_per_group;
+	return bitmap_a_bit_full(bitmap, block_num_in_group);
+}
+static unsigned int find_first_free_block(super_block_t* super_block, int p_group_id)
+{
+	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
+	unsigned int blocks_per_group = super_block->s_blocks_per_group,
+			groups_count = super_block->s_groups_count, block_num_in_group, count = 0;
+
+	//if these group not have a free block, find next group
+	while(count < groups_count &&
+			(block_num_in_group = find_first_zero_bit(bitmap, blocks_per_group)) == blocks_per_group)
+	{
+		p_group_id = (p_group_id + 1) % groups_count;
+		count++;
+	}
+	if(count == groups_count)
+		return INF_UNSIGNED_INT;
+	return block_num_in_group + p_group_id * blocks_per_group;
+}
+static unsigned int find_next_free_block(super_block_t* super_block, int p_group_id, unsigned int block_num)
+{
+	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
+	unsigned int blocks_per_group = super_block->s_blocks_per_group,
+			groups_count = super_block->s_groups_count,
+			block_num_in_group = block_num % super_block->s_blocks_per_group;
+
+	//can't find free block in this group, go to next group and find first free block
+	if((block_num_in_group = find_next_zero_bit(bitmap, blocks_per_group, block_num_in_group))
+			== blocks_per_group)
+		return find_first_free_block(super_block, p_group_id + 1);
+	return block_num_in_group + p_group_id * blocks_per_group;
+}
 //static void sb_regist_block(int chunk_num, int block_num);
 //static void sb_logout_block(int chunk_num);
 
+static char* find_a_block(dataserver_sb_t* dataserver_sb, unsigned int block_num)
+{
+	unsigned int blocks_per_groups;
+	int group_offset;
+	super_block_t *super_block = dataserver_sb->s_block;
+	char* block;
+	blocks_per_groups = dataserver_sb->s_op->get_blocks_per_groups;
+	group_offset = block_num % blocks_per_groups;
+	if((group_offset + 1)  <= dataserver_sb->s_op->get_per_group_reserved)
+	{
+		fprintf("can not read reserved information\n");
+		return NULL;
+	}
+	//may be we should check if this block's bitmap is set, we are not trust server
+	block = (char* )super_block + block_num * BLOCK_SIZE;
+	return block;
+}
+
+//----------------------super block operations----------------------------------------
 unsigned int get_blocks_count(dataserver_sb_t* this)
 {
 	return this->s_block->s_blocks_count;
@@ -26,6 +104,11 @@ unsigned int get_blocks_count(dataserver_sb_t* this)
 unsigned int get_free_blocks_count(dataserver_sb_t* this)
 {
 	return this->s_block->s_free_blocks_count;
+}
+
+unsigned int get_blocks_per_groups(dataserver_sb_t* this)
+{
+	return this->s_block->s_blocks_per_group;
 }
 
 float get_filesystem_version(dataserver_sb_t* this)
@@ -46,6 +129,11 @@ time_t get_last_write_time(dataserver_sb_t* this)
 unsigned short get_superblock_status(dataserver_sb_t* this)
 {
 	return this->s_block->s_status;
+}
+
+unsigned int get_per_group_reserved(dataserver_sb_t* this)
+{
+	return this->s_block->s_per_group_reserved;
 }
 
 //----------------------------------------------------------------------------------
@@ -215,6 +303,7 @@ void print_sb_imf(dataserver_sb_t* this)
 {
 	unsigned int blocks_count = get_blocks_count(this);
 	unsigned int free_blocks_count = get_free_blocks_count(this);
+	unsigned int blocks_per_group = get_blocks_per_groups(this);
 	float filesystem_version = get_filesystem_version(this);
 	unsigned int groups_conut = get_groups_conut(this);
 	time_t last_write_time = get_last_write_time(this);
@@ -224,8 +313,152 @@ void print_sb_imf(dataserver_sb_t* this)
 
 	printf("The number of blocks in this file system is %u\n", blocks_count);
 	printf("The number of free blocks in this file system is %u\n", free_blocks_count);
+	printf("The number of blocks per groups is %u\n", blocks_per_group);
 	printf("The version of this file system is %.1f\n", filesystem_version);
 	printf("The number of groups in this file system is %u\n", groups_conut);
 	printf("The last write time to this file system is %s", asctime(timeinfo));
 	printf("The status of this file system is %u\n", status);
+}
+
+//-------------------------file operations------------------------------------------------------
+
+static int cal_first_bytes(off_t offset)
+{
+	int first_nbytes = BLOCK_SIZE - (offset % BLOCK_SIZE);
+	if(first_nbytes == BLOCK_SIZE)
+		first_nbytes = 0;
+	return first_nbytes;
+}
+
+static int read_a_block(dataserver_file_t *this, char* buffer, off_t offset)
+{
+	unsigned int *blocks_arr;
+	unsigned int block_num;
+
+	blocks_arr = this->f_blocks_arr;
+	block_num = blocks_arr[offset / BLOCK_SIZE];
+	if(! __bm_block_set(this->super_block->s_block), block_num)
+	{
+		fprintf(stderr, "You want to read a block that have no data in it\n");
+		return -1;
+	}
+	memcpy(buffer,find_a_block(this->super_block, block_num), BLOCK_SIZE);
+	return BLOCK_SIZE;
+}
+
+static int read_rest_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
+{
+	unsigned int *blocks_arr;
+	unsigned int block_num;
+
+	blocks_arr = this->f_blocks_arr;
+	block_num = blocks_arr[offset / BLOCK_SIZE];
+	if(! __bm_block_set(this->super_block->s_block), block_num)
+	{
+		fprintf(stderr, "You want to read a block that have no data in it\n");
+		return -1;
+	}
+	memcpy(buffer, find_a_block(this->super_block, block_num), nbytes);
+	return nbytes;
+}
+
+int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
+{
+	int nblocks, last_nbytes, first_nbytes;
+	int nbytes_read = 0, nbytes_temp;
+	off_t cur_offset, end_offset;
+	int i;
+
+	if(offset > this->f_len)
+	{
+		fprintf("offset is exceed over file length");
+		return -1;
+	}
+	//at the end of file
+	if(offset == this->f_len)
+	{
+		this->f_cur_offset = offset;
+		return 0;
+	}
+	//make true not exceed this file length
+	if(offset + count > this->f_len)
+		count = this->f_len - offset;
+
+	cur_offset = offset;//set current offset to offset
+	end_offset = offset + count;
+
+	first_nbytes = cal_first_bytes(offset);
+	//if need data only in one block
+	if(count < first_nbytes)
+	{
+		first_nbytes = count;
+		if((nbytes_temp = read_rest_bytes(this, buffer + nbytes_read, first_nbytes, cur_offset)) == -1)
+			return -1;
+		ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
+		this->f_cur_offset = cur_offset;
+		return nbytes_read;
+	}
+
+	//read first bytes
+	if((nbytes_temp = read_rest_bytes(this, buffer + nbytes_read, first_nbytes, cur_offset)) == -1)
+		return -1;
+	ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
+
+	//if need data across tow blocks but not any of them is filled
+	if (cur_offset + BLOCK_SIZE > end_offset)
+	{
+		last_nbytes = end_offset - cur_offset;
+		if((nbytes_temp = read_rest_bytes(this, buffer + nbytes_read, last_nbytes, cur_offset)) == -1)
+			return -1;
+		ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
+		this->f_cur_offset = cur_offset;
+		return nbytes_read;
+	}
+
+	//read blocks of data
+	nblocks = (count - first_nbytes) / BLOCK_SIZE;
+	last_nbytes = (count - first_nbytes) % BLOCK_SIZE;
+
+	for (i = 0; i < nblocks; i++)
+	{
+		if((nbytes_temp = read_a_block(this, buffer + nbytes_read, cur_offset)) == -1)
+			return -1;
+		ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
+	}
+
+	//read rest of data
+	if((nbytes_temp = read_rest_bytes(this, buffer + nbytes_read, last_nbytes, cur_offset)) == -1)
+		return -1;
+	ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
+	this->f_cur_offset = cur_offset;
+	return nbytes_read;
+}
+
+int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset)
+{
+	return 0;
+}
+
+off_t vfs_llseek(dataserver_file_t* this, off_t offset, seek_pos_t origin)
+{
+	size_t new_offset;
+	switch(origin)
+	{
+	case VFS_SEEK_SET:
+		new_offset = offset;
+		if (new_offset <= this->f_len && new_offset >= 0)
+			break;
+		return -1;
+	case VFS_SEEK_CUR:
+		new_offset = this->f_cur_offset + offset;
+		if(new_offset <= this->f_len && new_offset >= 0)
+			break;
+		return -1;
+	case VFS_SEEK_END:
+		new_offset = this->f_len + offset;
+		if(new_offset <= this->f_len && new_offset >= 0)
+			break;
+		return -1;
+	}
+	return new_offset;
 }
