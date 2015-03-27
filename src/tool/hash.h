@@ -14,7 +14,7 @@
 
 unsigned int simple_hash(char* str, unsigned int size);
 unsigned int PJWHash(char* str, unsigned int size);
-//将unsigned long int 转化成字符数组
-char* ultoa(size_t num, char* str);
+//将unsigned long long 转化成字符数组
+char* ulltoa(unsigned long long num, char* str);
 
 #endif

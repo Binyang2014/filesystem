@@ -18,7 +18,7 @@ static int init_hash_table(vfs_hashtable_t* s_hash_table)
 	//enough room to store INF_UNSIGNED_INT to make hash table as fast as possible
 	s_hash_table->hash_table_size = VFS_HASH_TBALE_SIZE;
 	s_hash_table->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int) * s_hash_table->hash_table_size);
-	s_hash_table->chunks_arr = (size_t* )malloc(sizeof(size_t) * s_hash_table->hash_table_size);
+	s_hash_table->chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long) * s_hash_table->hash_table_size);
 	if(s_hash_table->blocks_arr == NULL || s_hash_table->chunks_arr == NULL)
 	{
 		perror("in init_hash_table function");

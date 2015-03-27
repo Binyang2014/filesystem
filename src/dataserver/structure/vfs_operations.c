@@ -11,6 +11,7 @@
 #include <time.h>
 #include <stdio.h>
 #include <string.h>
+#include "../../tool/bitmap.h"
 #include "../../tool/hash.h"
 
 //------------------------block operations---------------------------------------------------
@@ -87,7 +88,7 @@ static char* find_a_block(dataserver_sb_t* dataserver_sb, unsigned int block_num
 	group_offset = block_num % blocks_per_groups;
 	if((group_offset + 1)  <= dataserver_sb->s_op->get_per_group_reserved)
 	{
-		fprintf("can not read reserved information\n");
+		fprintf(stderr, "can not read reserved information\n");
 		return NULL;
 	}
 	//may be we should check if this block's bitmap is set, we are not trust server
@@ -138,11 +139,11 @@ unsigned int get_per_group_reserved(dataserver_sb_t* this)
 
 //----------------------------------------------------------------------------------
 //给定chunk号，通过hash函数查找相应的block number号
-unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num)
+unsigned int find_a_block_num(dataserver_sb_t* this, unsigned long long chunk_num)
 {
 	char str[MAX_NUM_SIZE + 1];
 	unsigned int hash_num;
-	ultoa(chunk_num, str);
+	ulltoa(chunk_num, str);
 	hash_num = this->hash_function(str, this->s_hash_table->hash_table_size);
 
 	//Programmer should make sure that at least a value in block_arr is -1
@@ -158,11 +159,12 @@ unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num)
 	fprintf(stderr, "Can not find certain chunk_num in this hash table\n");
 	return INF_UNSIGNED_INT;
 }
-static unsigned int find_a_block_with_hash_num(dataserver_sb_t* this, size_t chunk_num, unsigned int* t_hash_num)
+static unsigned int find_a_block_with_hash_num(dataserver_sb_t* this, unsigned long long chunk_num,
+		unsigned int* t_hash_num)
 {
 	char str[MAX_NUM_SIZE + 1];
 	unsigned int hash_num = INF_UNSIGNED_INT;
-	ultoa(chunk_num, str);
+	ulltoa(chunk_num, str);
 	hash_num = this->hash_function(str, this->s_hash_table->hash_table_size);
 	//Programmer should make sure that at least a value in block_arr is -1
 	while(this->s_hash_table->blocks_arr[hash_num] != INF_UNSIGNED_INT &&
@@ -183,7 +185,7 @@ static unsigned int find_a_block_with_hash_num(dataserver_sb_t* this, size_t chu
 
 //success return address of array fail return null
 unsigned int* find_serials_blocks(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr)
+			unsigned long long* chunks_arr, unsigned int* blocks_arr)
 {
 	int i;
 	unsigned int t_block_number;
@@ -201,11 +203,11 @@ unsigned int* find_serials_blocks(dataserver_sb_t* this, int arr_size,
 
 //This function just find a suitable place to store a block of data, and return
 //the block number
-unsigned int alloc_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int block_num)
+unsigned int alloc_a_block(dataserver_sb_t* this, unsigned long long chunk_num, unsigned int block_num)
 {
 	unsigned int hash_num;
 	char str[MAX_NUM_SIZE + 1];
-	ultoa(chunk_num, str);
+	ulltoa(chunk_num, str);
 	hash_num = this->hash_function(str, this->s_hash_table->hash_table_size);
 
 	while(this->s_hash_table->blocks_arr[hash_num] != INF_UNSIGNED_INT)
@@ -222,7 +224,7 @@ unsigned int alloc_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int
 }
 
 unsigned int* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr)
+			unsigned long long* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr)
 {
 	int i;
 	unsigned int t_hash_num;
@@ -238,7 +240,7 @@ unsigned int* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
 }
 
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr)
+			unsigned long long* chunks_arr, unsigned int* blocks_arr)
 {
 	int i;
 	unsigned int t_hash_num;
@@ -254,7 +256,7 @@ int alloc_blocks(dataserver_sb_t* this, int arr_size,
 }
 
 //just like above, do not care really blocks and just modifies hash table
-unsigned int free_a_block(dataserver_sb_t* this, size_t chunk_num)
+unsigned int free_a_block(dataserver_sb_t* this, unsigned long long chunk_num)
 {
 	unsigned int block_num, hash_num;
 	block_num = find_a_block_with_hash_num(this, chunk_num, &hash_num);
@@ -269,7 +271,7 @@ unsigned int free_a_block(dataserver_sb_t* this, size_t chunk_num)
 }
 
 unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
-		size_t* chunks_arr, unsigned int* blocks_arr)
+		unsigned long long* chunks_arr, unsigned int* blocks_arr)
 {
 	int i;
 	unsigned int t_block_num;
@@ -284,7 +286,7 @@ unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
 	return blocks_arr;
 }
 
-int free_blocks(dataserver_sb_t* this, int arr_size, size_t* chunks_arr)
+int free_blocks(dataserver_sb_t* this, int arr_size, unsigned long long* chunks_arr)
 {
 	int i;
 	unsigned int t_block_num;
@@ -337,7 +339,7 @@ static int read_a_block(dataserver_file_t *this, char* buffer, off_t offset)
 
 	blocks_arr = this->f_blocks_arr;
 	block_num = blocks_arr[offset / BLOCK_SIZE];
-	if(! __bm_block_set(this->super_block->s_block), block_num)
+	if(! __bm_block_set(this->super_block->s_block, block_num))
 	{
 		fprintf(stderr, "You want to read a block that have no data in it\n");
 		return -1;
@@ -353,7 +355,7 @@ static int read_rest_bytes(dataserver_file_t *this, char* buffer, int nbytes, of
 
 	blocks_arr = this->f_blocks_arr;
 	block_num = blocks_arr[offset / BLOCK_SIZE];
-	if(! __bm_block_set(this->super_block->s_block), block_num)
+	if(! __bm_block_set(this->super_block->s_block, block_num))
 	{
 		fprintf(stderr, "You want to read a block that have no data in it\n");
 		return -1;
@@ -371,7 +373,7 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 
 	if(offset > this->f_len)
 	{
-		fprintf("offset is exceed over file length");
+		fprintf(stderr, "offset is exceed over file length");
 		return -1;
 	}
 	//at the end of file
@@ -434,7 +436,7 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 	return nbytes_read;
 }
 
-int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset)
+int vfs_write(dataserver_file_t* this, char* buffer, size_t count, off_t offset)
 {
 	return 0;
 }

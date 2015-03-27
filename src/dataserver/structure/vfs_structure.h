@@ -24,6 +24,7 @@
 )
 
 #include <pthread.h>
+#include <sys/types.h>
 #include "basic_structure.h"
 
 struct dataserver_super_block;
@@ -47,7 +48,7 @@ struct vfs_hashtable
 {
 	int hash_table_size;
 	unsigned int *blocks_arr;
-	size_t *chunks_arr;
+	unsigned long long *chunks_arr;
 };
 
 struct super_block_operations
@@ -63,17 +64,17 @@ struct super_block_operations
 
 	unsigned int(*find_a_block_num)(struct dataserver_super_block*, size_t chunk_num);
 	unsigned int* (*find_serials_blocks)(struct dataserver_super_block*, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr);
+			unsigned long long* chunks_arr, unsigned int* blocks_arr);
 
 	//use chunks number and blocks number to contribute hash table, so it will be convenient to search
 	//these functions do use really write to blocks or read from blocks
 	int (*alloc_blocks)(struct dataserver_super_block*, int arr_size,
-				size_t* chunks_arr, unsigned int* blocks_arr);
+				unsigned long long* chunks_arr, unsigned int* blocks_arr);
 	unsigned int* (*alloc_blocks_with_hash)(struct dataserver_super_block*, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
-	int (*free_blocks)(struct dataserver_super_block*, int arr_size, size_t* chunks_arr);
-	unsigned int* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size, size_t* chunks_arr,
-			unsigned int* blocks_arr);
+			unsigned long long* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
+	int (*free_blocks)(struct dataserver_super_block*, int arr_size, unsigned long long* chunks_arr);
+	unsigned int* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size,
+			unsigned long long* chunks_arr, unsigned int* blocks_arr);
 	//success return block number else return -1
 	unsigned int (*alloc_a_block)(struct dataserver_super_block*, size_t chunk_num, unsigned int block_num);;
 	unsigned int (*free_a_block)(struct dataserver_super_block*, size_t chunk_num);
@@ -86,7 +87,7 @@ struct super_block_operations
 
 struct file_operations
 {
-	size_t (*vfs_llseek)(struct dataserver_file*, off_t offset, seek_pos_t origin);
+	size_t (*vfs_llseek)(struct dataserver_file*, off_t offset, enum seek_pos origin);
 	int (*vfs_read)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
 	int (*vfs_write)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
 	//int (*open)(struct dataserver_file*, int mode); open函数似乎不需要，直接新建一个file_dataserver的对象即可
@@ -169,25 +170,25 @@ time_t get_last_write_time(dataserver_sb_t* this);
 unsigned short get_superblock_status(dataserver_sb_t* this);
 unsigned int get_per_group_reserved(dataserver_sb_t* this);
 
-unsigned int find_a_block_num(dataserver_sb_t* this, size_t chunk_num);
+unsigned int find_a_block_num(dataserver_sb_t* this, unsigned long long chunk_num);
 unsigned int* find_serials_blocks(struct dataserver_super_block*, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr);
-unsigned int alloc_a_block(dataserver_sb_t* this, size_t chunk_num, unsigned int block_num);
+			unsigned long long* chunks_arr, unsigned int* blocks_arr);
+unsigned int alloc_a_block(dataserver_sb_t* this, unsigned long long chunk_num, unsigned int block_num);
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr);
+			unsigned long long* chunks_arr, unsigned int* blocks_arr);
 unsigned int* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
-			size_t* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
-unsigned int free_a_block(dataserver_sb_t* this, size_t chunk_num);
+			unsigned long long* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
+unsigned int free_a_block(dataserver_sb_t* this, unsigned long long chunk_num);
 unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
-		size_t* chunks_arr, unsigned int* blocks_arr);
-int free_blocks(dataserver_sb_t* this, int arr_size, size_t* chunks_arr);
+		unsigned long long* chunks_arr, unsigned int* blocks_arr);
+int free_blocks(dataserver_sb_t* this, int arr_size, unsigned long long* chunks_arr);
 
 void print_sb_imf(dataserver_sb_t* this);
 
 //following functions is implemented in file vfs_operations.c about file operations
 int vfs_read(dataserver_file_t*, char* buffer, size_t count, off_t offset);
 int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset);
-off_t vfs_llseek(dataserver_file_t*,, off_t offset, seek_pos_t origin);
+off_t vfs_llseek(dataserver_file_t*, off_t offset, seek_pos_t origin);
 
 //following functions will be finished in file vfs_structure.c
 dataserver_sb_t * init_vfs_sb(char* filesystem);

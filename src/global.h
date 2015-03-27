@@ -7,4 +7,6 @@ extern const unsigned int MAX_ALLOC_SIZE;
 extern const unsigned int CHUNK_SIZE;
 extern const unsigned int INF_UNSIGNED_INT;
 extern const unsigned long INF_UNSIGNED_LONG;
+
+extern const unsigned int ;
 #endif
