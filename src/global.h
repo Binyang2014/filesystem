@@ -3,10 +3,11 @@
   *****************************************************/
 #ifndef _GLOBAL_H_
 #define _GLOBAL_H_
-extern const unsigned int MAX_ALLOC_SIZE;
-extern const unsigned int CHUNK_SIZE;
-extern const unsigned int INF_UNSIGNED_INT;
-extern const unsigned long INF_UNSIGNED_LONG;
+#define MAX_ALLOC_SIZE (1<<30)
+#define CHUNK_SIZE  0
+#define INF_UNSIGNED_INT (~0U)
+#define INF_UNSIGNED_LONG  (~0UL)
 
-extern const unsigned int ;
+#define MAXLINE 4096
+
 #endif

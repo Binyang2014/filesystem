@@ -4,8 +4,8 @@
  *
  * implement of error.h
  */
-#define MAXLINE 4096
 
+#include "../global.h"
 #include "errinfo.h"
 #include <errno.h>
 #include <stdarg.h>		/* ANSI C header file */

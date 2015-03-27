@@ -5,7 +5,7 @@ int main()
 {
 	unsigned long int test = ~0;
 	char str[MAX_NUM_SIZE + 1];
-	ultoa(test, str);
+	ulltoa(test, str);
 	printf("%s\n", str);
 	return 0;
 }
