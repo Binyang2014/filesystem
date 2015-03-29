@@ -15,7 +15,6 @@ ARFLAG = rv
 
 LD = $(CC)
 LDFLAGS = -ltool
-LIBPATH = $(TOPDIR)/lib
 
 INCLUDE = 
 CFLAGS = -Wall -g $(INCLUDE)
