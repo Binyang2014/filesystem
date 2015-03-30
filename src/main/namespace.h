@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "file_name_handle.h"
-#include "namespaceparam.h"
+#include "namespace_param.h"
 
 #define PARENT_HASH_LENGTH 10
 #define CHILD_HASH_LENGTH 10
@@ -28,7 +28,7 @@ struct file_dir_node
 struct file_request_queue{
 };
 
-static int create_file(char *name, int lenght, int size);
+static int create_file(char *name, int length, int size);
 
 int create_dir(char *name, int length);
 
