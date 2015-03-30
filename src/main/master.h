@@ -17,12 +17,25 @@
  */
 struct data_server_des **data_servers;
 
+
 void master_init(int rank);
 
 void master_server();
 
+void log_backup();
+
+void heart_blood();
+
+void namespace_control();
+
+/**
+ *
+ */
+
 pthread_t thread_master_log_backup, thread_master_namespace, thread_master_heart;
 
-unsigned char buff[];
+unsigned char buff[100];
+
+
 
 #endif /* SRC_MAIN_MASTER_H_ */

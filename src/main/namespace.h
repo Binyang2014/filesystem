@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "file_name_handle.h"
-#include "namespaceparam.h"
+#include "namespace_param.h"
 
 #define PARENT_HASH_LENGTH 10
 #define CHILD_HASH_LENGTH 10

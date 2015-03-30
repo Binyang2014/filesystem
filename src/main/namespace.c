@@ -1,8 +1,13 @@
-
+/**
+ *
+ */
 #include "namespace.h"
 
 struct file_dir_node *par_dirs[PARENT_HASH_LENGTH];
 
+/**
+ * 打印命名空间
+ */
 void print_dir(){
 	int i = 0, j;
 	struct file_dir_node *f;
@@ -31,6 +36,9 @@ void print_dir(){
 	c = 0;
 }
 
+/**
+ * 初始化命名空间，创建根目录
+ */
 void init(){
 	memset(par_dirs, 0, sizeof(struct file_dir_node *) * PARENT_HASH_LENGTH);
 	struct file_dir_node *root = (struct file_dir_node *)malloc(sizeof(struct file_dir_node));
@@ -174,6 +182,9 @@ int create_dir(const char *path)
 	return create_success;
 }
 
+/**
+ * 重命名文件
+ */
 int rename_file(const char *old_name, const char *new_name)
 {
 	int new_name_length = strlen(new_name);
@@ -206,11 +217,3 @@ int test_create_dir(){
 	puts("创建目录成功");
 	return 0;
 }
-
-//int main(){
-//	init();
-//	printf("创建文件返回=%d\n", create_dir("/123"));
-//	printf("创建文件返回=%d\n", create_dir("/123/34"));
-//	print_dir();
-//	return 0;
-//}

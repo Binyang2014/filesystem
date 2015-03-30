@@ -15,25 +15,28 @@ void master_init(int rank)
 }
 
 /**
- *
+ *	master的服务
  */
 void master_server(){
 
 }
 
+/**
+ * master记录日志
+ */
 void log_backup(){
 
 }
 
 /*
- *
+ * master接受心跳信息
  */
 void heart_blood(){
 
 }
 
 /**
- *
+ *	命名空间的操作
  */
 void namespace_control(){
 	while(1){

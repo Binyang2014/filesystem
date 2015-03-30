@@ -4,7 +4,6 @@
  *  Created on: 2015年1月1日
  *      Author: ron
  */
-
 #ifndef SRC_MAIN_OPERA_CODE_STURCTURE_H_
 #define SRC_MAIN_OPERA_CODE_STURCTURE_H_
 #include "mpi.h"
@@ -19,7 +18,6 @@ const int renmae_dir_code = 105;
 
 pthread_mutex_t lock_namespace;
 
-#endif /* SRC_MAIN_OPERA_CODE_STURCTURE_H_ */
 
 /**
  * 创建文件，文件描述
@@ -50,4 +48,13 @@ struct data_server_des
 	int avail_memory;	//可用的内存
 };
 
+/**
+ * 操作指令数据结构
+ */
+struct opera_des
+{
+	unsigned int opera_code; //操作码
+	MPI_Comm mpi_comm;
+};
 
+#endif /* SRC_MAIN_OPERA_CODE_STURCTURE_H_ */

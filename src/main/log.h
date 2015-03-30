@@ -8,6 +8,6 @@
 #ifndef SRC_MAIN_LOG_H_
 #define SRC_MAIN_LOG_H_
 
-
+void log_append();
 
 #endif /* SRC_MAIN_LOG_H_ */
