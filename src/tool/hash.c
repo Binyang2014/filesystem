@@ -39,7 +39,7 @@ unsigned int PJWHash(char* str, unsigned int size)
 	return hash % size;
 }
 
-char* ultoa(size_t num, char* str)
+char* ulltoa(unsigned long long num, char* str)
 {
 	int count = 0, i;
 	char *temp;

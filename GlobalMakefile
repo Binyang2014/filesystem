@@ -11,10 +11,10 @@ CC = gcc
 CXX = g++
 
 AR = ar
-ARFLAG = 
+ARFLAG = rv
 
 LD = $(CC)
-LDFLAGS = 
+LDFLAGS = -ltool
 
 INCLUDE = 
 CFLAGS = -Wall -g $(INCLUDE)

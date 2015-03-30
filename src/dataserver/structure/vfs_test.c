@@ -13,7 +13,7 @@ int main()
 	size_t chunk_num = 12;
 	int i;
 
-	size_t chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
+	unsigned long long chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
 			0x1243576, 0xff32};
 	unsigned int blocks_arr[10] = {12, 6543, 432657, 34, 1234, 4356, 1904, 8192, 7935, 23876};
 	unsigned int blocks_arr_t[10];

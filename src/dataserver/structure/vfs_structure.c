@@ -18,7 +18,7 @@ static int init_hash_table(vfs_hashtable_t* s_hash_table)
 	//enough room to store INF_UNSIGNED_INT to make hash table as fast as possible
 	s_hash_table->hash_table_size = VFS_HASH_TBALE_SIZE;
 	s_hash_table->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int) * s_hash_table->hash_table_size);
-	s_hash_table->chunks_arr = (size_t* )malloc(sizeof(size_t) * s_hash_table->hash_table_size);
+	s_hash_table->chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long) * s_hash_table->hash_table_size);
 	if(s_hash_table->blocks_arr == NULL || s_hash_table->chunks_arr == NULL)
 	{
 		perror("in init_hash_table function");
@@ -48,9 +48,11 @@ static void init_sb_op(superblock_op_t* s_op)
 	s_op->get_blocks_count = get_blocks_count;
 	s_op->get_free_blocks_count = get_free_blocks_count;
 	s_op->get_groups_conut = get_groups_conut;
+	s_op->get_blocks_per_groups = get_blocks_per_groups;
 	s_op->get_filesystem_version = get_filesystem_version;
 	s_op->get_last_write_time = get_last_write_time;
 	s_op->get_superblock_status = get_superblock_status;
+	s_op->get_per_group_reserved = get_per_group_reserved;
 
 	s_op->find_a_block_num = find_a_block_num;
 	s_op->find_serials_blocks = find_serials_blocks;
@@ -121,3 +123,4 @@ dataserver_sb_t * init_vfs_sb(char* filesystem)
 
 	return dataserver_sb;
 }
+
