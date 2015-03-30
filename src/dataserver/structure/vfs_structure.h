@@ -8,20 +8,17 @@
  */
 #ifndef _VFS_STRUCTURE_H_
 #define _VFS_STRUCTURE_H_
-#define VFS_HASH_TBALE_SIZE ((1<<20) + (1<<19))
+#define VFS_HASH_TBALE_SIZE ((1<<20) + (1<<19))//define the size of hash table
 
-//file open mode, there are no open function here
-#define VFS_READ = 0x01
-#define VFS_WRITE = 0x10
-#define VFS_APPEND = 0x100
-#define VFS_TEXT = 0x1000
-#define VFS_BINARY = 0x10000
 //simple function used by read
 #define ALL_ADD_THIRD(c, r, t)   \
 (                                  \
     (c) = (c) + (t),               \
     (r) = (r) + (t)                \
 )
+#define VFS_READ 0x01
+#define VFS_WRITE 0x10
+
 
 #include <pthread.h>
 #include <sys/types.h>
@@ -31,18 +28,11 @@ struct dataserver_super_block;
 struct dataserver_file;
 struct dataserver_block;
 
-enum seek_pos
-{
-	VFS_SEEK_SET,
-	VFS_SEEK_CUR,
-	VFS_SEEK_END
-};
-
-struct list_head
-{
-	struct list_head *pre;
-	struct list_head *next;
-};
+//struct list_head
+//{
+//	struct list_head *pre;
+//	struct list_head *next;
+//};
 
 struct vfs_hashtable
 {
@@ -62,7 +52,7 @@ struct super_block_operations
 	unsigned short (*get_superblock_status)(struct dataserver_super_block*);
 	unsigned int (*get_per_group_reserved)(struct dataserver_super_block*);
 
-	unsigned int(*find_a_block_num)(struct dataserver_super_block*, size_t chunk_num);
+	unsigned int(*find_a_block_num)(struct dataserver_super_block*, unsigned long long chunk_num);
 	unsigned int* (*find_serials_blocks)(struct dataserver_super_block*, int arr_size,
 			unsigned long long* chunks_arr, unsigned int* blocks_arr);
 
@@ -84,20 +74,15 @@ struct super_block_operations
 	//clear chunk and block
 };
 
-
+/**
+ * 数据节点不会保存一个打开文件的状态，只提供基本的读写操作
+ * 一个打开文件的状态应该由客户端来提供
+ * only one  copy, there are functions!!!
+ */
 struct file_operations
 {
-	size_t (*vfs_llseek)(struct dataserver_file*, off_t offset, enum seek_pos origin);
 	int (*vfs_read)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
 	int (*vfs_write)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
-	//int (*open)(struct dataserver_file*, int mode); open函数似乎不需要，直接新建一个file_dataserver的对象即可
-	//close函数同样不应该在这里出现
-};
-
-//used to cache temporary data
-struct dataserver_block
-{
-	char block[BLOCK_SIZE];
 };
 
 //only one copy in memory
@@ -105,23 +90,24 @@ struct dataserver_super_block
 {
 	super_block_t* s_block;
 	pthread_mutex_t s_mutex;
-	struct list_head *s_files;
+
 	struct super_block_operations *s_op;
 
 	struct vfs_hashtable *s_hash_table;
 	unsigned int (*hash_function)(char* str, unsigned int size);
 };
 
-//once open a file, this structure should be built
-//process use fd to control file not file name
+/**
+ * reconsider this structure. In data server, we do not care if the args is right,
+ * before send command to data server, the args should be checked and make sure
+ * there is no error. The length of file is no more needed
+*/
 struct dataserver_file//I think we need a file structure to point opening files
 {
-	struct list_head* f_open_list;//Should be a two-way circular list
 	struct dataserver_super_block *super_block;
 	off_t f_cur_offset;
-	size_t f_len;
-	unsigned int f_mode;
-	unsigned int *f_chunks_arr;
+	int arr_len;
+	unsigned long long *f_chunks_arr;
 	unsigned int *f_blocks_arr;
 	struct file_operations *f_op;
 };
@@ -130,8 +116,7 @@ typedef struct dataserver_super_block dataserver_sb_t;
 typedef struct dataserver_file dataserver_file_t;
 typedef struct vfs_hashtable vfs_hashtable_t;
 typedef struct super_block_operations superblock_op_t;
-typedef struct list_head list_head_t;
-typedef enum seek_pos seek_pos_t;
+typedef struct file_operations file_op_t;
 
 //these function I want to be used inline
 inline static unsigned long* __get_bitmap_block(super_block_t* super_block, unsigned int block_num)
@@ -188,8 +173,12 @@ void print_sb_imf(dataserver_sb_t* this);
 //following functions is implemented in file vfs_operations.c about file operations
 int vfs_read(dataserver_file_t*, char* buffer, size_t count, off_t offset);
 int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset);
-off_t vfs_llseek(dataserver_file_t*, off_t offset, seek_pos_t origin);
 
 //following functions will be finished in file vfs_structure.c
+//this function should be called first
+int vfs_basic_init();
 dataserver_sb_t * init_vfs_sb(char* filesystem);
+//buffer provide by data server, it can not be null
+dataserver_file_t* init_vfs_file(dataserver_sb_t*, dataserver_file_t*, off_t,
+		vfs_hashtable_t* arr_table, short mode);
 #endif

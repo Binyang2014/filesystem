@@ -8,8 +8,11 @@
  */
 #include "vfs_structure.h"
 #include "../../tool/hash.h"
+#include "../tool/errinfo.h"
 #include <stdio.h>
 #include <string.h>
+
+static file_op_t* file_op;
 
 static int init_hash_table(vfs_hashtable_t* s_hash_table)
 {
@@ -27,20 +30,6 @@ static int init_hash_table(vfs_hashtable_t* s_hash_table)
 	memset(s_hash_table->blocks_arr, -1, sizeof(unsigned int) * s_hash_table->hash_table_size);
 	memset(s_hash_table->chunks_arr, -1, sizeof(size_t) * s_hash_table->hash_table_size);
 	return 0;
-}
-
-static list_head_t* alloc_list_head()
-{
-	list_head_t* list_head;
-	list_head = (list_head_t* )malloc(sizeof(list_head_t));
-	if(list_head == NULL)
-	{
-		perror("in init_list_head");
-		return NULL;
-	}
-	list_head->next = list_head;
-	list_head->pre = list_head;
-	return list_head;
 }
 
 static void init_sb_op(superblock_op_t* s_op)
@@ -66,6 +55,27 @@ static void init_sb_op(superblock_op_t* s_op)
 	s_op->print_sb_imf = print_sb_imf;
 }
 
+//init file operations
+static void init_file_op(file_op_t* f_op)
+{
+	f_op->vfs_read = vfs_read;
+	f_op->vfs_write = vfs_write;
+}
+
+//set value to some static variable
+int vfs_basic_init()
+{
+
+	file_op = (file_op_t *)malloc(sizeof(file_op_t));
+	if(file_op == NULL)
+	{
+		err_ret("in vfs_basic_init");
+		return -1;
+	}
+	init_file_op(file_op);
+	return 0;
+}
+
 dataserver_sb_t * init_vfs_sb(char* filesystem)
 {
 	dataserver_sb_t *dataserver_sb;
@@ -76,7 +86,6 @@ dataserver_sb_t * init_vfs_sb(char* filesystem)
 		return NULL;
 	}
 
-	dataserver_sb->s_files = NULL;
 	dataserver_sb->s_block = (super_block_t *)filesystem;
 	dataserver_sb->hash_function = PJWHash;//You can alter it as you wish
 	dataserver_sb->s_hash_table = NULL;
@@ -104,12 +113,6 @@ dataserver_sb_t * init_vfs_sb(char* filesystem)
 		return NULL;
 	}
 
-	//initial head list
-	if((dataserver_sb->s_files = alloc_list_head()) == NULL)
-	{
-		free(dataserver_sb);
-		return NULL;
-	}
 
 	//initial superblock operations
 	dataserver_sb->s_op = (superblock_op_t *)malloc(sizeof(superblock_op_t));
@@ -122,5 +125,34 @@ dataserver_sb_t * init_vfs_sb(char* filesystem)
 	init_sb_op(dataserver_sb->s_op);
 
 	return dataserver_sb;
+}
+
+dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t* v_file_buff,
+		off_t offset, vfs_hashtable_t* arr_table, short mode)
+{
+	if(v_file_buff == NULL || offset < 0 || offset > BLOCK_SIZE)
+	{
+		err_msg("args wrong in init_vfs_file");
+		return NULL;
+	}
+	v_file_buff->super_block = super_block;
+	v_file_buff->f_cur_offset = offset;
+	v_file_buff->arr_len = arr_table->hash_table_size;
+	v_file_buff->f_blocks_arr = arr_table->blocks_arr;
+	v_file_buff->f_chunks_arr = arr_table->chunks_arr;
+	v_file_buff->f_op = file_op;
+
+	if(mode == VFS_READ)
+	{
+		if( v_file_buff->super_block->s_op->find_serials_blocks(v_file_buff->super_block, v_file_buff->arr_len,
+				v_file_buff->f_chunks_arr, v_file_buff->f_blocks_arr)==NULL )
+		{
+			err_msg("in init_vfs_file, something wrong");
+			return NULL;
+		}
+		else
+			return v_file_buff;
+	}
+	return v_file_buff;
 }
 

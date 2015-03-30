@@ -6,7 +6,7 @@
  *
  * this file define some hash functions
  */
-#ifndef _HSAH_H_
+#ifndef _HASH_H_
 #define _HASH_H_
 #define MAX_NUM_SIZE 20
 

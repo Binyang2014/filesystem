@@ -1,5 +1,5 @@
 TOPDIR = ../../..
-TEST_PROGRAM = test vfs_test
+TEST_PROGRAM = struct_test vfs_test
 
 include $(TOPDIR)/GlobalMakefile
 
