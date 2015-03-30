@@ -4,23 +4,23 @@
  *  Created on: 2015年1月4日
  *      Author: ron
  */
-
-#ifndef SRC_MAIN_CLIENT_H_
-#define SRC_MAIN_CLIENT_H_
-
 #include "mpi.h"
 #include "opera_code_sturcture.h"
 #include "conf.h"
 
+#ifndef SRC_MAIN_CLIENT_H_
+#define SRC_MAIN_CLIENT_H_
+
+
 enum client_request{
-	create_file,
-	create_dir,
-	del_file,
-	del_dir,
-	rename_file,
-	rename_dir,
-	mv_file,
-	mv_dir
+	CREATE_FILE,
+	CREATE_DIR,
+	DEL_FILE,
+	DEL_DIR,
+	RENAME_FILE,
+	RENAME_DIR,
+	MV_FILE,
+	MV_DIR
 };
 
 struct request_queue{
@@ -40,4 +40,20 @@ int queue_size;
 
 struct request_queue *queue_head, *queue_tail;
 
+/*****************instruction interface***********************/
+
+static int create_file(char *file_name);
+
+static int delete_file(char *dir_name);
+
+static int create_dir(char *dir_name);
+
+
+
 #endif /* SRC_MAIN_CLIENT_H_ */
+
+
+#ifndef _CLIENT_MPI_COM
+#define _CLIENT_MPI_CPM
+
+#endif

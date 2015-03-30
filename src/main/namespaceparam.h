@@ -1,15 +1,12 @@
 #ifndef _FILESYSTM_CONSTANT_NAMESPACEPARAM_H_
 #define _FILESYSTM_CONSTANT_NAMESPACEPARAM_H_
 
-
-
 //文件名长度
 const int file_name_max_length = 256;
 //父目录映射长度
 const int parent_dir_hash_length = 10;
 //子目录影射长度
 const int child_dir_hash_legth = 1024;
-
 
 //文件名不合法
 const int illegal_file_name = 1000;

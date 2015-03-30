@@ -5,17 +5,20 @@
 /**
  * 表示一个mpi环境中机器
  */
-struct mpi_machine{
+typedef struct mpi_machine{
 	MPI_Comm comm;
 	int rank;
-};
+}mpi_machine;
+
+/**
+ * information of master machine
+ */
+extern mpi_machine master;
 
 const int necessary_machine_num = 3;
 /**
  * master MPI_COMM_WORLD id
  */
 
-struct mpi_machine *master;
-
-struct mpi_machine **backup_master;
+mpi_machine **backup_master;
 #endif

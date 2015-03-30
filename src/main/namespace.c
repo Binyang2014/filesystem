@@ -31,6 +31,10 @@ void print_dir(){
 	c = 0;
 }
 
+/**
+ * Initialize the name space
+ * create the root directory "/"
+ */
 void init(){
 	memset(par_dirs, 0, sizeof(struct file_dir_node *) * PARENT_HASH_LENGTH);
 	struct file_dir_node *root = (struct file_dir_node *)malloc(sizeof(struct file_dir_node));
