@@ -10,4 +10,15 @@
 
 #define MAXLINE 4096
 
+//following is about message type
+#define MAX_COM_MSG_LEN 4096
+
+//following is operation code in message
+#define MSG_READ 0x00
+#define MSG_WRITE 0x01
+//...
+
+//use for debug
+#define DEBUG 1
+#define VFS_RW_DEBUG 1
 #endif
