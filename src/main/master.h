@@ -12,6 +12,7 @@
 #include "conf.h"
 #include "pthread.h"
 #include "mpi.h"
+#include "../tool/message.h"
 
 /**
  * master维护的数据服务器状态
@@ -19,15 +20,15 @@
 struct data_server_des **data_servers;
 
 
-void master_init(int rank);
+static void master_init(int rank);
 
-void master_server();
+static void master_server();
 
-void log_backup();
+static void log_backup();
 
-void heart_blood();
+static void heart_blood();
 
-void namespace_control();
+static void namespace_control();
 
 /**
  *

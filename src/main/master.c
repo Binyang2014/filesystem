@@ -6,6 +6,7 @@
  */
 #include "master.h"
 
+
 void master_init(int rank)
 {
 	master->rank = rank;
@@ -18,7 +19,7 @@ void master_init(int rank)
  *	master的服务
  */
 void master_server(){
-
+	MPI_Recv();
 }
 
 /**
