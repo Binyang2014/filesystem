@@ -108,7 +108,7 @@ struct dataserver_super_block
 struct dataserver_file//I think we need a file structure to point opening files
 {
 	struct dataserver_super_block *super_block;
-	off_t f_cur_offset;
+	//off_t f_cur_offset;
 	int arr_len;
 	unsigned long long *f_chunks_arr;
 	unsigned int *f_blocks_arr;
@@ -182,6 +182,6 @@ int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset);
 int vfs_basic_init();
 dataserver_sb_t * init_vfs_sb(char* filesystem);
 //buffer provide by data server, it can not be null
-dataserver_file_t* init_vfs_file(dataserver_sb_t*, dataserver_file_t*, off_t,
+dataserver_file_t* init_vfs_file(dataserver_sb_t*, dataserver_file_t*,
 		vfs_hashtable_t* arr_table, short mode);
 #endif
