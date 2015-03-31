@@ -4,57 +4,110 @@
  */
 #include "vfs_structure.h"
 #include <stdio.h>
+#include <stdlib.h>
 
-int main()
+static unsigned long long chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
+		0x1243576, 0xff32};
+static char write_buff[4096] = {0};
+static char read_buff[4096] = {0};
+vfs_hashtable_t* init_hashtable(int hash_len)
 {
-	char* filesystem;
-	dataserver_sb_t* d_superblock;
+	vfs_hashtable_t* hash_table = (vfs_hashtable_t* )malloc(sizeof(vfs_hashtable_t));
+	hash_table->hash_table_size = hash_len;
+	hash_table->chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long) * hash_len);
+	hash_table->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int) * hash_len);
+	return hash_table;
+}
+
+void s_hash_test(dataserver_sb_t* d_sb)
+{
 	unsigned int block_num = 255, hash_num;
 	size_t chunk_num = 12;
 	int i;
 
-	unsigned long long chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
-			0x1243576, 0xff32};
 	unsigned int blocks_arr[10] = {12, 6543, 432657, 34, 1234, 4356, 1904, 8192, 7935, 23876};
 	unsigned int blocks_arr_t[10];
-	unsigned int hash_arr[10];
 	unsigned int* ans;
 
-	filesystem = init_mem_file_system(MIDDLE, 1);
-	d_superblock = init_vfs_sb(filesystem);
-	d_superblock->s_op->print_sb_imf(d_superblock);
-
 	//I will test if hash table works well
-	hash_num = d_superblock->s_op->alloc_a_block(d_superblock, chunk_num, block_num);
+	hash_num = d_sb->s_op->alloc_a_block(d_sb, chunk_num, block_num);
+	printf("hash number is %u\n", hash_num);
+	hash_num = d_sb->s_op->find_a_block_num(d_sb, chunk_num);
 	printf("block number is %u\n", hash_num);
-	hash_num = d_superblock->s_op->find_a_block_num(d_superblock, chunk_num);
+	hash_num = d_sb->s_op->free_a_block(d_sb, chunk_num);
 	printf("block number is %u\n", hash_num);
-	hash_num = d_superblock->s_op->free_a_block(d_superblock, chunk_num);
-	printf("block number is %u\n", hash_num);
-	hash_num = d_superblock->s_op->find_a_block_num(d_superblock, chunk_num);
+	hash_num = d_sb->s_op->find_a_block_num(d_sb, chunk_num);
 	printf("block number is %u\n", hash_num);
 
-	d_superblock->s_op->alloc_blocks(d_superblock, 10, chunks_arr, blocks_arr);
-	//	for(i = 0; i < 10; i++)
-//	d_superblock->s_op->alloc_blocks_with_hash(d_superblock, 10, chunks_arr, blocks_arr, hash_arr);
-//	for(i = 0; i < 10; i++)
-//		printf("%u\t", hash_arr[i]);
-//	printf("\n");
-	d_superblock->s_op->find_serials_blocks(d_superblock, 10, chunks_arr, blocks_arr_t);
+	d_sb->s_op->alloc_blocks(d_sb, 10, chunks_arr, blocks_arr);
+	d_sb->s_op->find_serials_blocks(d_sb, 10, chunks_arr, blocks_arr_t);
 	for(i = 0; i < 10; i++)
 		printf("%u\t", blocks_arr_t[i]);
 	printf("\n");
-	d_superblock->s_op->free_blocks(d_superblock, 10, chunks_arr);
-//	d_superblock->s_op->free_blocks_with_return(d_superblock, 10, chunks_arr, blocks_arr);
-//	for(i = 0; i < 10; i++)
-//		printf("%u\t", blocks_arr[i]);
-//	printf("\n");
-	ans = d_superblock->s_op->find_serials_blocks(d_superblock, 10, chunks_arr, blocks_arr_t);
+
+	d_sb->s_op->free_blocks(d_sb, 10, chunks_arr);
+	ans = d_sb->s_op->find_serials_blocks(d_sb, 10, chunks_arr, blocks_arr_t);
 	if(ans != NULL)
 	{
 		for(i = 0; i < 10; i++)
 			printf("%u\t", blocks_arr_t[i]);
 		printf("\n");
 	}
+}
+
+void vfs_basic_read_write_test(dataserver_file_t* d_file)
+{
+	int i, arr_len;
+	unsigned int offset;
+	arr_len = d_file->arr_len;
+	for(i = 0; i < arr_len; i++)
+		d_file->f_chunks_arr[i] = chunks_arr[i];
+
+	printf("write to write buffer\n");
+	for(i = 0; i < 9; i++)
+	{
+		write_buff[i] = '0' + i;
+		printf("%c ", write_buff[i]);
+	}
+	printf("\n");
+
+	offset = 2;
+	d_file->f_op->vfs_write(d_file, write_buff, 5, offset);
+	printf("-----------------------------------------------------------------\n");
+
+	d_file->f_op->vfs_read(d_file, read_buff, 5, offset);
+	printf("read from blocks\n");
+	for(i = 0; i < 5; i++)
+	{
+		printf("%c ", read_buff[i]);
+	}
+	printf("\nfinish basic read write test!!!\n");
+}
+
+int main()
+{
+	char* filesystem;
+	dataserver_sb_t* d_superblock;
+	dataserver_file_t* d_file;
+	vfs_hashtable_t* f_arr;
+	int f_arr_len;
+	off_t offset;
+
+	vfs_basic_init();
+	filesystem = init_mem_file_system(MIDDLE, 1);
+	d_superblock = init_vfs_sb(filesystem);
+	d_superblock->s_op->print_sb_imf(d_superblock);
+	s_hash_test(d_superblock);
+	printf("------------------------------------------------\n\n");
+
+	printf("-------------test about file operations------------\n");
+	//init structure of data server file
+	d_file = (dataserver_file_t* )malloc(sizeof(dataserver_file_t));
+	f_arr_len = 8;
+	offset = 0;
+	f_arr = init_hashtable(f_arr_len);
+	d_file = init_vfs_file(d_superblock, d_file, offset, f_arr, VFS_WRITE);
+
+	vfs_basic_read_write_test(d_file);
 	return 0;
 }
