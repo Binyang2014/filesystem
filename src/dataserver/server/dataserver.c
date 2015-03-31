@@ -1,5 +1,5 @@
 #include "dataserver.h"
-#include "type/basic_structure.h"
+#include "../structure/basic_structure.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>

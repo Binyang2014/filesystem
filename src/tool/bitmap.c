@@ -53,11 +53,11 @@ static int __bitmap_full(const unsigned long *bitmap, unsigned int bits)
  * is multiple of that power of 2.
  */
 static unsigned long bitmap_find_next_zero_area_off(unsigned long *map,
-					     unsigned long size,
-					     unsigned long start,
-					     unsigned int nr,
-					     unsigned long align_mask,
-					     unsigned long align_offset)
+                         unsigned long size,
+                         unsigned long start,
+                         unsigned int nr,
+                         unsigned long align_mask,
+                         unsigned long align_offset)
 {
 	unsigned long index, end, i;
 again:
@@ -149,7 +149,8 @@ void bitmap_clear(unsigned long *bitmap, unsigned int start, int len)
 	}
 }
 
-int bitmap_empty(unsigned long *bitmap, int nbits)
+//Are all bits zero in *bitmap?
+int bitmap_empty(const unsigned long *bitmap, int nbits)
 {
 	if ( nbits < BITS_PER_LONG )
 		return ! (*bitmap & BITMAP_LAST_WORD_MASK(nbits));
@@ -157,6 +158,17 @@ int bitmap_empty(unsigned long *bitmap, int nbits)
 		return __bitmap_empty(bitmap, nbits);
 }
 
+//Is certain bit zero in *bitmap?
+int bitmap_a_bit_empty(const unsigned long *bitmap, unsigned int bit_num)
+{
+	unsigned int nwords = bit_num / BITS_PER_LONG;
+	const unsigned long *word;
+
+	word = bitmap + nwords;
+	return ! (*word & BIT_SHIFT_IN_WORD(bit_num));
+}
+
+//Are all bits set in *bitmap?
 int bitmap_full(const unsigned long *src, unsigned int nbits)
 {
 	if (nbits < BITS_PER_LONG)
@@ -165,7 +177,15 @@ int bitmap_full(const unsigned long *src, unsigned int nbits)
 		return __bitmap_full(src, nbits);
 }
 
+//Is certain bit set in *bitmap?
+int bitmap_a_bit_full(const unsigned long *bitmap, unsigned int bit_num)
+{
+	unsigned int nwords = bit_num / BITS_PER_LONG;
+	const unsigned long *word;
 
+	word = bitmap + nwords;
+	return ! (~(*word) & BIT_SHIFT_IN_WORD(bit_num));
+}
 
 /**
 * ffs - find first bit set
@@ -194,7 +214,7 @@ unsigned long find_first_zero_bit(const unsigned long *addr, unsigned long size)
 	unsigned long result = 0;
 	unsigned long tmp;
 
-	while (size & ~(BITS_PER_LONG-1)) {//相当于除法，由于BITS_PER_LONG是2的整数倍
+	while (size & ~(BITS_PER_LONG-1)) {//相当于除法求余，由于BITS_PER_LONG是2的整数倍
 		if (~(tmp = *(p++)))
 			goto found;
 		result += BITS_PER_LONG;
@@ -211,7 +231,7 @@ found:
 }
 
 unsigned long find_next_zero_bit(const unsigned long *addr, unsigned long size,
-											unsigned long offset)
+                                     unsigned long offset)
 {
 	const unsigned long *p = addr + BIT_WORD(offset);
 	unsigned long result = offset & ~(BITS_PER_LONG-1);
@@ -263,10 +283,10 @@ found_middle:
  * power of 2. A @align_mask of 0 means no alignment is required.
  */
 unsigned long bitmap_find_next_zero_area(unsigned long *map,
-			   	   	   	   	   	   	   	   	  unsigned long size,
-											  unsigned long start,
-											  unsigned int nr,
-											  unsigned long align_mask)
+                                              unsigned long size,
+                                              unsigned long start,
+                                              unsigned int nr,
+                                              unsigned long align_mask)
 {
 	return bitmap_find_next_zero_area_off(map, size, start, nr,
 						      align_mask, 0);
@@ -302,7 +322,7 @@ unsigned long find_first_bit(const unsigned long *addr, unsigned long size)
 * Find the next set bit in a memory region.
 */
 unsigned long find_next_bit(const unsigned long *addr, unsigned long size,
-								unsigned long offset)
+                               unsigned long offset)
 {
 	const unsigned long *p = addr + BIT_WORD(offset);
 	unsigned long result = offset & ~(BITS_PER_LONG-1);

@@ -1,0 +1,20 @@
+# This file define some var for compile and link options
+# You can only change this file if you need special options
+
+# The object code suffix
+OBJSUF = o
+
+# The library suffix
+LIBSUF = a
+
+CC = gcc
+CXX = g++
+
+AR = ar
+ARFLAG = rv
+
+LD = $(CC)
+LDFLAGS = -ltool
+
+INCLUDE = 
+CFLAGS = -Wall -g $(INCLUDE)

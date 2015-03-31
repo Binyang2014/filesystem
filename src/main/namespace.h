@@ -28,7 +28,7 @@ struct file_dir_node
 struct file_request_queue{
 };
 
-int create_file(char *name, int lenght, int size);
+static int create_file(char *name, int length, int size);
 
 int create_dir(char *name, int length);
 

@@ -5,9 +5,8 @@
  *      Author: ron
  */
 
+
 #ifndef SRC_MAIN_MESSAGE_H_
 #define SRC_MAIN_MESSAGE_H_
-
-
 
 #endif /* SRC_MAIN_MESSAGE_H_ */

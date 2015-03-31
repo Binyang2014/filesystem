@@ -11,6 +11,7 @@
 #include "namespace.h"
 #include "conf.h"
 #include "pthread.h"
+#include "mpi.h"
 
 /**
  * master维护的数据服务器状态
