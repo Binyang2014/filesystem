@@ -20,4 +20,5 @@
 
 //use for debug
 #define DEBUG 1
+#define VFS_RW_DEBUG 1
 #endif

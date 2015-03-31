@@ -65,9 +65,9 @@ struct super_block_operations
 	int (*free_blocks)(struct dataserver_super_block*, int arr_size, unsigned long long* chunks_arr);
 	unsigned int* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size,
 			unsigned long long* chunks_arr, unsigned int* blocks_arr);
-	//success return block number else return -1
-	unsigned int (*alloc_a_block)(struct dataserver_super_block*, size_t chunk_num, unsigned int block_num);;
-	unsigned int (*free_a_block)(struct dataserver_super_block*, size_t chunk_num);
+	//success return hash number else return -1
+	unsigned int (*alloc_a_block)(struct dataserver_super_block*, unsigned long long chunk_num, unsigned int block_num);
+	unsigned int (*free_a_block)(struct dataserver_super_block*, unsigned long long chunk_num);
 
 	void (*print_sb_imf)(struct dataserver_super_block*);
 	//set chunk and block
@@ -75,14 +75,17 @@ struct super_block_operations
 };
 
 /**
- * 数据节点不会保存一个打开文件的状态，只提供基本的读写操作
- * 一个打开文件的状态应该由客户端来提供
+ * data server do not save the status of an opening file only offers basic read and write operations
+ * a opening file's status should be managed by client
+ *
  * only one  copy, there are functions!!!
  */
 struct file_operations
 {
 	int (*vfs_read)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
 	int (*vfs_write)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
+	//delete function has not been well defined yet, I will redefine it after test read and write
+	int (*vfs_delete)(struct dataserver_file*);
 };
 
 //only one copy in memory

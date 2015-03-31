@@ -24,7 +24,7 @@ static void init_mem_super_block(super_block_t * mem_super_block, int blocks_cou
 	mem_super_block->s_logs_len = 0;
 	mem_super_block->s_free_blocks_count = blocks_count -
 			(1 + 1 + 1 + mem_super_block->s_logs_per_group) * (blocks_count / blocks_per_group);
-	//1 for super block 1 for group descibe 1 for bit map 4 for logs
+	//1 for super block 1 for group describe 1 for bit map 4 for logs
 	mem_super_block->s_per_group_reserved = 1 + 1 + 1 + mem_super_block->s_logs_per_group;
 	mem_super_block->s_is_error = 0;
 	mem_super_block->s_last_write_time = time(NULL);

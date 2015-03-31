@@ -8,7 +8,7 @@
  */
 #include "vfs_structure.h"
 #include "../../tool/hash.h"
-#include "../tool/errinfo.h"
+#include "../../tool/errinfo.h"
 #include <stdio.h>
 #include <string.h>
 
