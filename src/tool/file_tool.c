@@ -10,12 +10,14 @@
 /**
  * 获取文件大小，如果文件不存在，返回-1
  */
-long file_size(char *file_name){
+long file_size(char *file_name) {
 	FILE *fp = fopen(file_name, "r");
-	if(fp == NULL)
+	if (fp == NULL)
 		return -1;
 	fseek(fp, 0L, SEEK_END);
-	return ftell(fp);
+	long length = ftell(fp);
+	fclose(fp);
+	return length;
 }
 
 

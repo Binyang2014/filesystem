@@ -13,6 +13,8 @@
 #ifndef SRC_MAIN_CLIENT_H_
 #define SRC_MAIN_CLIENT_H_
 
+#define FILE_BLOCK_SIZE 4096
+
 enum client_request{
 	CREATE_FILE,
 	CREATE_DIR,
@@ -52,5 +54,7 @@ static int create_new_file(char *file_name);
 static int delete_file(char *dir_name);
 
 static int create_dir(char *dir_name);
+
+static void send_data(char *file_name);
 
 #endif /* SRC_MAIN_CLIENT_H_ */
