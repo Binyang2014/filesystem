@@ -334,35 +334,23 @@ static int cal_first_bytes(off_t offset)
 	return first_nbytes;
 }
 
-static int read_a_block(dataserver_file_t *this, char* buffer, off_t offset)
+
+static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
 {
 	unsigned int *blocks_arr;
 	unsigned int block_num;
+	off_t offset_in_group;
 
 	blocks_arr = this->f_blocks_arr;
 	block_num = blocks_arr[offset / BLOCK_SIZE];
+	offset_in_group = offset % BLOCK_SIZE;
+
 	if(! __bm_block_set(this->super_block->s_block, block_num))
 	{
 		fprintf(stderr, "You want to read a block that have no data in it\n");
 		return -1;
 	}
-	memcpy(buffer,find_a_block(this->super_block, block_num), BLOCK_SIZE);
-	return BLOCK_SIZE;
-}
-
-static int read_rest_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
-{
-	unsigned int *blocks_arr;
-	unsigned int block_num;
-
-	blocks_arr = this->f_blocks_arr;
-	block_num = blocks_arr[offset / BLOCK_SIZE];
-	if(! __bm_block_set(this->super_block->s_block, block_num))
-	{
-		fprintf(stderr, "You want to read a block that have no data in it\n");
-		return -1;
-	}
-	memcpy(buffer, find_a_block(this->super_block, block_num) + offset, nbytes);
+	memcpy(buffer, find_a_block(this->super_block, block_num) + offset_in_group, nbytes);
 	return nbytes;
 }
 
@@ -370,11 +358,10 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 {
 	int nblocks, last_nbytes, first_nbytes;
 	int nbytes_read = 0, nbytes_temp = 0;
-	off_t cur_offset, end_offset;
+	off_t cur_offset;
 	int i;
 
 	cur_offset = offset;//set current offset to offset
-	end_offset = offset + count;
 
 	first_nbytes = cal_first_bytes(offset);
 
@@ -386,30 +373,18 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 	if(count <= first_nbytes)
 	{
 		first_nbytes = count;
-		if((nbytes_temp = read_rest_bytes(this, buffer + nbytes_read, first_nbytes, cur_offset)) == -1)
+		if((nbytes_temp = read_n_bytes(this, buffer + nbytes_read, first_nbytes, cur_offset)) == -1)
 			return -1;
 		ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
-		this->f_cur_offset = cur_offset;
+		//this->f_cur_offset = cur_offset;
 		return nbytes_read;
 	}
 
 	//read first bytes if first number of bytes does not equal to 0
-	if( first_nbytes && (nbytes_temp = read_rest_bytes(this, buffer + nbytes_read, first_nbytes,
+	if( first_nbytes && (nbytes_temp = read_n_bytes(this, buffer + nbytes_read, first_nbytes,
 			cur_offset)) == -1)
 		return -1;
 	ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
-
-	//if need data across tow blocks but not any of them is filled
-	if (cur_offset + BLOCK_SIZE > end_offset)
-	{
-		last_nbytes = end_offset - cur_offset;
-		if(last_nbytes && (nbytes_temp = read_rest_bytes(this, buffer + nbytes_read,
-				last_nbytes, cur_offset)) == -1)
-			return -1;
-		ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
-		this->f_cur_offset = cur_offset;
-		return nbytes_read;
-	}
 
 	//read blocks of data
 	nblocks = (count - first_nbytes) / BLOCK_SIZE;
@@ -417,45 +392,53 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 
 	for (i = 0; i < nblocks; i++)
 	{
-		if((nbytes_temp = read_a_block(this, buffer + nbytes_read, cur_offset)) == -1)
+		if((nbytes_temp = read_n_bytes(this, buffer + nbytes_read, BLOCK_SIZE,
+				cur_offset)) == -1)
 			return -1;
 		ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
 	}
 
 	//read rest of data
-	if( last_nbytes && (nbytes_temp = read_rest_bytes(this, buffer + nbytes_read,
+	if( last_nbytes && (nbytes_temp = read_n_bytes(this, buffer + nbytes_read,
 			last_nbytes, cur_offset)) == -1)
 		return -1;
 	ALL_ADD_THIRD(cur_offset, nbytes_read, nbytes_temp);
-	this->f_cur_offset = cur_offset;
+	//this->f_cur_offset = cur_offset;
 	return nbytes_read;
 }
 
-static int write_rest_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
+static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
 {
 	unsigned long long* chunks_arr;
 	unsigned int block_num;
 	unsigned long long chunk_num;
+	off_t offset_in_group;
+
 #ifdef VFS_RW_DEBUG
 	char* alloced_block;
 #endif
 
 	chunks_arr = this->f_chunks_arr;
 	chunk_num = chunks_arr[offset / BLOCK_SIZE];
+	offset_in_group = offset % BLOCK_SIZE;
+
 	//if this file already has this block
 	if((block_num = this->super_block->s_op->find_a_block_num(this->super_block, chunk_num))
 			!= INF_UNSIGNED_INT)
 	{
+
 #ifdef VFS_RW_DEBUG
 		if( !__bm_block_set(this->super_block->s_block, block_num))
 			err_quit("You use a block but not set the bitmap");
 #endif
+
 		this->f_blocks_arr[offset / BLOCK_SIZE] = block_num;//this statement may be not useful
-		memcpy(find_a_block(this->super_block, block_num) + offset, buffer, nbytes);
+		memcpy(find_a_block(this->super_block, block_num) + offset_in_group, buffer, nbytes);
 		return nbytes;
 	}
 
 	pthread_mutex_lock(&this->super_block->s_mutex);
+
 	//here we find a free block from very beginning, may be we want find it near other block in
 	//this file, it will be considered later
 	//we should make sure that another thread no find same block number got their block
@@ -472,72 +455,33 @@ static int write_rest_bytes(dataserver_file_t *this, char* buffer, int nbytes, o
 		return -1;
 	}
 	pthread_mutex_unlock(&this->super_block->s_mutex);
+
 	//memcpy do not change super block, so we can put it out
-	memcpy(find_a_block(this->super_block, block_num) + offset, buffer, nbytes);
+	memcpy(find_a_block(this->super_block, block_num) + offset_in_group, buffer, nbytes);
 	this->f_blocks_arr[offset / BLOCK_SIZE] = block_num;//this statement may be not useful
+
 #ifdef VFS_RW_DEBUG
 	if(__bm_block_set(this->super_block->s_block, block_num))
 		printf("The bitmap already set!!\n");
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
 	printf("the buffer is %s\n", buffer);
-	printf("The block contains %s\n", alloced_block + offset);
+	printf("The block contains %s\n", alloced_block + offset_in_group);
 #endif
+
 	return nbytes;
 }
 
-static int write_a_block(dataserver_file_t *this, char* buffer, off_t offset)
-{
-	unsigned long long *chunks_arr;
-	unsigned int block_num;
-	unsigned long long chunk_num;
-
-	chunks_arr = this->f_chunks_arr;
-	chunk_num = chunks_arr[offset / BLOCK_SIZE];
-
-	//rewrite a block
-	if((block_num = this->super_block->s_op->find_a_block_num(this->super_block, chunk_num))
-				!= INF_UNSIGNED_INT)
-	{
-#ifdef VFS_RW_DEBUG
-		if( !__bm_block_set(this->super_block->s_block, block_num))
-			err_quit("You use a block but not set the bitmap");
-#endif
-		this->f_blocks_arr[offset / BLOCK_SIZE] = block_num;//this statement may be not useful
-		memcpy(find_a_block(this->super_block, block_num), buffer, BLOCK_SIZE);
-		return BLOCK_SIZE;
-	}
-
-	//write to a new block
-	pthread_mutex_lock(&this->super_block->s_mutex);
-	//same to write_rest_bytes functions
-	if( (block_num = find_first_free_block(this->super_block->s_block, 0)) == INF_UNSIGNED_INT )
-	{
-		err_msg("this data server is full");
-		return -1;
-	}
-	__set_block_bm(this->super_block->s_block, block_num);
-	if( alloc_a_block(this->super_block, chunk_num, block_num) == INF_UNSIGNED_INT)
-	{
-		err_msg("wrong in allocated a block in hash table");
-		pthread_mutex_unlock(&this->super_block->s_mutex);
-		return -1;
-	}
-	pthread_mutex_unlock(&this->super_block->s_mutex);
-	//memcpy do not change super block, so we can put it out
-	memcpy(find_a_block(this->super_block, block_num), buffer, BLOCK_SIZE);
-	return BLOCK_SIZE;
-}
 
 int vfs_write(dataserver_file_t* this, char* buffer, size_t count, off_t offset)
 {
 	int nblocks, last_nbytes, first_nbytes;
 	int nbytes_write = 0, nbytes_temp = 0;
-	off_t cur_offset, end_offset;
+	off_t cur_offset;
 	int i;
 
 	cur_offset = offset;
-	end_offset = offset + count;
+
 	first_nbytes = cal_first_bytes(offset);
 
 	//allow write nothing
@@ -548,30 +492,18 @@ int vfs_write(dataserver_file_t* this, char* buffer, size_t count, off_t offset)
 	if(count <= first_nbytes)
 	{
 		first_nbytes = count;
-		if((nbytes_temp = write_rest_bytes(this, buffer + nbytes_write, first_nbytes, cur_offset)) == -1)
+		if((nbytes_temp = write_n_bytes(this, buffer + nbytes_write, first_nbytes, cur_offset)) == -1)
 				return -1;
 		ALL_ADD_THIRD(cur_offset, nbytes_write, nbytes_temp);
-		this->f_cur_offset = cur_offset;
+		//this->f_cur_offset = cur_offset;
 		return nbytes_write;
 	}
 
 	//write first bytes
-	if(first_nbytes && (nbytes_temp = write_rest_bytes(this, buffer + nbytes_write,
+	if(first_nbytes && (nbytes_temp = write_n_bytes(this, buffer + nbytes_write,
 			first_nbytes, cur_offset)) == -1)
 		return -1;
 	ALL_ADD_THIRD(cur_offset, nbytes_write, nbytes_temp);
-
-	//if need data across tow blocks but not any of them is filled
-	if (cur_offset + BLOCK_SIZE > end_offset)
-	{
-		last_nbytes = end_offset - cur_offset;
-		if(last_nbytes && (nbytes_temp = write_rest_bytes(this, buffer + nbytes_write,
-				last_nbytes, cur_offset)) == -1)
-			return -1;
-		ALL_ADD_THIRD(cur_offset, nbytes_write, nbytes_temp);
-		this->f_cur_offset = cur_offset;
-		return nbytes_write;
-	}
 
 	//write blocks of data
 	nblocks = (count - first_nbytes) / BLOCK_SIZE;
@@ -579,17 +511,18 @@ int vfs_write(dataserver_file_t* this, char* buffer, size_t count, off_t offset)
 
 	for (i = 0; i < nblocks; i++)
 	{
-		if((nbytes_temp = write_a_block(this, buffer + nbytes_write, cur_offset)) == -1)
+		if((nbytes_temp = write_n_bytes(this, buffer + nbytes_write, BLOCK_SIZE,
+				cur_offset)) == -1)
 			return -1;
 		ALL_ADD_THIRD(cur_offset, nbytes_write, nbytes_temp);
 	}
 
 	//write rest of data
-	if(last_nbytes && (nbytes_temp = write_rest_bytes(this, buffer + nbytes_write,
+	if(last_nbytes && (nbytes_temp = write_n_bytes(this, buffer + nbytes_write,
 			last_nbytes, cur_offset)) == -1)
 		return -1;
 	ALL_ADD_THIRD(cur_offset, nbytes_write, nbytes_temp);
-	this->f_cur_offset = cur_offset;
+	//this->f_cur_offset = cur_offset;
 	return nbytes_write;
 }
 

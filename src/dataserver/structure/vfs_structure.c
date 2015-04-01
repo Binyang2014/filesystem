@@ -128,15 +128,15 @@ dataserver_sb_t * init_vfs_sb(char* filesystem)
 }
 
 dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t* v_file_buff,
-		off_t offset, vfs_hashtable_t* arr_table, short mode)
+		 vfs_hashtable_t* arr_table, short mode)
 {
-	if(v_file_buff == NULL || offset < 0 || offset > BLOCK_SIZE)
+	if(v_file_buff == NULL)
 	{
 		err_msg("args wrong in init_vfs_file");
 		return NULL;
 	}
 	v_file_buff->super_block = super_block;
-	v_file_buff->f_cur_offset = offset;
+	//v_file_buff->f_cur_offset = offset;
 	v_file_buff->arr_len = arr_table->hash_table_size;
 	v_file_buff->f_blocks_arr = arr_table->blocks_arr;
 	v_file_buff->f_chunks_arr = arr_table->chunks_arr;
