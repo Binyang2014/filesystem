@@ -6,8 +6,8 @@
 #include "file_name_handle.h"
 #include "namespace_param.h"
 
-#define PARENT_HASH_LENGTH 10
-#define CHILD_HASH_LENGTH 10
+#define PARENT_HASH_LENGTH 1024
+#define CHILD_HASH_LENGTH 1024
 
 /*
  * 父目录节点数据结构
@@ -25,23 +25,20 @@ struct file_dir_node
 	int file_num;						//目录下的文件个数
 };
 
-struct file_request_queue{
-};
-
 static int create_file(char *name, int length, int size);
 
-int create_dir(char *name, int length);
+static int create_dir(char *name, int length);
 
-int rename_file(char *name, int length);
+static int rename_file(char *name, int length);
 
-int rename_dir(char *name, int length);
+static int rename_dir(char *name, int length);
 
-int del_file(char *name);
+static int del_file(char *name);
 
-int del_dir(char *name);
+static int del_dir(char *name);
 
-void list_dir_file(char *name);
+static void list_dir_file(char *name);
 
-void test_create_dir();
+static void test_create_dir();
 
 #endif
