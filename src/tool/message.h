@@ -16,30 +16,45 @@
 #define MAX_COUNT_CID_W ((MAX_COM_MSG_LEN - 16) / 8) //max length of chunks id array in write message
 #define MAX_COUNT_DATA  ((MAX_DATA_MSG_LEN - 16) / 8) //max count of data in one message package
 
-/*****************************************************************************************/
-/**********客户端 master间指令消息大小********/
+/*
+ *
+ */
 #define CLIENT_MASTER_MESSAGE_SIZE 4096
-/**********客户端 master消息体大小***********/
-#define CLIENT_MASTER_MESSAGE__CONTENT_SIZE 3072
+#define CLIENT_MASTER_MESSAGE_CONTENT_SIZE 3072
+#define MASTER_ANSWER_CLIENT_BLOCK_SIZE 1024
 
-/*******TAG分类********/
+/*
+ * communicate tag
+ */
 #define CLIENT_INSTRCTION_MESSAGE 400
 #define CLIENT_INSTRUCTION_ANS_MESSAGE 401
 
-/*******指令操作码******/
-const unsigned short create_file_code = 3001;
-const int delete_file = 3002;
+/*
+ * operation code
+ */
+#define CREATE_FILE_CODE 3001
 
+/*
+ * structure instruction of create file
+ */
 typedef struct{
 	unsigned short instruction_code;
 	long file_size;
-	char file_name[CLIENT_MASTER_MESSAGE__CONTENT_SIZE];
+	char file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
 }create_file_structure;
 
+/**
+ * master answer of client create file
+ */
 typedef struct{
 	unsigned short ans_code;
-	long bolck_nums;
-};
+	unsigned char is_tail;
+	unsigned int seq_num;
+	int machine_rank;
+	int block_count;
+	unsigned long long block_global_num[MASTER_ANSWER_CLIENT_BLOCK_SIZE];
+}create_file_ans_structure;
+
 
 /**
  *Following structure defined message structure between client and data server
@@ -77,6 +92,7 @@ struct read_c_to_d
 	unsigned short unique_tag;//client must promise to offer a special tag to data server, you can use bitmap
 	unsigned int offset;//offset from the begin of the first chunk that should be read
 	//64bytes
+
 	unsigned int read_len;//the length will read, just send to one data server
 	unsigned int chunks_count;//the numbers of chunks will be read
 	//64bytes aligned
