@@ -34,6 +34,12 @@
  */
 #define CREATE_FILE_CODE 3001
 
+/**
+ * master answer code
+ */
+#define CREATE_FILE_SUCCESS 600
+#define CREATE_FILE_FAIL 601
+
 /*
  * structure instruction of create file
  */
