@@ -15,10 +15,15 @@
 #include "../tool/message.h"
 #include "../global.h"
 
+
+typedef struct{
+
+}data_server_des;
+
 /**
  * status of all data servers
  */
-struct data_server_des **data_servers;
+data_server_des *data_servers;
 
 /**
  * node of request queue, including request information from client and data server
@@ -47,8 +52,11 @@ static request* de_queue();
 
 static int request_is_empty();
 
-static request* maclloc_request(char *buf, int size);
+static request* malloc_request(char *buf, int size);
 
+/**
+ * use memcpy to implement copy of MPI_Status
+ */
 static void mpi_status_assignment(MPI_Status *status, MPI_Status *s);
 
 /* master initialize
@@ -66,7 +74,7 @@ static void namespace_control();
 static int create_file();
 
 pthread_t thread_master_log_backup, thread_master_namespace, thread_master_heart;
-pthread_mutex_t mutex_message_buff, mutex_namespace;
+pthread_mutex_t mutex_message_buff, mutex_namespace, mutex_request_queue;
 
 char message_buff[MAX_COM_MSG_LEN];
 

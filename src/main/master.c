@@ -12,7 +12,7 @@ void init_queue(){
 }
 
 int request_is_empty(){
-	return request_queue_list.request_num;
+	return !request_queue_list.request_num;
 }
 
 void in_queue(request *request){
@@ -34,9 +34,8 @@ void mpi_status_assignment(MPI_Status *status, MPI_Status *s){
 	memcpy(status, s, sizeof(MPI_Status));
 }
 
-request* maclloc_request(unsigned short operation_code, char *buf, int size, MPI_Status *status){
+request* malloc_request(char *buf, int size, MPI_Status *status){
 	request *tmp_request = (request*)malloc(sizeof(request));
-	tmp_request->request_type = operation_code;
 	tmp_request->message = (char *)malloc(size);
 	strncpy(tmp_request->message, buf, size);
 	mpi_status_assignment(tmp_request->status, status);
@@ -56,14 +55,33 @@ void master_init()
  */
 void master_server(){
 	MPI_Status status;
+	init_queue();
 	while(1){
+		pthread_mutex_lock(&mutex_message_buff);
 		MPI_Recv(message_buff, MAX_COM_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 		if(status.MPI_ERROR){
 			continue;
 		}
-		unsigned short *operation_code = message_buff;
-		if(*operation_code == CREATE_FILE_CODE){
-			struct
+		request *reqeust = malloc_request(message_buff, MAX_COM_MSG_LEN);
+		pthread_mutex_lock(&mutex_request_queue);
+		in_queue(request);
+		pthread_mutex_unlock(&mutex_request_queue);
+		pthread_mutex_unlock(&mutex_message_buff);
+	}
+}
+
+void request_handler(){
+	request *request;
+	while(1){
+		pthread_mutex_lock(&mutex_request_queue);
+		request = de_queue();
+		pthread_mutex_unlock(&mutex_request_queue);
+		if(request != NULL){
+			unsigned short *operation_code = request->message;
+			if(*operation_code == CREATE_FILE_CODE){
+				create_file_structure *create = request->message;
+				free(request->message);
+			}
 		}
 	}
 }

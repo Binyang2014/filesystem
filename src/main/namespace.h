@@ -12,18 +12,18 @@
 /*
  * 父目录节点数据结构
  */
-struct file_dir_node
+typedef struct
 {
-	char *file_name; 					/*文件名称,包含路径*/
+	char *file_name; 					/*file full path name*/
 	int *id; 							/*文件所在机器ID列表*/
 	int access;							/*文件访问权限*/
-	char owner[255]; 					/*文件拥有者*/
-	struct file_dir_node *next_dir;		/*下一个目录*/
-	struct file_dir_node *next_file;	/*下一个文件*/
+//	char owner[256]; 					/*文件拥有者*/
+	file_dir_node *next_dir;			/*下一个目录*/
+	file_dir_node *next_file;			/*下一个文件*/
 	int is_dir; 						/*文件是否是目录*/
-	struct file_dir_node **child;		//记录目录下的所有文件,包含目录
+	file_dir_node **child;		//记录目录下的所有文件,包含目录
 	int file_num;						//目录下的文件个数
-};
+}file_dir_node;
 
 static int create_file(char *name, int length, int size);
 

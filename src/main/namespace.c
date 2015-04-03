@@ -1,8 +1,11 @@
 
 #include "namespace.h"
 
-struct file_dir_node *par_dirs[PARENT_HASH_LENGTH];
+file_dir_node *par_dirs[PARENT_HASH_LENGTH];
 
+/**
+ * print the file system directory
+ */
 void print_dir(){
 	int i = 0, j;
 	struct file_dir_node *f;
@@ -62,21 +65,21 @@ int create_file(const char * file_path)
 	int length = strlen(file_path);
 	char *dir, *file_name, *tmp_path;
 	int status = parse_path(dir, file_name, tmp_path, length);
-	if(status == illegal_path)
-		return illegal_path;
+	if(status == ILLEGAL_PATH)
+		return ILLEGAL_PATH;
 
 	//目录、文件映射码
 	int dir_hash_code = bkdr_hash(dir, PARENT_HASH_LENGTH);
 	int file_hash_code = bkdr_hash(file_name, CHILD_HASH_LENGTH);
 
 	//父目录、父目录文件链节点
-	struct file_dir_node *dir_node, *file_node, *tmp_node;
+	file_dir_node *dir_node, *file_node, *tmp_node;
 	tmp_node = par_dirs[dir_hash_code];
 
 	//查找目录节点
 	while(1){
 		if(!tmp_node)
-			return dir_not_exists;
+			return DIR_NOT_EXISTS;
 		if(strcmp(tmp_node->file_name, dir) == 0)
 			break;
 		tmp_node = tmp_node->next_dir;
@@ -87,7 +90,7 @@ int create_file(const char * file_path)
 	file_node = *(dir_node->child + file_hash_code);
 	while(tmp_node){
 		if(strcmp(tmp_node->file_name, file_name) == 0)
-			return file_exists;
+			return FILE_EXISTS;
 		tmp_node = tmp_node->next_file;
 	}
 
@@ -118,8 +121,8 @@ int create_dir(const char *path)
 	strcpy(tmp_path, path);
 
 	int status = parse_path(parent_dir, child_dir, tmp_path, length);
-	if(status == illegal_path){
-		return illegal_path;
+	if(status == ILLEGAL_PATH){
+		return ILLEGAL_PATH;
 	}
 
 	//目录 文件 路径的hash映射
@@ -136,7 +139,7 @@ int create_dir(const char *path)
 		if(!tmp_node)
 			break;
 		if(strcmp(tmp_node->file_name, tmp_path) == 0)
-			return dir_exists;
+			return DIR_EXISTS;
 		tmp_node = tmp_node->next_dir;
 	}
 
@@ -145,7 +148,7 @@ int create_dir(const char *path)
 	while(tmp_node)
 	{
 		if(!tmp_node)
-			return dir_not_exists;
+			return DIR_NOT_EXISTS;
 		if(strcmp(tmp_node->file_name, parent_dir) == 0)
 			break;
 		else
@@ -175,7 +178,7 @@ int create_dir(const char *path)
 
 	parent_node->file_num++;
 
-	return create_success;
+	return CREATE_SUCCESS;
 }
 
 int rename_file(const char *old_name, const char *new_name)
