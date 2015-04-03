@@ -42,6 +42,13 @@ request* malloc_request(char *buf, int size, MPI_Status *status){
 	return tmp_request;
 }
 
+void data_server_init(){
+	master_data_servers.index = 1;
+	master_data_servers.server_count = 0;
+	master_data_servers.data_server_list = (data_server_des *)malloc(sieof(data_server_des) * master_data_servers.server_count);
+	memset(master_data_servers, 0, sieof(data_server_des) * master_data_servers.server_count);
+}
+
 void master_init()
 {
 	pthread_mutex_init(&mutex_message_buff, NULL);

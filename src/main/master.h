@@ -15,15 +15,24 @@
 #include "../tool/message.h"
 #include "../global.h"
 
-
-typedef struct{
-
+/**
+ * 数据服务器描述
+ */
+typedef struct
+{
+	int id;								//机器id
+	long last_time;						//上次交互时间
+	uint32_t s_blocks_count;
+	uint32_t s_free_blocks_count;
+	uint_least8_t status;
+	char *block_mem_map;
 }data_server_des;
 
-/**
- * status of all data servers
- */
-data_server_des *data_servers;
+typedef struct{
+	unsigned int server_count;
+	unsigned long index;
+	data_server_des *data_server_list;
+}data_servers;
 
 /**
  * node of request queue, including request information from client and data server
@@ -79,5 +88,13 @@ pthread_mutex_t mutex_message_buff, mutex_namespace, mutex_request_queue;
 char message_buff[MAX_COM_MSG_LEN];
 
 static master_request_queue request_queue_list;
+
+/*
+ * data server
+ */
+
+static void data_server_init();
+
+static data_servers master_data_servers;
 
 #endif /* SRC_MAIN_MASTER_H_ */
