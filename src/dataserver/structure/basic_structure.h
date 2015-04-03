@@ -11,11 +11,6 @@
 #ifndef _BASIC_STRUCTURE_H_
 #define _BASIC_STRUCTURE_H_
 
-//#define MAX_ALLOC_SIZE 1<<30//这部分应该在配置文件中配置
-#define BLOCK_SIZE (1<<12)
-//#define N_BLOCKS 14//建立chunck号和block号的对应关系索引
-#define N_LOG_BLOCKS_PER_G 4
-
 #include "../../global.h"
 
 //sizeof(super_block) = 1028
@@ -61,16 +56,6 @@ struct group_desc_block
 //	char log_blocks[4][BLOCK_SIZE];
 //};
 
-enum TOTAL_SIZE
-{
-	SMALLEST = 24,	//16MB
-	SMALL = 26,		//64MB
-	MIDDLE = 28,	//256MB
-	LARGE = 30,		//1GB
-	LARGEST = 32	//4GB
-};
-
-typedef enum TOTAL_SIZE total_size_t;
 typedef struct super_block super_block_t;
 typedef struct group_desc_block group_desc_block_t;
 char* init_mem_file_system(total_size_t t_size, int dev_num);

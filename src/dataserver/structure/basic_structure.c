@@ -6,9 +6,9 @@
  */
 #include "basic_structure.h"
 #include "../../tool/bitmap.h"
+#include "../../tool/errinfo.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <errno.h>
 #include <string.h>
 #include <time.h>
 
@@ -47,13 +47,14 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 	total_size = 1 << t_size;
 	if(total_size > MAX_ALLOC_SIZE)
 	{
-		fprintf(stderr, "exceed max size");
+		err_msg("exceed max size");
 		return NULL;
 	}
+
 	mem_file_system = (char *)malloc(total_size);
 	if(mem_file_system == NULL)
 	{
-		perror("can not allocate memory for file system");
+		err_ret("can not allocate memory for file system");
 		return NULL;
 	}
 
@@ -65,8 +66,8 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 		blocks_per_group = blocks_count / groups_count;
 		if(blocks_count % groups_count)
 		{
-			fprintf(stderr, "every group need equal blocks\n");
 			free(mem_file_system);
+			err_msg("every group need equal blocks");
 			return NULL;
 		}
 	}
@@ -75,8 +76,8 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 
 	if(groups_count * sizeof(group_desc_block_t) > BLOCK_SIZE)//组描述块必须只有一个
 	{
-		fprintf(stderr, "can not support this condition\n");
 		free(mem_file_system);
+		err_msg("can not support this condition");
 		return NULL;
 	}
 

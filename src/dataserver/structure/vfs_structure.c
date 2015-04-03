@@ -13,6 +13,7 @@
 #include <string.h>
 
 static file_op_t* file_op;
+static char* filesystem;
 
 static int init_hash_table(vfs_hashtable_t* s_hash_table)
 {
@@ -62,21 +63,7 @@ static void init_file_op(file_op_t* f_op)
 	f_op->vfs_write = vfs_write;
 }
 
-//set value to some static variable
-int vfs_basic_init()
-{
-
-	file_op = (file_op_t *)malloc(sizeof(file_op_t));
-	if(file_op == NULL)
-	{
-		err_ret("in vfs_basic_init");
-		return -1;
-	}
-	init_file_op(file_op);
-	return 0;
-}
-
-dataserver_sb_t * init_vfs_sb(char* filesystem)
+static dataserver_sb_t * init_vfs_sb()
 {
 	dataserver_sb_t *dataserver_sb;
 	dataserver_sb = (dataserver_sb_t *)malloc(sizeof(dataserver_sb_t));
@@ -123,6 +110,31 @@ dataserver_sb_t * init_vfs_sb(char* filesystem)
 		return NULL;
 	}
 	init_sb_op(dataserver_sb->s_op);
+
+	return dataserver_sb;
+}
+
+//set value to some static variable
+dataserver_sb_t* vfs_init(total_size_t t_size, int dev_num)
+{
+
+	dataserver_sb_t *dataserver_sb;
+
+	filesystem = NULL;
+	file_op = NULL;
+
+	file_op = (file_op_t *)malloc(sizeof(file_op_t));
+	if(file_op == NULL)
+	{
+		err_ret("in vfs_basic_init");
+		return NULL;
+	}
+	init_file_op(file_op);
+
+	filesystem = init_mem_file_system(t_size, dev_num);
+	dataserver_sb = init_vfs_sb();
+	if(filesystem == NULL || dataserver_sb == NULL)
+		return NULL;
 
 	return dataserver_sb;
 }
