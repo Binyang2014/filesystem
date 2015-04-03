@@ -113,16 +113,12 @@ void vfs_basic_read_write_test(dataserver_file_t* d_file)
 
 int main()
 {
-	char* filesystem;
 	dataserver_sb_t* d_superblock;
 	dataserver_file_t* d_file;
 	vfs_hashtable_t* f_arr;
 	int f_arr_len;
-	off_t offset;
 
-	vfs_basic_init();
-	filesystem = init_mem_file_system(MIDDLE, 1);
-	d_superblock = init_vfs_sb(filesystem);
+	d_superblock = vfs_init(MIDDLE, 1);
 	d_superblock->s_op->print_sb_imf(d_superblock);
 	s_hash_test(d_superblock);
 	printf("------------------------------------------------\n\n");

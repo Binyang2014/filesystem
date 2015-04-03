@@ -8,6 +8,7 @@
 #define _FILESYSTEM_DATASERVER_H_
 
 #include "../structure/vfs_structure.h"
+#include <pthread.h>
 
 struct data_server_operations
 {
@@ -23,11 +24,30 @@ struct data_server//so far it likes super blocks in VFS, maybe it will be differ
 	unsigned int d_memory_used_for_filesystem;
 	unsigned int d_memory_free_for_filesystem;
 	unsigned int d_network_free;
-	struct dataserver_super_block* d_super_block;
-	struct list_head* file_list;
+	unsigned int machine_id;
+
+	dataserver_sb_t* d_super_block;
 	struct data_server_operations* d_op;
-	//信号量，必须拥有互斥的信号
+
+	//buffers
+	dataserver_file_t* files_buffer;
+
+	//maybe need a specific structure
+	unsigned int* f_blocks_buffer;
+	unsigned long long* f_chunks_buffer;
+
+	//not char* but message*, just test for message passing
+	char* m_cmd_buffer;
+	char* m_data_buffer;
+
+	pthread_t* t_buffer;
+
+	//信号量
+	//signal for the m_cmd queue
+	//...many other types of signal
 };
+
+typedef struct data_server data_server_t;
 
 //define of some function in struct's operations
 void init_data_sterver();
@@ -35,5 +55,4 @@ void init_lists();
 void check_limits();//查看是否还允许分配
 int get_current_imformation(struct data_server* server_imf);//返回目前数据节点的信息
 void adjust_lists();
-int open(char *filename, int mode);
 #endif

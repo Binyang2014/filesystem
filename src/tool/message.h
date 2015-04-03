@@ -14,7 +14,7 @@
 
 #define MAX_COUNT_CID_R ((MAX_COM_MSG_LEN - 16) / 8) //max length of chunks id array in read message
 #define MAX_COUNT_CID_W ((MAX_COM_MSG_LEN - 16) / 8) //max length of chunks id array in write message
-#define MAX_COUNT_DATA  ((MAX_COM_MSG_LEN - 16) / 8) //max count of data in one message package
+#define MAX_COUNT_DATA  ((MAX_DATA_MSG_LEN - 16) / 8) //max count of data in one message package
 
 /*****************************************************************************************/
 /**********客户端 master间指令消息大小********/

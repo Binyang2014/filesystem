@@ -179,8 +179,7 @@ int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset);
 
 //following functions will be finished in file vfs_structure.c
 //this function should be called first
-int vfs_basic_init();
-dataserver_sb_t * init_vfs_sb(char* filesystem);
+dataserver_sb_t* vfs_init(total_size_t t_size, int dev_num);
 //buffer provide by data server, it can not be null
 dataserver_file_t* init_vfs_file(dataserver_sb_t*, dataserver_file_t*,
 		vfs_hashtable_t* arr_table, short mode);
