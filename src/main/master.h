@@ -63,6 +63,8 @@ static int request_is_empty();
 
 static request* malloc_request(char *buf, int size);
 
+static file_location_des *maclloc_data_block(unsigned long file_size);
+
 /**
  * use memcpy to implement copy of MPI_Status
  */

@@ -23,6 +23,7 @@ typedef struct{
  */
 typedef struct{
 	int machinde_count;
+	file_machine_location *machines;
 }file_location_des;
 /*
  * 父目录节点数据结构

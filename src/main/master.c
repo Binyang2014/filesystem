@@ -42,6 +42,11 @@ request* malloc_request(char *buf, int size, MPI_Status *status){
 	return tmp_request;
 }
 
+void free_request_node(request *request){
+	free(request->message);
+	free(request);
+}
+
 void data_server_init(){
 	master_data_servers.index = 1;
 	master_data_servers.server_count = 0;
@@ -49,8 +54,14 @@ void data_server_init(){
 	memset(master_data_servers, 0, sieof(data_server_des) * master_data_servers.server_count);
 }
 
+/**
+ * 1. name space lock initialize
+ * 2. message buffer lock initialize
+ * 3. request handler start
+ */
 void master_init()
 {
+
 	pthread_mutex_init(&mutex_message_buff, NULL);
 	pthread_mutex_init(&mutex_namespace, NULL);
 	pthread_create(&thread_master_namespace, NULL, namespace_control(), NULL);
@@ -77,6 +88,12 @@ void master_server(){
 	}
 }
 
+file_location_des *maclloc_data_block(unsigned long file_size){
+	file_location_des * t = (file_location_des*)malloc(sizeof(file_location_des));
+	t->machinde_count=1;
+	return t;
+}
+
 void request_handler(){
 	request *request;
 	while(1){
@@ -87,7 +104,8 @@ void request_handler(){
 			unsigned short *operation_code = request->message;
 			if(*operation_code == CREATE_FILE_CODE){
 				create_file_structure *create = request->message;
-				free(request->message);
+
+				free_request_node(request);
 			}
 		}
 	}
