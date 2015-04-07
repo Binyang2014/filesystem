@@ -46,14 +46,22 @@ void init_dataserver(total_size_t t_size, int dev_num)
 		err_quit("error in init_dataserver function");
 
 	//get_current_imformation(data_server)
-	//It's a joke, do not be serious
+	//It's just a joke, do not be serious
 	data_server->files_buffer = (dataserver_file_t* )malloc(sizeof(dataserver_file_t)
-			* D_MAX_FILE_BSIZE);
+			* D_FILE_BSIZE);
 	data_server->f_chunks_buffer = (unsigned long long* )malloc(sizeof(unsigned long long)
 			* D_PAIR_BSIZE);
 	data_server->f_blocks_buffer = (unsigned int* )malloc(sizeof(unsigned int)
 			* D_PAIR_BSIZE);
-	data_server->m_cmd_buffer = (unsigned char* )malloc(sizeof(char) * D_MSG_BSIZE
-			* MAX_COM_MSG_LEN);
-	//...
+	data_server->m_data_buffer = (unsigned char* )malloc(sizeof(char) * D_DATA_BSIZE
+			* MAX_DATA_MSG_LEN);
+	data_server->t_buffer = (pthread_t* )malloc(sizeof(pthread_t) * D_THREAD_SIZE);
+
+	//init msg_cmd_buffer
+	data_server->m_cmd_queue->meg_queue = (common_msg_t* )malloc(sizeof(common_msg_t)
+			* D_MSG_BSIZE);
+	data_server->m_cmd_queue->current_size = 0;
+	data_server->m_cmd_queue->head_pos = 0;
+	data_server->m_cmd_queue->tail_pos = 0;
+	//end of init
 }

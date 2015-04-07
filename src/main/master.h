@@ -76,7 +76,7 @@ static int create_file();
 pthread_t thread_master_log_backup, thread_master_namespace, thread_master_heart;
 pthread_mutex_t mutex_message_buff, mutex_namespace, mutex_request_queue;
 
-char message_buff[MAX_COM_MSG_LEN];
+char message_buff[MAX_CMD_MSG_LEN];
 
 static master_request_queue request_queue_list;
 
