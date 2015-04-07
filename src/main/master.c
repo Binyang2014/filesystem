@@ -76,11 +76,11 @@ void master_server(){
 	init_queue();
 	while(1){
 		pthread_mutex_lock(&mutex_message_buff);
-		MPI_Recv(message_buff, MAX_COM_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+		MPI_Recv(message_buff, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 		if(status.MPI_ERROR){
 			continue;
 		}
-		request *reqeust = malloc_request(message_buff, MAX_COM_MSG_LEN);
+		request *reqeust = malloc_request(message_buff, MAX_CMD_MSG_LEN);
 		pthread_mutex_lock(&mutex_request_queue);
 		in_queue(request);
 		pthread_mutex_unlock(&mutex_request_queue);
