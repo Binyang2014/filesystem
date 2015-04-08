@@ -19,26 +19,31 @@
 #define MAXLINE 4096
 
 //following is about message type
-#define MAX_COM_MSG_LEN 4096
+#define COMMON_MSG_HEAD 4
+#define COMMON_MSG_LEN (4096 + COMMON_MSG_HEAD)
+#define MAX_CMD_MSG_LEN 4096
 #define DATA_MSG_HEAD_LEN 16
+#define MAX_DATA_CONTENT_LEN 4096
 #define MAX_DATA_MSG_LEN (4096 + DATA_MSG_HEAD_LEN)
 
 //following is operation code in message
 #define MSG_READ 0x00
 #define MSG_WRITE 0x01
+#define MSG_ACC 0x02
 //...
 
 //data server configure about buffer size, just a test, need to be redefined
-#define D_MAX_FILE_BSIZE	(1<<8)
-#define D_MAX_DATA_BIZE	(1<<8)
-#define D_PAIR_BSIZE		(1<<8)
-#define D_MSG_BSIZE		(1<<8)
+#define D_FILE_BSIZE	(1<<8)
+#define D_DATA_BSIZE	(1<<8)
+#define D_PAIR_BSIZE	(1<<8)
+#define D_MSG_BSIZE	(1<<8)
 //线程池大小
 #define D_THREAD_SIZE	(1<<8)
 
 //use for debug
 #define DEBUG 1
 #define VFS_RW_DEBUG 1
+#define DATASERVER_COMM_DEBUG 1
 
 //define optional size of file system
 enum TOTAL_SIZE

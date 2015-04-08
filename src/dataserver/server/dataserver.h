@@ -7,8 +7,10 @@
 #ifndef _FILESYSTEM_DATASERVER_H_
 #define _FILESYSTEM_DATASERVER_H_
 
-#include "../structure/vfs_structure.h"
 #include <pthread.h>
+#include "../structure/vfs_structure.h"
+#include "../../tool/message.h"
+#include "dataserver_comm.h"
 
 struct data_server_operations
 {
@@ -37,7 +39,8 @@ struct data_server//so far it likes super blocks in VFS, maybe it will be differ
 	unsigned long long* f_chunks_buffer;
 
 	//not char* but message*, just test for message passing
-	char* m_cmd_buffer;
+	//char* m_cmd_buffer;
+	msg_queue_t* m_cmd_queue;
 	char* m_data_buffer;
 
 	pthread_t* t_buffer;

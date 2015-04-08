@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include "../global.h"
 
-#define MAX_COUNT_CID_R ((MAX_COM_MSG_LEN - 16) / 8) //max length of chunks id array in read message
-#define MAX_COUNT_CID_W ((MAX_COM_MSG_LEN - 16) / 8) //max length of chunks id array in write message
+#define MAX_COUNT_CID_R ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in read message
+#define MAX_COUNT_CID_W ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in write message
 #define MAX_COUNT_DATA  ((MAX_DATA_MSG_LEN - 16) / 8) //max count of data in one message package
 
 /*
@@ -39,6 +39,17 @@
  */
 #define CREATE_FILE_SUCCESS 600
 #define CREATE_FILE_FAIL 601
+
+/**
+ * It's a common message used by message buffer
+ */
+struct common_msg
+{
+	unsigned short unique_tag;
+	unsigned int source;
+	unsigned short operaton_code;
+	char rest[MAX_CMD_MSG_LEN - 2];
+};
 
 /*
  * structure instruction of create file
@@ -84,7 +95,7 @@ typedef struct{
 struct open_to_c
 {
 	//64 bytes
-	unsigned short operation;//it is set to a certain code
+	unsigned short operation_code;//it is set to a certain code
 	unsigned short fd;//the number of file describe, may be a 1 byte is enough
 };
 
@@ -94,7 +105,7 @@ struct open_to_c
 struct read_c_to_d
 {
 	//64 bytes
-	unsigned short operations;
+	unsigned short operation_code;
 	unsigned short unique_tag;//client must promise to offer a special tag to data server, you can use bitmap
 	unsigned int offset;//offset from the begin of the first chunk that should be read
 	//64bytes
@@ -161,4 +172,6 @@ struct close_to_c
 	unsigned short fd;
 };
 
+typedef struct common_msg common_msg_t;
+typedef struct msg_data msg_data_t;
 #endif
