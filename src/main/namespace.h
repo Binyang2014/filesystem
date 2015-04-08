@@ -3,11 +3,29 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "file_name_handle.h"
 #include "namespace_param.h"
 
 #define PARENT_HASH_LENGTH 1024
 #define CHILD_HASH_LENGTH 1024
+
+/**
+ * 校验文件路径
+ */
+static int file_path_verify(const char *file_path);
+
+/**
+ * 校验目录路径
+ */
+static int dir_path_verify();
+
+static void path_pre_handle(char *path);
+
+/**
+ * 将path分为目录名 + 文件名
+ * @parent_dir_name 保存目录名称
+ * @file_name 保存文件名称
+ */
+static int parse_path(char *parent_dir_name, char *file_name, char *path, int len);
 
 /**
  * file location information in one machine
@@ -28,16 +46,16 @@ typedef struct{
 /*
  * 父目录节点数据结构
  */
-typedef struct
+typedef struct file_dir_node
 {
 	char *file_name; 					/*file full path name*/
 	int *id; 							/*文件所在机器ID列表*/
 	int access;							/*文件访问权限*/
 //	char owner[256]; 					/*文件拥有者*/
-	file_dir_node *next_dir;			/*下一个目录*/
-	file_dir_node *next_file;			/*下一个文件*/
+	struct file_dir_node *next_dir;			/*下一个目录*/
+	struct file_dir_node *next_file;			/*下一个文件*/
 	int is_dir; 						/*文件是否是目录*/
-	file_dir_node **child;				//记录目录下的所有文件,包含目录
+	struct file_dir_node **child;				//记录目录下的所有文件,包含目录
 	int file_num;						//目录下的文件个数
 	unsigned long file_size;
 }file_dir_node;

@@ -8,17 +8,21 @@
 #ifndef SRC_MAIN_MASTER_H_
 #define SRC_MAIN_MASTER_H_
 #include <pthread.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <mpi.h>
 #include "opera_code_sturcture.h"
 #include "namespace.h"
 #include "conf.h"
 #include "../tool/message.h"
 #include "../global.h"
+#include "../tool/error_log.h"
 
 /**
  * 数据服务器描述
  */
-typedef struct
+typedef struct data_server_des
 {
 	int id;								//机器id
 	long last_time;						//上次交互时间
@@ -28,7 +32,8 @@ typedef struct
 	char *block_mem_map;
 }data_server_des;
 
-typedef struct{
+typedef struct data_servers
+{
 	unsigned int server_count;
 	unsigned long index;
 	data_server_des *data_server_list;
@@ -37,31 +42,31 @@ typedef struct{
 /**
  * node of request queue, including request information from client and data server
  */
-typedef struct{
+typedef struct request_node{
 	unsigned short request_type;
 	MPI_Status status;
 	void *message;
-	request *next;
-}request;
+	struct request_node *next;
+}request_node;
 
 /**
  * request queue
  */
-typedef struct{
+typedef struct master_request_queue{
 	int request_num;
-	request *head;
-	request *tail;
+	request_node *head;
+	request_node *tail;
 }master_request_queue;
 
 static void init_queue();
 
-static void in_queue();
+static void in_queue(request_node *request_param);
 
-static request* de_queue();
+static request_node* de_queue();
 
 static int request_is_empty();
 
-static request* malloc_request(char *buf, int size);
+static request_node* malloc_request(char *buf, int size, MPI_Status *status);
 
 static file_location_des *maclloc_data_block(unsigned long file_size);
 
@@ -72,9 +77,21 @@ static void mpi_status_assignment(MPI_Status *status, MPI_Status *s);
 
 /* master initialize
  */
-static void master_init();
+void master_init();
 
-static void master_server();
+/**
+ * there are p_threads in the master machine
+ */
+
+/**
+ * receive information from client and data server
+ * information can classify as two kinds
+ * 1. client operation code
+ * 2. data server heart blood information
+ */
+static void* master_server(void *arg);
+
+static void* request_handler(void *arg);
 
 static void log_backup();
 
@@ -84,10 +101,21 @@ static void namespace_control();
 
 static int create_file();
 
-pthread_t thread_master_log_backup, thread_master_namespace, thread_master_heart;
+pthread_t thread_master_server, thread_request_handler;
 pthread_mutex_t mutex_message_buff, mutex_namespace, mutex_request_queue;
+pthread_mutex_t mutex_send_message_buff;
 
+pthread_cond_t cond_request_queue;
+
+/**
+ * receive message buff
+ */
 char message_buff[MAX_COM_MSG_LEN];
+
+/**
+ * send message buff
+ */
+char send_message_buff[MAX_COM_MSG_LEN];
 
 static master_request_queue request_queue_list;
 

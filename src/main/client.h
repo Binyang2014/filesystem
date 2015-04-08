@@ -4,6 +4,8 @@
  *  Created on: 2015年1月4日
  *      Author: ron
  */
+#include <math.h>
+#include <string.h>
 #include "mpi.h"
 #include "opera_code_sturcture.h"
 #include "conf.h"
@@ -39,22 +41,20 @@ void client_init();
 
 void client_server();
 
-extern struct mpi_machine *master;
-
 int queue_size;
 
 struct request_queue *queue_head, *queue_tail;
 
 /*****************instruction interface***********************/
 
-static int create_file(char *file_path, char *file_name);
+static int clent_create_file(char *file_path, char *file_name);
 
-static int create_new_file(char *file_name);
+static int client_create_new_file(char *file_name);
 
-static int delete_file(char *dir_name);
+static int client_delete_file(char *dir_name);
 
-static int create_dir(char *dir_name);
+static int client_create_dir(char *dir_name);
 
-static void send_data(char *file_name);
+void send_data(char *file_name);
 
 #endif /* SRC_MAIN_CLIENT_H_ */
