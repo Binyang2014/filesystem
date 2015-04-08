@@ -44,7 +44,7 @@ typedef struct msg_for_rw msg_for_rw_t;
 void init_msg();
 void m_cmd_receive(msg_queue_t * msg_queue);//there is a thread run this function
 
-int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff);
-int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff);
+int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, void* msg_buff);
+int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff,  void* msg_buff);
 //...other message passing functions
 #endif
