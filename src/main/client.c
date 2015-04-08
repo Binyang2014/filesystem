@@ -49,6 +49,12 @@ char message_content[CLIENT_MASTER_MESSAGE_SIZE];
 void client_init(){
 //	char b[MAX_COM_MSG_LEN] = "hello world";
 //	MPI_Send(b, MAX_COM_MSG_LEN, MPI_CHAR, 0, 1, MPI_COMM_WORLD);
+	send_buf = (char*)malloc(MAX_CMD_MSG_LEN);
+	rec_buf = (char*)malloc(MAX_CMD_MSG_LEN);
+	if(send_buf == NULL || rec_buf == NULL){
+		log_error("there is not enough stack space");
+		return;
+	}
 	clent_create_file("/home/ron/test/test_struct.c", "/hello");
 }
 
@@ -57,13 +63,9 @@ void send_data(char *file_name) {
 	long length = file_size(file_name);
 	int block_num = ceil((double)length / FILE_BLOCK_SIZE);
 	int i = 0, j = 0, read_size;
-//	printf("count = %d\n", block_num);
 	for (; i <= block_num - 1; i++) {
-		//printf("i ====== %d\n", i);
 		if(i != block_num - 1){
 			read_size = fread(file_buf, sizeof(char), FILE_BLOCK_SIZE, fp);
-//			for(j = 0; j != FILE_BLOCK_SIZE; j++)
-//				putchar(file_buf[j]);
 			fseek(fp, FILE_BLOCK_SIZE, FILE_BLOCK_SIZE * i);
 		}else{
 			read_size = fread(file_buf, sizeof(char), length - (block_num - 1) * FILE_BLOCK_SIZE, fp);
@@ -75,7 +77,7 @@ void send_data(char *file_name) {
 }
 
 int clent_create_file(char *file_path, char *file_name){
-	puts("client_create_file start");
+	log_info("client_create_file start");
 	long file_length = file_size(file_path);
 	int result;
 	char tmp[5096];
@@ -86,12 +88,11 @@ int clent_create_file(char *file_path, char *file_name){
 	message.instruction_code = CREATE_FILE_CODE;
 	message.file_size = file_length;
 	strcpy(message.file_name, file_name);
-	puts("send message start");
-	//while(1){
-		MPI_Send((void*)&message, sizeof(message), MPI_CHAR, master.rank, CLIENT_INSTRCTION_MESSAGE, MPI_COMM_WORLD);
-	//}
-	//MPI_Recv(tmp, 1, MPI_INT, master.rank, CLIENT_INSTRUCTION_ANS_MESSAGE, master.comm, &status);
-	puts("client_create_file end");
+	log_info("send message start");
+
+	MPI_Send((void*)&message, sizeof(message), MPI_CHAR, master.rank, CLIENT_INSTRCTION_MESSAGE, MPI_COMM_WORLD);
+	MPI_Recv(tmp, 4096, MPI_CHAR, master.rank, CLIENT_INSTRUCTION_ANS_MESSAGE, MPI_COMM_WORLD, &status);
+	log_info("client_create_file end");
 	return 0;
 }
 

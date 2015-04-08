@@ -110,12 +110,12 @@ pthread_cond_t cond_request_queue;
 /**
  * receive message buff
  */
-char message_buff[MAX_COM_MSG_LEN];
+char message_buff[MAX_CMD_MSG_LEN];
 
 /**
  * send message buff
  */
-char send_message_buff[MAX_COM_MSG_LEN];
+char send_message_buff[MAX_CMD_MSG_LEN];
 
 static master_request_queue request_queue_list;
 

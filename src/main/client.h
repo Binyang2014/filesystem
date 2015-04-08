@@ -11,6 +11,7 @@
 #include "conf.h"
 #include "../tool/message.h"
 #include "../tool/file_tool.h"
+#include "../tool/error_log.h"
 
 #ifndef SRC_MAIN_CLIENT_H_
 #define SRC_MAIN_CLIENT_H_
@@ -56,5 +57,7 @@ static int client_delete_file(char *dir_name);
 static int client_create_dir(char *dir_name);
 
 void send_data(char *file_name);
+
+char *rec_buf, *send_buf;
 
 #endif /* SRC_MAIN_CLIENT_H_ */
