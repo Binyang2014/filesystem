@@ -18,6 +18,8 @@
 #define DIR_EXISTS 1003
 //目录不存在
 #define DIR_NOT_EXISTS 1004
+//illegal file pathILLEGAL_DIR_NAMETH
+#define ILLEGAL_FILE_PATH 1005
 //路径非法
 #define ILLEGAL_PATH 1005
 //创建成功
