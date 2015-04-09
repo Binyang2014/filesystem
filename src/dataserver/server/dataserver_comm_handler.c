@@ -6,57 +6,10 @@
  */
 #include <string.h>
 #include <mpi.h>
-#include "dataserver_comm.h"
+#include "dataserver_comm_handler.h"
 #include "../../tool/errinfo.h"
 #include "../structure/vfs_structure.h"
 #include "../../tool/message.h"
-
-static 	pthread_rwlock_t msg_queue_rw_lock;
-
-void init_msg()
-{
-	if(pthread_rwlock_init(&msg_queue_rw_lock, NULL) != 0)
-		err_sys("init pthread lock wrong");
-}
-
-void m_cmd_receive(msg_queue_t * msg_queue)
-{
-	int offset;
-	char* start_pos;
-	common_msg_t* t_common_msg;
-	MPI_Status status;
-
-	while (1)
-	{
-		//这里需要用信号量来控制，单纯的解决不了问题，下面的逻辑是有问题的
-		//以后再进行改动，在数据节点上相当于单生产者单消费者模型，可以使用读写锁来实现
-		//read lock
-		if (!Q_FULL(msg_queue->head_pos, msg_queue->tail_pos))
-		{
-			//read unlock
-			//write lock
-			offset = msg_queue->tail_pos;
-			msg_queue->tail_pos = msg_queue->tail_pos + 1;
-			//write unlock
-		}
-		else
-		{
-			//Maybe if the space is no big enough, I should realloc if and make it a bigger heap
-#ifdef DATASERVER_COMM_DEBUG
-			err_msg("The message queue already full!!!");
-			return;
-#endif
-		}
-
-		t_common_msg = msg_queue->msg + offset;
-		start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
-		MPI_Recv(start_pos, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE,
-				MPI_ANY_TAG,
-				MPI_COMM_WORLD, &status);
-		t_common_msg->source = status->MPI_SOURCE;
-		t_common_msg->unique_tag = status->MPI_TAG;
-	}
-}
 
 static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 		off_t offset, int seqno, int tail, msg_data_t* msg_buff)
@@ -140,7 +93,6 @@ int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, voi
 }
 
 //handle the request from client about writing to a file
-
 static int write_to_vfs(dataserver_file_t *file, char* buff, off_t offset,
 		msg_data_t* msg_buff)
 {
