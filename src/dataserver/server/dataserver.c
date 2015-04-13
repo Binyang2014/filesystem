@@ -1,12 +1,131 @@
-#include "dataserver.h"
-#include "../structure/vfs_structure.h"
-#include "../../tool/errinfo.h"
+/*
+ * Created on 2015.1.23
+ * Author:binyang
+ *
+ * This file will finish all data server's work
+ */
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <mpi.h>
+#include "dataserver.h"
+#include "../structure/vfs_structure.h"
+#include "../../tool/errinfo.h"
+
 //this is a demo, there are many things to add
 
 static data_server_t* data_server;
+//many kinds of locks
+static pthread_rwlock_t msg_queue_rw_lock;
+
+void m_cmd_receive(msg_queue_t * msg_queue)
+{
+	int offset;
+	char* start_pos;
+	common_msg_t* t_common_msg;
+	MPI_Status status;
+
+	while (1)
+	{
+		//read lock, we also need signal here. I will add it later
+		pthread_rwlock_rdlock(&msg_queue_rw_lock);
+		if (!Q_FULL(msg_queue->head_pos, msg_queue->tail_pos))
+		{
+			//read unlock
+			pthread_rwlock_unlock(&msg_queue_rw_lock);
+			//write lock
+			pthread_rwlock_wrlock(&msg_queue_rw_lock);
+			offset = msg_queue->tail_pos;
+			msg_queue->tail_pos = (msg_queue->tail_pos + 1) % D_MSG_BSIZE;
+			msg_queue->current_size = msg_queue->current_size + 1;
+			//write unlock
+			pthread_rwlock_unlock(&msg_queue_rw_lock);
+
+			//do something else
+			t_common_msg = msg_queue->msg + offset;
+			start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
+			MPI_Recv(start_pos, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE,
+					MPI_ANY_TAG,
+					MPI_COMM_WORLD, &status);
+			t_common_msg->source = status->MPI_SOURCE;
+			t_common_msg->unique_tag = status->MPI_TAG;
+		}
+		else
+		{
+			pthread_rwlock_unlock(&msg_queue_rw_lock);
+			//Maybe if the space is no big enough, I should realloc if and make it a bigger heap
+#ifdef DATASERVER_COMM_DEBUG
+			err_msg("The message queue already full!!!");
+			return;
+#endif
+		}
+	}
+}
+
+static void* d_read(data_server_t* this, common_msg_t* common_msg)
+{
+	int source, tag;
+	char* buff;
+	void* msg_buff;
+	msg_for_rw_t* file_info;
+
+	source = common_msg->source;
+	tag = common_msg->unique_tag;
+	if( m_read_handler(source, tag, file_info, buff, msg_buff) == -1 )
+		return NULL;
+	return NULL;
+}
+
+static int resolve_msg(common_msg_t* common_msg)
+{
+	unsigned short operation_code;
+	operation_code = common_msg->operation_code;
+	switch(operation_code)
+	{
+	case MSG_READ:
+		//invoke a thread to excuse
+		d_read();
+		break;
+	case MSG_WRITE:
+		//invoke a thread to excuse
+		break;
+	default:
+		break;
+	}
+	return -1;
+}
+
+void m_resolve(msg_queue_t * msg_queue)
+{
+	int offset;
+	char* start_pos;
+	common_msg_t* t_common_msg;
+	MPI_Status status;
+
+	t_common_msg = (common_msg_t* )malloc(sizeof(common_msg_t));
+	while(1)
+	{
+		pthread_rwlock_rdlock(&msg_queue_rw_lock);
+		if(!Q_EMPTY(msg_queue->head_pos, msg_queue->tail_pos))
+		{
+			pthread_rwlock_unlock(&msg_queue_rw_lock);
+			pthread_rwlock_wrlock(&msg_queue_rw_lock);
+			offset = msg_queue->head_pos;
+			msg_queue->head_pos = (msg_queue->head_pos - 1) % D_MSG_BSIZE;
+			msg_queue->current_size = msg_queue->current_size - 1;
+			memcpy(t_common_msg, msg_queue->msg, sizeof(common_msg_t));
+			pthread_rwlock_unlock(&msg_queue_rw_lock);
+
+			resolve_msg(t_common_msg);
+		}
+		else
+		{
+			pthread_rwlock_unlock(&msg_queue_rw_lock);
+			//阻塞
+		}
+	}
+	free(t_common_msg);
+}
 
 int get_current_imformation(data_server_t * server_imf)
 {
@@ -63,5 +182,9 @@ void init_dataserver(total_size_t t_size, int dev_num)
 	data_server->m_cmd_queue->current_size = 0;
 	data_server->m_cmd_queue->head_pos = 0;
 	data_server->m_cmd_queue->tail_pos = 0;
+
+	//init many kinds of locks
+	if(pthread_rwlock_init(&msg_queue_rw_lock, NULL) != 0)
+			err_sys("init pthread lock wrong");
 	//end of init
 }
