@@ -56,7 +56,7 @@ struct common_msg
  */
 typedef struct{
 	unsigned short instruction_code;
-	long file_size;
+	unsigned long file_size;
 	char file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
 }create_file_structure;
 
@@ -174,4 +174,21 @@ struct close_to_c
 
 typedef struct common_msg common_msg_t;
 typedef struct msg_data msg_data_t;
+
+
+//block struct
+typedef struct block{
+	unsigned long file_seq; //file split sequence
+	unsigned long block_global_id;
+}block;
+
+//
+typedef struct mas_ans_cli_crea_file{
+	unsigned short mas_ans_cli_crea_file;
+	unsigned int is_tail;
+	int machine_id;
+	int block_size;
+	block block_content[];
+}mas_ans_cli_crea_file;
+
 #endif

@@ -29,13 +29,12 @@ typedef struct data_server_des
 	uint32_t s_blocks_count;
 	uint32_t s_free_blocks_count;
 	uint_least8_t status;
-	char *block_mem_map;
+	block *block_mem_map;
 }data_server_des;
 
 typedef struct data_servers
 {
 	unsigned int server_count;
-	unsigned long index;
 	data_server_des *data_server_list;
 }data_servers;
 
@@ -58,9 +57,16 @@ typedef struct master_request_queue{
 	request_node *tail;
 }master_request_queue;
 
+/**
+ * initialize request queue
+ */
 static void init_queue();
 
 static void in_queue(request_node *request_param);
+
+static void init_master_server_info(int);
+
+static void init_data_server_node();
 
 static request_node* de_queue();
 

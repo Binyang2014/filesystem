@@ -5,6 +5,7 @@
  *      Author: ron
  */
 #include "master.h"
+#include <assert.h>
 
 void init_queue() {
 	request_queue_list.head = request_queue_list.tail = NULL;
@@ -13,6 +14,12 @@ void init_queue() {
 
 int request_is_empty() {
 	return !request_queue_list.request_num;
+}
+
+void init_master_server_info(int machine_count){
+	master_data_servers.server_count = machine_count;
+	master_data_servers.data_server_list = (data_server_des*)malloc(sizeof(data_server_des) * machine_count);
+	assert(master_data_servers.data_server_list != NULL);
 }
 
 void in_queue(request_node *request_param) {
@@ -59,7 +66,7 @@ void free_request_node(request_node *request) {
  */
 void data_server_init() {
 	init_queue();
-	master_data_servers.index = 1;
+	//master_data_servers.index = 1;
 	master_data_servers.server_count = 0;
 	master_data_servers.data_server_list = (data_server_des *) malloc(
 			sizeof(data_server_des) * master_data_servers.server_count);
