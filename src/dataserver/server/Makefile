@@ -1,14 +1,16 @@
 TOPDIR = ../../..
-TEST_PROGRAM = test
+LIBDIR = $(TOPDIR)/lib
+LIB = $(LIBDIR)/libtool.a $(LIBDIR)/libvfs.a
+TEST_PROGRAM = dataserver_test
 
 include $(TOPDIR)/GlobalMakefile
 
-objects = test.o dataserver.o
+objects = dataserver_test.o dataserver.o dataserver_comm_handler.o
 
 default:: $(objects)
 
 include $(TOPDIR)/GlobalRules
 include $(objects:.o=.d)
 
-test:$(objects)
-	cc -o test $(objects)
+dataserver_test:$(objects) $(LIB)
+	$(CC) $(CFLAGS) $(objects) -L$(LIBDIR) -lvfs -ltool -o $@
