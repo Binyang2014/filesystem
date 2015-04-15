@@ -29,6 +29,7 @@ static void __set_block_bm(super_block_t* super_block, unsigned int block_num)
 	block_num_in_group = block_num % blocks_per_group;
 	bitmap_set(bitmap, block_num_in_group, 1);
 }
+
 static void __clear_block_bm(super_block_t* super_block, unsigned int block_num)
 {
 	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
@@ -38,6 +39,7 @@ static void __clear_block_bm(super_block_t* super_block, unsigned int block_num)
 	block_num_in_group = block_num % blocks_per_group;
 	bitmap_clear(bitmap, block_num_in_group, 1);
 }
+
 static int __bm_block_set(super_block_t* super_block, unsigned int block_num)
 {
 	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
@@ -47,6 +49,7 @@ static int __bm_block_set(super_block_t* super_block, unsigned int block_num)
 	block_num_in_group = block_num % blocks_per_group;
 	return bitmap_a_bit_full(bitmap, block_num_in_group);
 }
+
 static unsigned int find_first_free_block(super_block_t* super_block, int p_group_id)
 {
 	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
@@ -64,6 +67,7 @@ static unsigned int find_first_free_block(super_block_t* super_block, int p_grou
 		return INF_UNSIGNED_INT;
 	return block_num_in_group + p_group_id * blocks_per_group;
 }
+
 static unsigned int find_next_free_block(super_block_t* super_block, int p_group_id, unsigned int block_num)
 {
 	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
@@ -161,6 +165,7 @@ unsigned int find_a_block_num(dataserver_sb_t* this, unsigned long long chunk_nu
 #endif
 	return INF_UNSIGNED_INT;
 }
+
 static unsigned int find_a_block_with_hash_num(dataserver_sb_t* this, unsigned long long chunk_num,
 		unsigned int* t_hash_num)
 {

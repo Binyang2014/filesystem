@@ -10,6 +10,7 @@
 #define SRC_TOOL_MESSAGE_H_
 
 #include <stdio.h>
+#include <mpi.h>
 #include "../global.h"
 
 #define MAX_COUNT_CID_R ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in read message
@@ -39,6 +40,8 @@
  */
 #define CREATE_FILE_SUCCESS 600
 #define CREATE_FILE_FAIL 601
+
+#define MSG_COMM_TO_CMD(p_common_msg) ((char*)(p_common_msg) + COMMON_MSG_HEAD)
 
 /**
  * It's a common message used by message buffer
@@ -118,7 +121,7 @@ struct read_c_to_d
 };
 
 //return accept message when you are ready to receive data message
-struct acc_d_to_c
+struct acc_d_and_c
 {
 	unsigned short operation_code;
 	unsigned short status;//if the data server is OK to return data, 0 is fine
@@ -173,8 +176,13 @@ struct close_to_c
 	unsigned short fd;
 };
 
-typedef struct common_msg common_msg_t;
-typedef struct msg_data msg_data_t;
+struct mpi_status
+{
+	int source;
+	int tag;
+	int error_num;
+	int size;
+};
 
 
 //block struct
@@ -191,5 +199,21 @@ typedef struct mas_ans_cli_crea_file{
 	int block_size;
 	block block_content[];
 }mas_ans_cli_crea_file;
+
+typedef struct common_msg common_msg_t;
+typedef struct msg_data msg_data_t;
+typedef struct read_c_to_d msg_r_ctod_t;
+typedef struct write_c_to_d msg_w_ctod_t;
+typedef struct acc_d_and_c msg_acc_candd_t;
+typedef struct mpi_status mpi_status_t;
+
+//following functions are used for debug
+void printf_msg_status(mpi_status_t* status);
+
+//wrap basic MPI function here
+void d_mpi_cmd_recv(void* msg, mpi_status_t* status_t);
+void d_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
+void d_mpi_data_recv(void* msg, int source, int tag, mpi_status_t* status_t);
+void d_mpi_data_send(void* msg, int source, int tag);
 
 #endif

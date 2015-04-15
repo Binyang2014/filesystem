@@ -7,7 +7,7 @@ OBJSUF = o
 # The library suffix
 LIBSUF = a
 
-CC = gcc
+CC = mpicc
 CXX = g++
 
 AR = ar
@@ -16,4 +16,4 @@ ARFLAG = rv
 LD = $(CC)
 
 INCLUDE = 
-CFLAGS = -Wall -g $(INCLUDE)
+CFLAGS = -Wall -g -O0 $(INCLUDE)
