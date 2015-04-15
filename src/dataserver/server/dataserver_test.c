@@ -56,7 +56,6 @@ int main(int argc, char* argv[])
 	MPI_Status status;
 
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-	printf("threads level provided is %d\n", provided);
 	MPI_Comm_rank(MPI_COMM_WORLD, &id);
 	MPI_Comm_size(MPI_COMM_WORLD, &p);
 	if(!id)
@@ -86,8 +85,9 @@ int main(int argc, char* argv[])
 		MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
 		memset(&data_msg, 0, sizeof(data_msg));
 		MPI_Recv(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD, &status);
+		//printf_msg_status(&status);
 		for(i = 0 ; i < 16; i++)
-			printf("%c ", *((char*)data_msg.data + i));
+			printf("%c ", *((char*)data_msg.data + i));;
 		sleep(1000);
 	}
 	MPI_Finalize();

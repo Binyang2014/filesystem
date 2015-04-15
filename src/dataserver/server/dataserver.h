@@ -76,7 +76,6 @@ void m_resolve();
 
 //about data server
 data_server_t* init_dataserver(total_size_t t_size, int dev_num);
-void init_lists();
 void check_limits();//查看是否还允许分配
 int get_current_imformation(struct data_server* server_imf);//返回目前数据节点的信息
 

@@ -21,10 +21,10 @@ static pthread_rwlock_t msg_queue_rw_lock;
 void* m_cmd_receive(void* msg_queue_arg)
 {
 	int offset;
-	char* start_pos;
+	void* start_pos;
 	common_msg_t* t_common_msg;
 	msg_queue_t * msg_queue;
-	MPI_Status status;
+	mpi_status_t status;
 
 	msg_queue = (msg_queue_t* )msg_queue_arg;
 	while (1)
@@ -45,16 +45,14 @@ void* m_cmd_receive(void* msg_queue_arg)
 			//receive message first
 			t_common_msg = msg_queue->msg + offset;
 			start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
-			MPI_Recv(start_pos, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE,
-					D_MSG_CMD_TAG,
-					MPI_COMM_WORLD, &status);
+			d_mpi_cmd_recv(start_pos, &status);
 
 #ifdef DATASERVER_COMM_DEBUG
 			printf_msg_status(&status);
 #endif
 
-			t_common_msg->source = status.MPI_SOURCE;
-			t_common_msg->unique_tag = status.MPI_TAG;
+			t_common_msg->source = status.source;
+			t_common_msg->unique_tag = status.tag;
 			//finish receive write lock
 			pthread_rwlock_wrlock(&msg_queue_rw_lock);
 			msg_queue->tail_pos = (msg_queue->tail_pos + 1) % D_MSG_BSIZE;
