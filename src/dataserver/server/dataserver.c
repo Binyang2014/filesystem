@@ -87,7 +87,7 @@ static void* d_read(data_server_t* this, common_msg_t* common_msg)
 	read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(common_msg);
 	source = common_msg->source;
 	tag = read_msg->unique_tag;
-	msg_buff = (void* )malloc(MAX_CMD_MSG_LEN);//may be should use a message queue here
+	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
 	buff = this->m_data_buffer;
 	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
 	file_info->offset = read_msg->offset;
@@ -101,8 +101,8 @@ static void* d_read(data_server_t* this, common_msg_t* common_msg)
 		return NULL;
 	}
 	printf("It's OK here\n");
-	//free(msg_buff);
-	//free(file_info);
+	free(msg_buff);
+	free(file_info);
 	return NULL;
 }
 
@@ -119,7 +119,7 @@ static void* d_write(data_server_t* this, common_msg_t* common_msg)
 	source = common_msg->source;
 	//tag = common_msg->unique_tag;
 	tag = write_msg->unique_tag;
-	msg_buff = (void* )malloc(MAX_CMD_MSG_LEN);//may be should use a message queue here
+	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
 	buff = this->m_data_buffer;
 	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
 	file_info->offset = write_msg->offset;

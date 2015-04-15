@@ -71,14 +71,14 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
-		//It can write to dataserver
+		//It can write to data server
 		init_w_struct(&w_msg);
 		printf("sending message to data server\n");
 		MPI_Send(&w_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, D_MSG_CMD_TAG, MPI_COMM_WORLD);
 		init_acc_struct(&acc_msg);
 		init_data_structure(&data_msg);
 		MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
-		MPI_Send(&data_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
+		MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
 
 		//I will test read function
 		init_r_structure(&r_msg);
