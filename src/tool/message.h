@@ -48,8 +48,6 @@
  */
 struct common_msg
 {
-	unsigned short unique_tag;
-	unsigned short reserved;
 	unsigned int source;
 	unsigned short operation_code;
 	char rest[MAX_CMD_MSG_LEN - 2];

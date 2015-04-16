@@ -19,7 +19,7 @@
 #define MAXLINE 4096
 
 //following is about message type
-#define COMMON_MSG_HEAD 8
+#define COMMON_MSG_HEAD 4
 #define COMMON_MSG_LEN (4096 + COMMON_MSG_HEAD)
 #define MAX_CMD_MSG_LEN 4096
 #define DATA_MSG_HEAD_LEN 16
