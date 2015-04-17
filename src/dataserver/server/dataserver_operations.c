@@ -6,61 +6,37 @@
  * care about buffer operations
  */
 
+#include <stdlib.h>
 #include "dataserver.h"
 
 //receive cmd message from client or master
 void* m_cmd_receive(void* msg_queue_arg)
 {
-	int offset;
 	void* start_pos;
 	common_msg_t* t_common_msg;
 	msg_queue_t * msg_queue;
 	mpi_status_t status;
 
 	msg_queue = (msg_queue_t* )msg_queue_arg;
+	t_common_msg = (common_msg_t* )malloc(sizeof(common_msg_t));
+
 	while (1)
 	{
-		//read lock, we also need signal here. I will add it later
-		pthread_rwlock_rdlock(&msg_queue_rw_lock);
-		if (!Q_FULL(msg_queue->head_pos, msg_queue->tail_pos))
-		{
-			offset = msg_queue->tail_pos;
-			//read unlock
-			pthread_rwlock_unlock(&msg_queue_rw_lock);
 
 #ifdef DATASERVER_COMM_DEBUG
-			printf("The tid of this thread is %lu\n", (unsigned long)pthread_self());
-			printf("I'm waiting for a message\n");
+		printf("The tid of this thread is %lu\n", (unsigned long)pthread_self());
+		printf("I'm waiting for a message\n");
 #endif
-
-			//receive message first
-			t_common_msg = msg_queue->msg + offset;
-			start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
-			d_mpi_cmd_recv(start_pos, &status);
-
-#ifdef DATASERVER_COMM_DEBUG
-			printf_msg_status(&status);
-#endif
-
-			t_common_msg->source = status.source;
-			//finish receive write lock
-			pthread_rwlock_wrlock(&msg_queue_rw_lock);
-			msg_queue->tail_pos = (msg_queue->tail_pos + 1) % D_MSG_BSIZE;
-			msg_queue->current_size = msg_queue->current_size + 1;
-			//write unlock
-			pthread_rwlock_unlock(&msg_queue_rw_lock);
-		}
-		else
-		{
-			pthread_rwlock_unlock(&msg_queue_rw_lock);
-			//Maybe if the space is no big enough, I should realloc if and make it a bigger heap
-
-#ifdef DATASERVER_COMM_DEBUG
-			err_msg("The message queue already full!!!");
-			return NULL;
-#endif
-		}
+		//receive message from client
+		start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
+		d_mpi_cmd_recv(start_pos, &status);
+		t_common_msg->source = status.source;
+		//push message to the queue
+		msg_queue->msg_op->push(msg_queue, t_common_msg);
 	}
+
+	free(t_common_msg);
+	return NULL;
 }
 //------------------------------------------------------------------------------
 
@@ -154,7 +130,6 @@ static int resolve_msg(common_msg_t* common_msg)
 //resolve message from message queue
 void m_resolve(msg_queue_t * msg_queue)
 {
-	int offset;
 	common_msg_t* t_common_msg;
 
 #ifdef DATASERVER_COMM_DEBUG
@@ -164,23 +139,8 @@ void m_resolve(msg_queue_t * msg_queue)
 	t_common_msg = (common_msg_t* )malloc(sizeof(common_msg_t));
 	while(1)
 	{
-		pthread_rwlock_rdlock(&msg_queue_rw_lock);
-		if(!Q_EMPTY(msg_queue->head_pos, msg_queue->tail_pos))
-		{
-			pthread_rwlock_unlock(&msg_queue_rw_lock);
-			pthread_rwlock_wrlock(&msg_queue_rw_lock);
-			offset = msg_queue->head_pos;
-			msg_queue->head_pos = (msg_queue->head_pos + 1) % D_MSG_BSIZE;
-			msg_queue->current_size = msg_queue->current_size - 1;
-			memcpy(t_common_msg, msg_queue->msg + offset, sizeof(common_msg_t));
-			pthread_rwlock_unlock(&msg_queue_rw_lock);
-			resolve_msg(t_common_msg);
-		}
-		else
-		{
-			pthread_rwlock_unlock(&msg_queue_rw_lock);
-			//阻塞
-		}
+		msg_queue->msg_op->pop(msg_queue, t_common_msg);
+		resolve_msg(t_common_msg);
 	}
 	free(t_common_msg);
 }

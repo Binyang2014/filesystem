@@ -21,7 +21,7 @@ struct msg_queue;
 struct msg_queue_op
 {
 	void (*push)(struct msg_queue* , common_msg_t* );
-	common_msg_t* (*pop)(struct msg_queue* );
+	void (*pop)(struct msg_queue* , common_msg_t* );
 };
 
 struct msg_queue
@@ -29,6 +29,7 @@ struct msg_queue
 	//int current_size;
 	int head_pos;
 	int tail_pos;
+	struct msg_queue_op* msg_op;
 	sem_t* msg_queue_full;
 	sem_t* msg_queue_empty;
 	common_msg_t* msg;
@@ -45,13 +46,14 @@ struct thread_pool
 };
 
 typedef struct msg_queue msg_queue_t;
+typedef struct msg_queue_op msg_queue_op_t;
 
 //followings are operation functions
 void msg_queue_push(msg_queue_t*, common_msg_t* );
 void msg_queue_pop(msg_queue_t* , common_msg_t* );
 
 //init function
-void alloc_msg_queue(msg_queue_t* );
+msg_queue_t* alloc_msg_queue();
 void destroy_msg_queue(msg_queue_t* );
 
 #endif

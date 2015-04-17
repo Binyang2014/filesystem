@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &p);
 	if(!id)
 	{
-		dataserver = init_dataserver(MIDDLE, 0);
+		dataserver = alloc_dataserver(MIDDLE, 0);
 		pthread_create(&tid[0], NULL, m_cmd_receive, dataserver->m_cmd_queue);
 
 		tid_test = pthread_self();

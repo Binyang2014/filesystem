@@ -15,7 +15,6 @@
 //this is a demo, there are many things to add
 
 //many kinds of locks
-pthread_rwlock_t msg_queue_rw_lock;
 
 data_server_t* data_server;
 
@@ -47,7 +46,7 @@ int get_current_imformation(data_server_t * server_imf)
 	return 0;
 }
 
-data_server_t* init_dataserver(total_size_t t_size, int dev_num)
+data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 {
 	data_server = (data_server_t* )malloc(sizeof(data_server_t));
 	if(data_server == NULL)
@@ -75,16 +74,14 @@ data_server_t* init_dataserver(total_size_t t_size, int dev_num)
 	//data_server->t_buffer = (pthread_t* )malloc(sizeof(pthread_t) * D_THREAD_SIZE);
 
 	//init msg_cmd_buffer
-	data_server->m_cmd_queue = (msg_queue_t* )malloc(sizeof(msg_queue_t));
-	data_server->m_cmd_queue->msg = (common_msg_t* )malloc(sizeof(common_msg_t)
-			* D_MSG_BSIZE);
-	data_server->m_cmd_queue->current_size = 0;
-	data_server->m_cmd_queue->head_pos = 0;
-	data_server->m_cmd_queue->tail_pos = 0;
+	data_server->m_cmd_queue = alloc_msg_queue();
+	if(data_server->m_cmd_queue == NULL)
+	{
+		return NULL;
+	}
 
 	//init many kinds of locks
-	if(pthread_rwlock_init(&msg_queue_rw_lock, NULL) != 0)
-			err_sys("init pthread lock wrong");
+
 	return data_server;
 	//end of init
 }
