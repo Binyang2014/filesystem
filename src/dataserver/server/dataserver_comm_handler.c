@@ -41,11 +41,15 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
  */
 int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, void* msg_buff)
 {
-	int ans = 0, msg_blocks, msg_rest, i, temp_len, temp_ans, tail;
+	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
-	MPI_Status status;
+	mpi_status_t status;
 
-	MPI_Recv(msg_buff, MAX_CMD_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD, &status);
+#ifdef DATASERVER_COMM_DEBUG
+	printf("start read from data server\n");
+#endif
+
+	d_mpi_acc_recv(msg_buff, source, tag, &status);
 	//client do not want to receive message, and server will not provide
 	if(*(unsigned short*)msg_buff != MSG_ACC)
 	{
@@ -56,8 +60,13 @@ int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, voi
 	msg_blocks = file_info->count / MAX_DATA_CONTENT_LEN;
 	msg_rest = file_info->count % MAX_DATA_CONTENT_LEN;
 	offset = file_info->offset;
-	//adjust for tail message
-	msg_blocks = msg_blocks + (1 ? 0 : msg_rest);
+	msg_blocks = msg_blocks + (msg_rest ? 1 : 0);
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("The acc in read handler\n");
+	printf_msg_status(&status);
+	printf("send message to client\n");
+#endif
 
 	for(i = 0; i < msg_blocks - 1; i++)
 	{
@@ -65,7 +74,7 @@ int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, voi
 				offset, i, 0, msg_buff)) == -1 )
 			return -1;
 
-		MPI_Send(msg_buff, MAX_DATA_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD);
+		d_mpi_data_send(msg_buff, source, tag);
 
 		//already read at the end of the file
 		if(temp_ans == 0)
@@ -77,16 +86,23 @@ int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, voi
 
 	//send tail message
 	if(msg_rest == 0)
+	{
 		if( (temp_ans = read_from_vfs(file_info->file, buff, MAX_DATA_CONTENT_LEN,
 						offset, i, 1, msg_buff)) == -1 )
 			return -1;
+	}
 	else
-		if( (temp_ans = read_from_vfs(file_info->file, buff, msg_rest,
+	{	if( (temp_ans = read_from_vfs(file_info->file, buff, msg_rest,
 						offset, i, 1, msg_buff)) == -1 )
 			return -1;
+	}
 
-	MPI_Send(msg_buff, MAX_DATA_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD);
+	d_mpi_data_send(msg_buff, source, tag);
 	ans = ans + temp_ans;
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("read finished and the bytes of read is %d\n", ans);
+#endif
 
 	//maybe there is need to receive Acc from client
 	return ans;
@@ -113,12 +129,18 @@ static int write_to_vfs(dataserver_file_t *file, char* buff, off_t offset,
 
 int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, void* msg_buff)
 {
-	int ans = 0, msg_blocks, msg_rest, i, temp_len, temp_ans;
+	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
-	MPI_Status status;
+	mpi_status_t status;
 
+	//waiting for message
+	d_mpi_acc_recv(msg_buff, source, tag, &status);
 
-	MPI_Recv(msg_buff, MAX_CMD_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD, &status);
+#ifdef DATASERVER_COMM_DEBUG
+	printf("accept message in write handler\n");
+	printf_msg_status(&status);
+#endif
+
 	if(*(unsigned short*)msg_buff != MSG_ACC)
 	{
 		err_msg("The client do not ready to send message now");
@@ -129,14 +151,18 @@ int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, vo
 	msg_blocks = file_info->count / MAX_DATA_CONTENT_LEN;
 	msg_rest = file_info->count % MAX_DATA_CONTENT_LEN;
 	offset = file_info->offset;
+	msg_blocks = msg_blocks + (msg_rest ? 1 : 0);
 
-	msg_blocks = msg_blocks + (1 ? 0 : msg_rest );
+#ifdef DATASERVER_COMM_DEBUG
+	printf("will receive message from client\n");
+#endif
 
 	for(i = 0; i < msg_blocks; i++)
 	{
 		//received message from client
 		//if we need seq number to keep message in order??
-		MPI_Revc(msg_buff, MAX_DATA_MSG_LEN, source, tag, MPI_COMM_WORLD);
+		d_mpi_data_recv(msg_buff, source, tag, &status);
+
 		if((temp_ans = write_to_vfs(file_info->file, buff, offset, msg_buff)) == -1)
 			return -1;
 
@@ -144,8 +170,11 @@ int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, vo
 		ans = ans + temp_ans;
 	}
 
-	//send tail message
-	ans = ans + temp_ans;
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("write finish and the number of write bytes is %d\n", ans);
+	printf_msg_status(&status);
+#endif
 
 	//maybe there is need to send Acc to client
 	return ans;

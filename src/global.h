@@ -19,7 +19,7 @@
 #define MAXLINE 4096
 
 //following is about message type
-#define COMMON_MSG_HEAD 8
+#define COMMON_MSG_HEAD 4
 #define COMMON_MSG_LEN (4096 + COMMON_MSG_HEAD)
 #define MAX_CMD_MSG_LEN 4096
 #define DATA_MSG_HEAD_LEN 16
@@ -31,6 +31,9 @@
 #define MSG_WRITE 0x01
 #define MSG_ACC 0x02
 //...
+
+//reserved tag when transport message
+#define D_MSG_CMD_TAG 0	//command message should be sent with tag 0
 
 //data server configure about buffer size, just a test, need to be redefined
 #define D_FILE_BSIZE	(1<<8)

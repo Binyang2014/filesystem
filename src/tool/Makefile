@@ -2,7 +2,7 @@ TOPDIR = ../..
 TEST_PROGRAM = bitmap_test hash_test err_test
 
 include $(TOPDIR)/GlobalMakefile
-object = bitmap.o hash.o errinfo.o
+object = bitmap.o hash.o errinfo.o message.o
 target = $(TOPDIR)/lib/libtool.a
 
 $(target): $(object)

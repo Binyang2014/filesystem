@@ -105,6 +105,7 @@ static dataserver_sb_t * init_vfs_sb()
 	dataserver_sb->s_op = (superblock_op_t *)malloc(sizeof(superblock_op_t));
 	if(dataserver_sb->s_op == NULL)
 	{
+		free(dataserver_sb->s_hash_table);
 		free(dataserver_sb);
 		perror("allocate super block operations failed");
 		return NULL;
