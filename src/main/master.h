@@ -12,12 +12,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
-#include "opera_code_sturcture.h"
 #include "namespace.h"
 #include "conf.h"
 #include "../tool/message.h"
 #include "../global.h"
 #include "../tool/error_log.h"
+
+#define LOAD_FACTOR 0.5
 
 /**
  * 数据服务器描述
@@ -32,6 +33,9 @@ typedef struct data_server_des
 	block *block_mem_map;
 }data_server_des;
 
+/**
+ * 数据服务器
+ */
 typedef struct data_servers
 {
 	unsigned int server_count;
@@ -39,6 +43,7 @@ typedef struct data_servers
 }data_servers;
 
 /**
+ * 请求队列
  * node of request queue, including request information from client and data server
  */
 typedef struct request_node{
@@ -131,6 +136,6 @@ static master_request_queue request_queue_list;
 
 static void data_server_init();
 
-static data_servers master_data_servers;
+static data_servers *master_data_servers;
 
 #endif /* SRC_MAIN_MASTER_H_ */

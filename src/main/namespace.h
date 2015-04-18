@@ -33,7 +33,8 @@ static int parse_path(char *parent_dir_name, char *file_name, char *path, int le
 typedef struct{
 	unsigned long count;		//file block count
 	int machinde_id;   //machine id
-	unsigned long file_block_global_id[256]; //file global block id
+	struct file_machine_location *next;
+	block file_block[256]; //file global block id
 }file_machine_location;
 
 /**
@@ -41,8 +42,10 @@ typedef struct{
  */
 typedef struct{
 	int machinde_count;
-	file_machine_location *machines;
+	file_machine_location *machines_head;
+	file_machine_location *machines_tail;
 }file_location_des;
+
 /*
  * 父目录节点数据结构
  */

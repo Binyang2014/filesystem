@@ -67,7 +67,7 @@ void free_request_node(request_node *request) {
 void data_server_init() {
 	init_queue();
 	//master_data_servers.index = 1;
-	master_data_servers.server_count = 0;
+	master_data_servers.server_count = 100;
 	master_data_servers.data_server_list = (data_server_des *) malloc(
 			sizeof(data_server_des) * master_data_servers.server_count);
 	memset(&master_data_servers, 0,
@@ -86,6 +86,7 @@ void master_init() {
 //	MPI_Recv(message_buff, MAX_COM_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE,
 //	MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 //	puts(message_buff);
+	//TODO 初始化数据服务器的状态
 	pthread_mutex_init(&mutex_message_buff, NULL);
 	pthread_mutex_init(&mutex_namespace, NULL);
 
@@ -127,16 +128,64 @@ void* master_server(void *arg) {
 	return 0;
 }
 
+void *free_file_location_des(file_location_des *f){
+	file_machine_location *ff = f->machines_head;
+	file_machine_location *next;
+	while(ff){
+		next = ff->next;
+		free(ff);
+		ff = next;
+	}
+	return 0;
+}
+
+//给文件分配空间
 file_location_des *maclloc_data_block(unsigned long file_size) {
 	file_location_des * t = (file_location_des*) malloc(sizeof(file_location_des));
 	unsigned long block_count = ceil((double)file_size / BLOCK_SIZE);
-	t->machinde_count = 1;
+	t->machinde_count = 0;
+	if(block_count == 0)
+		return t;
+	data_server_des *d = master_data_servers->data_server_list;
+	t->machines_head = (file_machine_location*)malloc(sizeof(file_machine_location));
+	t->machines_head->next = NULL;
+	t->machines_tail = t->machines_head;
+	unsigned int file_seq = 1;
+	//遍历序列
+	int search_index = 1;
+	//TODO设置全局的块ID
+	while(block_count){
+		if(search_index <= master_data_servers->server_count && d->status){
+			t->machines_tail->machinde_id = d->id;
+			if(block_count <= d->s_free_blocks_count){
+				t->machines_tail->count =  block_count;
+				d->s_free_blocks_count -= block_count;
+				//TODO分配全局ID
+				break;
+			}else{
+				t->machines_tail->count = d->s_free_blocks_count;
+				d->s_free_blocks_count = 0;
+				block_count -= d->s_free_blocks_count;
+				t->machines_tail->next = (file_machine_location*)malloc(sizeof(file_machine_location));
+				t->machines_tail = t->machines_tail->next;
+				t->machines_tail->next = NULL;
+				d++;
+			}
+		}
+	}
+	if(block_count){
+		free_file_location_des(t);
+		return NULL;
+	}
 	return t;
 }
 
 void answer_client_create_file(request_node *request){
 	create_file_structure *create = request->message;
 	file_location_des *file_location = maclloc_data_block(create->file_size);
+	if(!file_location){
+		return;
+	}
 	int i = 0;
 	for(; i != file_location->machinde_count; i++){
 

@@ -48,16 +48,17 @@ struct request_queue *queue_head, *queue_tail;
 
 /*****************instruction interface***********************/
 
+/**
+ * create file
+ */
 static int clent_create_file(char *file_path, char *file_name);
 
-static int client_create_new_file(char *file_name);
-
-static int client_delete_file(char *dir_name);
-
-static int client_create_dir(char *dir_name);
+static void handle_create_file_ans();
 
 void send_data(char *file_name);
 
 char *rec_buf, *send_buf;
+
+static mas_ans_cli_crea_file* create_file_ans;
 
 #endif /* SRC_MAIN_CLIENT_H_ */

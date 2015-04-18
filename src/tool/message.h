@@ -33,6 +33,7 @@
  * operation code
  */
 #define CREATE_FILE_CODE 3001
+#define CREATE_FILE_ANS_CODE 3002
 
 /**
  * master answer code
@@ -190,6 +191,7 @@ typedef struct mas_ans_cli_crea_file{
 	int machine_id;
 	int block_size;
 	block block_content[];
+	struct mas_ans_cli_crea_file* next;
 }mas_ans_cli_crea_file;
 
 #endif
