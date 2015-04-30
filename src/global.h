@@ -41,7 +41,7 @@
 #define D_PAIR_BSIZE	(1<<8)
 #define D_MSG_BSIZE	(1<<8)
 //线程池大小
-#define D_THREAD_SIZE	(1<<8)
+#define D_THREAD_SIZE	(1<<4)
 
 //use for debug
 #define DEBUG 1
