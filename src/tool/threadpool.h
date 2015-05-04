@@ -59,7 +59,7 @@ struct buffer
 //event handler and different layer use different formats
 struct event_handler
 {
-	void* (*handler)(void* args);
+	void (*handler)(struct event_handler*);
 	void* (*resolve_handler)(struct event_handler*, void* args);
 	void* spcical_struct;
 
@@ -73,12 +73,12 @@ struct thread
 	struct thread_pool* thread_pool;
 	struct event_handler* event_handler;
 	pthread_t pthread;
-	void* (*handler)(struct thread*, void* args);
+	int (*handler)(struct thread*, struct event_handler*);
 };
 
 struct threadpool_opertions
 {
-	void (*promote_a_leader)(struct thread_pool*, struct thread*);
+	int (*promote_a_leader)(struct thread_pool*, struct thread*);
 	//every thread run join function at the beginning
 	void (*start)(struct thread_pool*, struct event_handler*);
 	void (*deactive_handle)(struct thread_pool*);
@@ -102,11 +102,19 @@ struct thread_pool
 	struct msg_queue* msg_queue;
 };
 
-
-
-/*===============================message queue===================================*/
+/*================================typedef=========================================*/
 typedef struct msg_queue msg_queue_t;
 typedef struct msg_queue_op msg_queue_op_t;
+
+typedef struct thread_pool thread_pool_t;
+typedef struct threadpool_opertions threadpool_op_t;
+typedef struct thread thread_t;
+
+typedef struct event_handler event_handler_t;
+typedef void (*handler_t)(event_handler_t*);
+typedef void* (*resolve_handler_t)(event_handler_t*, void* args);
+
+/*===============================message queue===================================*/
 
 //followings are operation functions
 void msg_queue_push(msg_queue_t*, common_msg_t* );
@@ -117,17 +125,12 @@ msg_queue_t* alloc_msg_queue();
 void destroy_msg_queue(msg_queue_t* );
 
 /*===============================thread pool=======================================*/
-typedef struct thread_pool thread_pool_t;
-typedef struct threadpool_opertions threadpool_op_t;
-typedef struct thread thread_t;
 
 thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t*);
 void distroy_thread_pool(thread_pool_t*);
 void start(thread_pool_t*, event_handler_t*);
 
 /*===============================event handler=====================================*/
-typedef struct event_handler event_handler_t;
-typedef void (*handler_t)(event_handler_t*);
-event_handler_t* alloc_event_handler(thread_pool_t*);
+event_handler_t* alloc_event_handler(thread_pool_t*, resolve_handler_t);
 void destory_event_handler(event_handler_t*);
 #endif

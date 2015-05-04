@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "threadpool.h"
 #include "errinfo.h"
 
@@ -14,13 +15,13 @@ static void* thread_do(void* arg);
 
 static void init_thread(thread_t* thread, int id, event_handler_t* event_handler);
 static pthread_cond_t* alloc_thread_cond(int threads_count);
-static int push_stack(thread_pool_t* this, thread_t thread);
+static int push_stack(thread_pool_t* this, thread_t* thread);
 static int pop_stack(thread_pool_t* this, thread_t* stack_top);
 static int promote_a_leader(thread_pool_t* this, thread_t* thread);
 static void deactive_handle(thread_pool_t* this);
 static void reactive_handle(thread_pool_t* this);
 
-static void handle_event(event_handler_t* this);
+static int handle_event(thread_t* thread, event_handler_t* event_handler);
 
 /*==============================MESSAGE QUEUE=============================*/
 void msg_queue_push(msg_queue_t* this, common_msg_t* msg )
@@ -121,7 +122,7 @@ void destroy_msg_queue(msg_queue_t* this)
 	this->msg_op->pop = NULL;
 	sem_destroy(this->msg_queue_empty);
 	sem_destroy(this->msg_queue_full);
-	pthread_mutex_destroy(this->msg_mutex, NULL);
+	pthread_mutex_destroy(this->msg_mutex);
 	free(this->msg_op);
 	free(this->msg_queue_empty);
 	free(this->msg_queue_full);
@@ -137,18 +138,19 @@ void destroy_msg_queue(msg_queue_t* this)
  * resolve message from message queue and assign right handler to
  * this events. promote a new leader, then do handler this event
  */
-static void handle_event(thread_t* thread, event_handler_t* this)
+static int handle_event(thread_t* thread, event_handler_t* event_handler)
 {
 	handler_t handler;
-	this->thread_pool->tp_ops->deactive_handle(this->thread_pool);
-	this->thread_pool->tp_ops->promote_a_leader(this->thread_pool, thread);
+	event_handler->thread_pool->tp_ops->deactive_handle(event_handler->thread_pool);
+	event_handler->thread_pool->tp_ops->promote_a_leader(event_handler->thread_pool, thread);
 
 	//Resolve handler for thread
-	handler = this->resolve_handler(this, this->thread_pool->msg_queue);
-	this->thread_pool->tp_ops->reactive_handle(this->thread_pool);
+	handler = event_handler->resolve_handler(event_handler, event_handler->thread_pool->msg_queue);
+	event_handler->thread_pool->tp_ops->reactive_handle(event_handler->thread_pool);
 
-	this->handler = handler;
-	this->handler(this);
+	event_handler->handler = handler;
+	event_handler->handler(event_handler);
+	return 0;
 }
 
 /*
@@ -158,7 +160,8 @@ static void handle_event(thread_t* thread, event_handler_t* this)
  * @return:
  * event_hanlder_t* if allocated failed return null
  */
-event_handler_t* alloc_event_handler(thread_pool_t* thread_pool, handler_t resolve_handler)
+event_handler_t* alloc_event_handler(thread_pool_t* thread_pool,
+		resolve_handler_t resolve_handler)
 {
 	event_handler_t* event_handler = (event_handler_t* )malloc(sizeof(event_handler));
 	if(event_handler == NULL)
@@ -404,11 +407,11 @@ static int promote_a_leader(thread_pool_t* this, thread_t* thread)
 		return -1;
 	}
 	pop_stack(this, &new_leader);
-	this->leader_id = new_leader->id;
+	this->leader_id = new_leader.id;
 	pthread_mutex_unlock(this->pool_mutex);
 
 	//awake a thread
-	pthread_cond_signal(this->pool_condition + new_leader->id);
+	pthread_cond_signal(this->pool_condition + new_leader.id);
 	return 0;
 }
 
