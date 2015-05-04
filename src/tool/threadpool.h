@@ -31,6 +31,11 @@ struct msg_queue_op
 	void (*pop)(struct msg_queue* , common_msg_t* );
 };
 
+/*
+ * this msg_queue do not provide mutex lock
+ * if multiple threads will modify it, you should
+ * lock the mutex by yourself
+ */
 struct msg_queue
 {
 	//int current_size;
@@ -39,6 +44,7 @@ struct msg_queue
 	struct msg_queue_op* msg_op;
 	sem_t* msg_queue_full;
 	sem_t* msg_queue_empty;
+	pthread_mutex_t* msg_mutex;
 	common_msg_t* msg;
 };
 
@@ -54,24 +60,25 @@ struct buffer
 struct event_handler
 {
 	void* (*handler)(void* args);
+	void* (*resolve_handler)(struct event_handler*, void* args);
 	void* spcical_struct;
+
 	struct buffer* event_buffer;
 	struct thread_pool* thread_pool;
-
-	void (*handle_event)(void* args);
 };
 
 struct thread
 {
 	int id;
 	struct thread_pool* thread_pool;
+	struct event_handler* event_handler;
 	pthread_t pthread;
-	void* (*handler)(void* args);
+	void* (*handler)(struct thread*, void* args);
 };
 
 struct threadpool_opertions
 {
-	void (*promote_a_leader)(struct thread_pool*);
+	void (*promote_a_leader)(struct thread_pool*, struct thread*);
 	//every thread run join function at the beginning
 	void (*start)(struct thread_pool*, struct event_handler*);
 	void (*deactive_handle)(struct thread_pool*);
@@ -108,8 +115,7 @@ void msg_queue_pop(msg_queue_t* , common_msg_t* );
 //init function
 msg_queue_t* alloc_msg_queue();
 void destroy_msg_queue(msg_queue_t* );
-/*===============================event handler=====================================*/
-typedef struct event_handler event_handler_t;
+
 /*===============================thread pool=======================================*/
 typedef struct thread_pool thread_pool_t;
 typedef struct threadpool_opertions threadpool_op_t;
@@ -118,4 +124,10 @@ typedef struct thread thread_t;
 thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t*);
 void distroy_thread_pool(thread_pool_t*);
 void start(thread_pool_t*, event_handler_t*);
+
+/*===============================event handler=====================================*/
+typedef struct event_handler event_handler_t;
+typedef void (*handler_t)(event_handler_t*);
+event_handler_t* alloc_event_handler(thread_pool_t*);
+void destory_event_handler(event_handler_t*);
 #endif

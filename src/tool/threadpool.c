@@ -5,10 +5,24 @@
  */
 #include <string.h>
 #include <stdlib.h>
+#include <pthread.h>
 #include "threadpool.h"
 #include "errinfo.h"
 
-//message queue operation functions
+//static functions prototypes
+static void* thread_do(void* arg);
+
+static void init_thread(thread_t* thread, int id, event_handler_t* event_handler);
+static pthread_cond_t* alloc_thread_cond(int threads_count);
+static int push_stack(thread_pool_t* this, thread_t thread);
+static int pop_stack(thread_pool_t* this, thread_t* stack_top);
+static int promote_a_leader(thread_pool_t* this, thread_t* thread);
+static void deactive_handle(thread_pool_t* this);
+static void reactive_handle(thread_pool_t* this);
+
+static void handle_event(event_handler_t* this);
+
+/*==============================MESSAGE QUEUE=============================*/
 void msg_queue_push(msg_queue_t* this, common_msg_t* msg )
 {
 	int offset;
@@ -50,9 +64,21 @@ msg_queue_t* alloc_msg_queue()
 		free(this);
 		return NULL;
 	}
+
+	//allocate message mutex lock
+	this->msg_mutex = (pthread_mutex_t* )malloc(sizeof(pthread_mutex_t));
+	if(this->msg_mutex == NULL)
+	{
+		free(this->msg);
+		free(this);
+		return NULL;
+	}
+
+	//allocate message segment
 	this->msg_queue_empty = (sem_t* )malloc(sizeof(sem_t));
 	if(this->msg_queue_empty == NULL)
 	{
+		free(this->msg_mutex);
 		free(this->msg);
 		free(this);
 		return NULL;
@@ -61,22 +87,29 @@ msg_queue_t* alloc_msg_queue()
 	if(this->msg_queue_full == NULL)
 	{
 		free(this->msg_queue_empty);
+		free(this->msg_mutex);
 		free(this->msg);
 		free(this);
 		return NULL;
 	}
-	sem_init(this->msg_queue_empty, 0, D_MSG_BSIZE);
-	sem_init(this->msg_queue_full, 0, 0);
 
+	//init message operations
 	this->msg_op = (msg_queue_op_t* )malloc(sizeof(msg_queue_op_t));
 	if(this->msg_op == NULL)
 	{
 		free(this->msg_queue_full);
 		free(this->msg_queue_empty);
+		free(this->msg_mutex);
 		free(this->msg);
 		free(this);
 		return NULL;
 	}
+
+	pthread_mutex_init(this->msg_mutex, NULL);
+
+	sem_init(this->msg_queue_empty, 0, D_MSG_BSIZE);
+	sem_init(this->msg_queue_full, 0, 0);
+
 	this->msg_op->push = msg_queue_push;
 	this->msg_op->pop = msg_queue_pop;
 	return this;
@@ -84,8 +117,11 @@ msg_queue_t* alloc_msg_queue()
 
 void destroy_msg_queue(msg_queue_t* this)
 {
+	this->msg_op->push = NULL;;
+	this->msg_op->pop = NULL;
 	sem_destroy(this->msg_queue_empty);
 	sem_destroy(this->msg_queue_full);
+	pthread_mutex_destroy(this->msg_mutex, NULL);
 	free(this->msg_op);
 	free(this->msg_queue_empty);
 	free(this->msg_queue_full);
@@ -95,13 +131,73 @@ void destroy_msg_queue(msg_queue_t* this)
 
 /*================================EVENT HANDLER=======================================*/
 
+/*
+ * @args:
+ * event_handler_t* this
+ * resolve message from message queue and assign right handler to
+ * this events. promote a new leader, then do handler this event
+ */
+static void handle_event(thread_t* thread, event_handler_t* this)
+{
+	handler_t handler;
+	this->thread_pool->tp_ops->deactive_handle(this->thread_pool);
+	this->thread_pool->tp_ops->promote_a_leader(this->thread_pool, thread);
 
+	//Resolve handler for thread
+	handler = this->resolve_handler(this, this->thread_pool->msg_queue);
+	this->thread_pool->tp_ops->reactive_handle(this->thread_pool);
+
+	this->handler = handler;
+	this->handler(this);
+}
+
+/*
+ * @args:
+ * thread_pool: thread pool
+ * resolve_handler function that will resolve message queue
+ * @return:
+ * event_hanlder_t* if allocated failed return null
+ */
+event_handler_t* alloc_event_handler(thread_pool_t* thread_pool, handler_t resolve_handler)
+{
+	event_handler_t* event_handler = (event_handler_t* )malloc(sizeof(event_handler));
+	if(event_handler == NULL)
+	{
+		err_ret("allocate event handler error");
+		return NULL;
+	}
+	event_handler->event_buffer = NULL;
+	event_handler->handler = NULL;
+	event_handler->resolve_handler = resolve_handler;
+	event_handler->thread_pool = thread_pool;
+	return event_handler;
+}
+
+/*
+ * @args:event_handler
+ * release event handler
+ */
+void destory_event_handler(event_handler_t* event_handler)
+{
+	event_handler->event_buffer = NULL;
+	event_handler->handler = NULL;
+	event_handler->resolve_handler = NULL;
+	event_handler->thread_pool = NULL;
+	free(event_handler);
+}
 
 /*====================================THREAD==========================================*/
+
+static void cleanup(void* arg)
+{
+	printf("cleanup: the thread number is %d\n", *(int*)arg);
+}
+
 static void* thread_do(void* arg)
 {
 	thread_t* this = (thread_t* )arg;
 	int leader_id;
+	pthread_cleanup_push(cleanup, &(this->id));
 	pthread_mutex_lock(this->thread_pool->pool_mutex);
 	for(;;)
 	{
@@ -112,24 +208,27 @@ static void* thread_do(void* arg)
 					this->thread_pool->pool_mutex);
 		}
 
-		leader_id = this->thread_pool->leader_id;
+		this->thread_pool->leader_id = this->id;
 		pthread_mutex_unlock(this->thread_pool->pool_mutex);
 
 		//get event from msg_queue
 		//handle the event
-		this->handler;
+		this->handler(this, this->event_handler);
 
 		//reenter monitor to serialize the program
 		pthread_mutex_lock(this->thread_pool->pool_mutex);
 	}
+	pthread_cleanup_pop(0);
 	return NULL;
 }
 
 static void init_thread(thread_t* thread, int id, event_handler_t* event_handler)
 {
 	thread->id = id;
-	//This functions need to be modified
-	//thread->handler = event_handler->handle_event;
+	thread->handler = handle_event;
+	thread->event_handler = event_handler;
+
+	//be careful about this function
 	pthread_create(&(thread->pthread), NULL, thread_do, thread);
 	pthread_detach(thread->pthread);
 }
@@ -161,6 +260,19 @@ static pthread_cond_t* alloc_thread_cond(int threads_count)
 		}
 	}
 	return pthread_cond_arr;
+}
+
+static void destroy_thread_cond(thread_pool_t* this)
+{
+	int i;
+	int threads_count = this->threads_count;
+	pthread_cond_t* pool_condition = this->pool_condition;
+
+	for(i = 0; i < threads_count; i++)
+	{
+		pthread_cond_destroy(&pool_condition[i]);
+	}
+	free(this->pool_condition);
 }
 
 thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t* msg_queue)
@@ -233,16 +345,21 @@ thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t* msg_queue)
 	thread_pool->threads_count = threads_count;
 	thread_pool->pool_status = THREAD_POOL_UNINIT;
 	thread_pool->leader_id = NO_THREAD_LEADER;
+
+	//initial thread pool operations
+	thread_pool->tp_ops->promote_a_leader = promote_a_leader;
+	thread_pool->tp_ops->deactive_handle = deactive_handle;
+	thread_pool->tp_ops->reactive_handle = reactive_handle;
 	return thread_pool;
 }
 
-static int push_stack(thread_pool_t* this, thread_t thread)
+static int push_stack(thread_pool_t* this, thread_t* thread)
 {
 	thread_t* spare_stack = this->spare_stack;
 	int top = this->spare_stack_top;
 	if(top == this->threads_count)
 		return -1;
-	spare_stack[top] = thread;
+	spare_stack[top] = *thread;
 	this->spare_stack_top = this->spare_stack_top + 1;
 	return 0;
 }
@@ -261,6 +378,40 @@ static int pop_stack(thread_pool_t* this, thread_t* stack_top)
 	return 0;
 }
 
+//the function will lock the message queue
+static void deactive_handle(thread_pool_t* this)
+{
+	if(pthread_mutex_lock(this->msg_queue->msg_mutex) != 0)
+		err_ret("wrong in deactive handle function");
+}
+
+//this function will unlock the message queue
+static void reactive_handle(thread_pool_t* this)
+{
+	if(pthread_mutex_unlock(this->msg_queue->msg_mutex) != 0)
+		err_ret("wrong in reactive handle function");
+}
+
+/**
+ * promote a new leader to handler the new message
+ */
+static int promote_a_leader(thread_pool_t* this, thread_t* thread)
+{
+	thread_t new_leader;
+	pthread_mutex_lock(this->pool_mutex);
+	if(this->leader_id != thread->id)
+	{
+		return -1;
+	}
+	pop_stack(this, &new_leader);
+	this->leader_id = new_leader->id;
+	pthread_mutex_unlock(this->pool_mutex);
+
+	//awake a thread
+	pthread_cond_signal(this->pool_condition + new_leader->id);
+	return 0;
+}
+
 void start(thread_pool_t* this, event_handler_t* event_handler)
 {
 	int i;
@@ -269,14 +420,40 @@ void start(thread_pool_t* this, event_handler_t* event_handler)
 		//the first thread will be the leader
 		pthread_mutex_lock(this->pool_mutex);
 		this->leader_id = 0;
-		pthread_mutexunlock(this->pool_mutex);
+		pthread_mutex_unlock(this->pool_mutex);
 
 		for(i = 1; i < this->threads_count; i++)
 		{
 			init_thread(&(this->threads[i]), i, event_handler);
-			push_stack(this, this->threads[i]);
+			push_stack(this, &this->threads[i]);
 		}
 		this->pool_status = THREAD_POOL_INIT;
 	}
 	return;
+}
+
+/**
+ * destroy thread pool
+ * this function may be not right, should be careful
+ */
+void distroy_thread_pool(thread_pool_t* thread_pool)
+{
+	int i;
+	int threads_count = thread_pool->threads_count;
+	thread_t* threads = thread_pool->threads;
+
+	//cancel threads
+	for(i = 0; i < threads_count; i++)
+	{
+		pthread_cancel(threads[i].pthread);
+	}
+	//wait 1 second until all threads is canceled
+	sleep(1);
+	destroy_thread_cond(thread_pool);
+	pthread_mutex_destroy(thread_pool->pool_mutex);
+	free(thread_pool->pool_mutex);
+	free(thread_pool->tp_ops);
+	free(thread_pool->spare_stack);
+	free(thread_pool->threads);
+	free(thread_pool);
 }
