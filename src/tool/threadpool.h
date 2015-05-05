@@ -22,8 +22,19 @@
 #define Q_FULL(head_pos, tail_pos) (((tail_pos + 1) % D_MSG_BSIZE) == (head_pos))
 #define Q_EMPTY(head_pos, tail_pos) ((head_pos) == (tail_pos))
 
+/*---------------------------------------------------------------------------------*/
 struct msg_queue;
+struct msg_queue_op;
+
+struct thread;
 struct thread_pool;
+struct threadpool_opertions;
+
+struct buffer;
+struct event_handler;
+struct event_handler_set;
+
+/*-----------------------------------------------------------------------------*/
 
 struct msg_queue_op
 {
@@ -48,6 +59,7 @@ struct msg_queue
 	common_msg_t* msg;
 };
 
+/*-----------------------------------------------------------------------------*/
 
 struct buffer
 {
@@ -67,6 +79,14 @@ struct event_handler
 	struct thread_pool* thread_pool;
 };
 
+struct event_handler_set
+{
+	int event_handlers_conut;
+	struct event_handler** evnet_handler_arr;
+};
+
+/*-----------------------------------------------------------------------------*/
+
 struct thread
 {
 	int id;
@@ -80,7 +100,7 @@ struct threadpool_opertions
 {
 	int (*promote_a_leader)(struct thread_pool*, struct thread*);
 	//every thread run join function at the beginning
-	void (*start)(struct thread_pool*, struct event_handler*);
+	void (*start)(struct thread_pool*, struct event_handler_set*);
 	void (*deactive_handle)(struct thread_pool*);
 	void (*reactive_handle)(struct thread_pool*);
 };
@@ -111,26 +131,29 @@ typedef struct threadpool_opertions threadpool_op_t;
 typedef struct thread thread_t;
 
 typedef struct event_handler event_handler_t;
+typedef struct event_handler_set event_handler_set_t;
 typedef void (*handler_t)(event_handler_t*);
 typedef void* (*resolve_handler_t)(event_handler_t*, void* args);
 
 /*===============================message queue===================================*/
 
-//followings are operation functions
-void msg_queue_push(msg_queue_t*, common_msg_t* );
-void msg_queue_pop(msg_queue_t* , common_msg_t* );
-
-//init function
+//initial function
+//you also can use pop and push function in message queue
 msg_queue_t* alloc_msg_queue();
 void destroy_msg_queue(msg_queue_t* );
 
 /*===============================thread pool=======================================*/
 
+//there are promote, deactive, reactive and start functions
 thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t*);
 void distroy_thread_pool(thread_pool_t*);
-void start(thread_pool_t*, event_handler_t*);
 
 /*===============================event handler=====================================*/
-event_handler_t* alloc_event_handler(thread_pool_t*, resolve_handler_t);
-void destory_event_handler(event_handler_t*);
+
+//there are handler and resolve_handler functions you should concern
+//resolve function will resolve message and return handle function for this event
+//the handler will do the right things for the event
+event_handler_set_t *alloc_event_handler_set(thread_pool_t*, resolve_handler_t, int);
+void destroy_event_handler_set(event_handler_set_t*);
+
 #endif
