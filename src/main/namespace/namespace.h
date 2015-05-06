@@ -3,30 +3,11 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "namespace_param.h"
 #include "data_server_location.h"
+#include "namespace_code.h"
 
 #define PARENT_HASH_LENGTH 1024
 #define CHILD_HASH_LENGTH 1024
-
-/**
- * 校验文件路径
- */
-int file_path_verify(const char *file_path);
-
-/**
- * 校验目录路径
- */
-int dir_path_verify();
-
-void path_pre_handle(char *path);
-
-/**
- * 将path分为目录名 + 文件名
- * @parent_dir_name 保存目录名称
- * @file_name 保存文件名称
- */
-static int parse_path(char *parent_dir_name, char *file_name, char *path, int len);
 
 /*
  * 父目录节点数据结构
@@ -46,19 +27,19 @@ typedef struct file_dir_node
 
 }file_dir_node;
 
-static int create_file(char *name, int length, int size);
+int namespace_create_file(char *name, int length, int size);
 
-static int create_dir(char *name, int length);
+int namespace_create_dir(char *name, int length);
 
-static int rename_file(char *name, int length);
+int namespace_rename_file(char *name, int length);
 
-static int rename_dir(char *name, int length);
+int namespace_rename_dir(char *name, int length);
 
-static int del_file(char *name);
+int namespace_del_file(char *name);
 
-static int del_dir(char *name);
+int namespace_del_dir(char *name);
 
-static void list_dir_file(char *name);
+void namespace_list_dir_file(char *name);
 
 static void test_create_dir();
 

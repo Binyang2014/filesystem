@@ -2,87 +2,109 @@
 #include "namespace.h"
 
 
+/*---------------------private local variables------------------*/
+static file_dir_node *par_dirs[PARENT_HASH_LENGTH];
 
-file_dir_node *par_dirs[PARENT_HASH_LENGTH];
+static const char dir_root = '/';
+static const char file_separator = '/';
 
-int file_path_verify(const char *file_path) {
+
+/*---------------------private prototypes-----------------------*/
+//verify the path of the file
+static int file_path_verify(const char *file_path);
+static int dir_path_verify(const char *dir_path);
+static void path_pre_handle(char *path);
+static int parse_path(char *parent_dir_name, char *file_name, char *path, int len);
+
+static file_dir_node* find_file_node(const char *name);
+static file_dir_node* find_dir_node(const char *name);
+static file_dir_node* new_file_node(const char *name);
+
+/*----------------implementation of functions-------------------*/
+
+/*
+ * verify the file path
+ */
+static int file_path_verify(const char *file_path) {
 	return 1;
 }
 
 /**
- * 校验目录路径
+ * verify the directory path
  */
-int dir_path_verify() {
+static int dir_path_verify(const char *name) {
 	return 0;
 }
 
-void path_pre_handle(char *path) {
+/**
+ * handle the path
+ * exchange character '/' into char * end signal 0
+ */
+static void path_pre_handle(char *path) {
 	int length = strlen(path);
-	int tmp = length - 1;
-	while (tmp >= 1 && *(path + tmp) == '/') {
-		*(path + tmp--) = 0;
+	if(length == 0)
+		return;
+
+	length--;
+	while (length >= 1 && *(path + length) == dir_root) {
+		*(path + length) = 0;
+		length--;
 	}
 }
 
 /**
- * 将path分为目录名 + 文件名
- * @parent_dir_name 保存目录名称
- * @file_name 保存文件名称
+ * parse the path into directory name and file name
+ * @parent_dir_name directory name
+ * @file_name file name
  */
-int parse_path(char *parent_dir_name, char *file_name, char *path, int len) {
+int parse_path(char *parent_dir_name, char *file_name, const char *path, int len) {
+	path_pre_handle(path);
+
 	if (!file_path_verify(path))
 		return ILLEGAL_FILE_PATH;
-	path_pre_handle(path);
+
 	char *tmp_path = (char*) malloc(sizeof(char) * len);
-	strcpy(tmp_path, path);
-	char *file_name_start = strrchr(tmp_path, '/');
+	if(tmp_path == NULL){
+		return -1;
+	}else{
+		strcpy(tmp_path, path);
+	}
+
+	/*separator the path and copy the file name into variable file_name*/
+	char *file_name_start = strrchr(tmp_path, file_separator);
 	strcpy(file_name, file_name_start + 1);
 	*file_name_start = 0;
 	strcpy(parent_dir_name, tmp_path);
+
 	free(tmp_path);
+	tmp_path = NULL;
 	return 0;
 }
 
-
-/**
- * print the file system directory
- */
-void print_dir(){
-	int i = 0, j;
-	file_dir_node *f;
-	file_dir_node *c;
-	file_dir_node *cc;
-	for (; i < PARENT_HASH_LENGTH; i++)
-	{
-		f =  par_dirs[i];
-		while (f){
-			printf("i = %d dirs = %s |", i, par_dirs[i]->file_name);
-			j = 0;
-			for(; j < CHILD_HASH_LENGTH; j++){
-				c = *(f->child + j);
-				//printf("c====%d ", c);
-				while(c){
-					printf("%s ", c->file_name/*, *c->next_file*/);
-					c = c->next_file;
-				}
-			}
-			f = f->next_dir;
-		}
-		if(par_dirs[i])
-			puts("");
-	}
-	f = 0;
-	c = 0;
+static file_dir_node* find_file_node(const char *name){
+	return NULL;
 }
 
-/**
- * Initialize the name space
- * create the root directory "/"
- */
-void init(){
-	memset(par_dirs, 0, sizeof(struct file_dir_node *) * PARENT_HASH_LENGTH);
+static file_dir_node* find_dir_node(const char *name){
+	return NULL;
+}
+
+static file_dir_node* new_file_node(const char *name){
+	return NULL;
+}
+
+static int init_root(){
 	file_dir_node *root = (struct file_dir_node *)malloc(sizeof(struct file_dir_node));
+	if(root == NULL){
+		return -1;
+	}
+
 	root->file_name = (char *)malloc(sizeof(char) * 256);
+	if(root->file_name == NULL){
+		free(root);
+		return -1;
+	}
+
 	strcpy(root->file_name, "");
 	root->file_num = 0;
 	root->next_file = 0;
@@ -93,6 +115,14 @@ void init(){
 	int root_hash = bkdr_hash("", PARENT_HASH_LENGTH);
 	par_dirs[root_hash] = root;
 	root = 0;
+}
+/**
+ * Initialize the name space
+ * create the root directory "/"
+ */
+int init(){
+	memset(par_dirs, 0, sizeof(struct file_dir_node *) * PARENT_HASH_LENGTH);
+	return init_root();
 }
 
 /**
@@ -253,6 +283,37 @@ void list_dir_file(char *name){
 int test_create_dir(){
 	puts("创建目录成功");
 	return 0;
+}
+
+/**
+ * print the file system directory
+ */
+static void print_dir(){
+	int i = 0, j;
+	file_dir_node *f;
+	file_dir_node *c;
+	file_dir_node *cc;
+	for (; i < PARENT_HASH_LENGTH; i++)
+	{
+		f =  par_dirs[i];
+		while (f){
+			printf("i = %d dirs = %s |", i, par_dirs[i]->file_name);
+			j = 0;
+			for(; j < CHILD_HASH_LENGTH; j++){
+				c = *(f->child + j);
+				//printf("c====%d ", c);
+				while(c){
+					printf("%s ", c->file_name/*, *c->next_file*/);
+					c = c->next_file;
+				}
+			}
+			f = f->next_dir;
+		}
+		if(par_dirs[i])
+			puts("");
+	}
+	f = 0;
+	c = 0;
 }
 
 //int main(){
