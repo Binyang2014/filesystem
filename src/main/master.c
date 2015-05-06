@@ -102,6 +102,7 @@ void master_init() {
 
 /**
  *	master server
+ *	接收消息，加入队列
  */
 void* master_server(void *arg) {
 	log_info("master server start");
@@ -182,19 +183,21 @@ file_location_des *maclloc_data_block(unsigned long file_size) {
 
 void answer_client_create_file(request_node *request){
 	create_file_structure *create = request->message;
+	int i;
 	file_location_des *file_location = maclloc_data_block(create->file_size);
+
+	//there is not enough space to storage the file
 	if(!file_location){
+		MPI_Send(0, 1, MPI_INT, request->status->MPI_SOURCE, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 		return;
 	}
-	int i = 0;
-	for(; i != file_location->machinde_count; i++){
 
+	//allocate space success
+	MPI_Send(1, 1, MPI_INT, request->status->MPI_SOURCE, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+
+	for(i = 0; i != file_location->machinde_count; i++){
+		//TODO 发送创建文件信息
 	}
-	strcpy(send_message_buff, "hello world!!");
-	MPI_Status *status = &(request->status);
-	MPI_Send(send_message_buff, MAX_CMD_MSG_LEN, MPI_CHAR,
-			status->MPI_SOURCE, CLIENT_INSTRUCTION_ANS_MESSAGE,
-			MPI_COMM_WORLD);
 	free_request_node(request);
 }
 

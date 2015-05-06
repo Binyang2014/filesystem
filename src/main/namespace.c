@@ -2,6 +2,7 @@
 #include "namespace.h"
 
 
+
 file_dir_node *par_dirs[PARENT_HASH_LENGTH];
 
 int file_path_verify(const char *file_path) {

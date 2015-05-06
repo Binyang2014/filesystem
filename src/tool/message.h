@@ -27,8 +27,8 @@
 /*
  * communicate tag
  */
-#define CLIENT_INSTRCTION_MESSAGE 400
-#define CLIENT_INSTRUCTION_ANS_MESSAGE 401
+#define CLIENT_INSTRCTION_MESSAGE_TAG 400
+#define CLIENT_INSTRUCTION_ANS_MESSAGE_TAG 401
 
 /*
  * operation code
@@ -194,6 +194,7 @@ typedef struct block{
 typedef struct mas_ans_cli_crea_file{
 	unsigned short mas_ans_cli_crea_file;
 	unsigned int is_tail;
+	unsigned char success;
 	int machine_id;
 	int block_size;
 	block block_content[];

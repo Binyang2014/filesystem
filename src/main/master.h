@@ -65,30 +65,30 @@ typedef struct master_request_queue{
 /**
  * initialize request queue
  */
-static void init_queue();
+void init_queue();
 
-static void in_queue(request_node *request_param);
+void in_queue(request_node *request_param);
 
-static void init_master_server_info(int);
+void init_master_server_info(int);
 
-static void init_data_server_node();
+void init_data_server_node();
 
-static request_node* de_queue();
+request_node* de_queue();
 
-static int request_is_empty();
+int request_is_empty();
 
-static request_node* malloc_request(char *buf, int size, MPI_Status *status);
+request_node* malloc_request(char *buf, int size, MPI_Status *status);
 
-static file_location_des *maclloc_data_block(unsigned long file_size);
+file_location_des *maclloc_data_block(unsigned long file_size);
 
 /**
  * use memcpy to implement copy of MPI_Status
  */
-static void mpi_status_assignment(MPI_Status *status, MPI_Status *s);
+void mpi_status_assignment(MPI_Status *status, MPI_Status *s);
 
 /* master initialize
  */
-void master_init();
+master_init();
 
 /**
  * there are p_threads in the master machine
