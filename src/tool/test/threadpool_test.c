@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
-#include "threadpool.h"
+#include "../threadpool.h"
 
 /*=============================MESSAGE QUEUE TEST===================================*/
 void* thread_push(void* msg_queue)
@@ -57,6 +57,7 @@ void add(event_handler_t* event_handler)
 {
 	printf("This is an add operation\n");
 	sleep(1);
+	printf("Add operation finished\n");
 }
 
 //2 for sub
@@ -64,6 +65,7 @@ void sub(event_handler_t* event_handler)
 {
 	printf("This is a sub operation\n");
 	sleep(1);
+	printf("Sub operation finished\n");
 }
 
 //It't a simple resolve and 1 for add 2 for sub
@@ -96,21 +98,22 @@ int main()
 	thread_pool_t* thread_pool;
 	event_handler_set_t* event_handler;
 	common_msg_t common_msg;
+	int i;
 
 	msg_queue = alloc_msg_queue();
-	thread_pool = alloc_thread_pool(3, msg_queue);
-	event_handler = alloc_event_handler_set(thread_pool, resolve_handler, 3);
-
-	common_msg.operation_code = 1;
-	msg_queue->msg_op->push(msg_queue, &common_msg);
-
-	common_msg.operation_code = 2;
-	msg_queue->msg_op->push(msg_queue, &common_msg);
+	thread_pool = alloc_thread_pool(8, msg_queue);
+	event_handler = alloc_event_handler_set(thread_pool, resolve_handler);
 
 	thread_pool->tp_ops->start(thread_pool, event_handler);
+	for(i = 0; i < 30; i++)
+	{
+		common_msg.operation_code = 1;
+		msg_queue->msg_op->push(msg_queue, &common_msg);
 
-	//while(1);
-	sleep(10);
+		common_msg.operation_code = 2;
+		msg_queue->msg_op->push(msg_queue, &common_msg);
+	}
+
 	distroy_thread_pool(thread_pool);
 	destroy_event_handler_set(event_handler);
 	destroy_msg_queue(msg_queue);

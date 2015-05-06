@@ -1,10 +1,10 @@
 TOPDIR = ../../..
 LIBDIR = $(TOPDIR)/lib
 LIB = $(LIBDIR)/libtool.a
-TEST_PROGRAM = bitmap_test err_test hash_test
+TEST_PROGRAM = bitmap_test err_test hash_test threadpool_test
 
 include $(TOPDIR)/GlobalMakefile
-test_obj = bitmap_test.o err_test.o hash_test.o
+test_obj = bitmap_test.o err_test.o hash_test.o threadpool_test.o
 
 all_test:: $(TEST_PROGRAM)
 
@@ -15,6 +15,9 @@ err_test: err_test.o $(LIB)
 	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -ltool -o $@
 
 hash_test: hash_test.o $(LIB)
+	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -ltool -o $@
+
+threadpool_test: threadpool_test.o $(LIB)
 	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -ltool -o $@
 
 include $(TOPDIR)/GlobalRules

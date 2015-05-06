@@ -2,7 +2,7 @@ TOPDIR = ../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = bitmap.o hash.o errinfo.o message.o
+object = bitmap.o hash.o errinfo.o message.o threadpool.o
 target = $(TOPDIR)/lib/libtool.a
 
 $(target): $(object)

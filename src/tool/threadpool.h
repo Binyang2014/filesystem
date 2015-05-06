@@ -90,6 +90,7 @@ struct event_handler_set
 struct thread
 {
 	int id;
+	char canceled;
 	struct thread_pool* thread_pool;
 	struct event_handler* event_handler;
 	pthread_t pthread;
@@ -117,6 +118,7 @@ struct thread_pool
 	int spare_stack_top;
 	int threads_count;
 	int pool_status;
+	int spare_treads_count;
 
 	struct threadpool_opertions* tp_ops;
 	struct msg_queue* msg_queue;
@@ -153,7 +155,7 @@ void distroy_thread_pool(thread_pool_t*);
 //there are handler and resolve_handler functions you should concern
 //resolve function will resolve message and return handle function for this event
 //the handler will do the right things for the event
-event_handler_set_t *alloc_event_handler_set(thread_pool_t*, resolve_handler_t, int);
+event_handler_set_t *alloc_event_handler_set(thread_pool_t*, resolve_handler_t);
 void destroy_event_handler_set(event_handler_set_t*);
 
 #endif

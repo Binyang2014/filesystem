@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <signal.h>
 #include "threadpool.h"
 #include "errinfo.h"
 
@@ -152,6 +153,11 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 	printf("Now the leader thread is %d\n", thread->id);
 #endif
 	event_handler->thread_pool->tp_ops->deactive_handle(event_handler->thread_pool);
+	while(thread->canceled)
+	{
+		sleep(1);//wait cancel signal
+		pthread_testcancel();
+	}
 	event_handler->thread_pool->tp_ops->promote_a_leader(event_handler->thread_pool, thread);
 
 #ifdef THREAD_POOL_DEBUG
@@ -159,8 +165,9 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 #endif
 	//Resolve handler for thread
 	handler = event_handler->resolve_handler(event_handler, event_handler->thread_pool->msg_queue);
+	//reduce spare threads count
+	event_handler->thread_pool->spare_treads_count--;
 	event_handler->thread_pool->tp_ops->reactive_handle(event_handler->thread_pool);
-
 	event_handler->handler = handler;
 #ifdef THREAD_POOL_DEBUG
 	printf("thread %d is do handling\n", thread->id);
@@ -206,9 +213,10 @@ static void destory_event_handler(event_handler_t* event_handler)
 }
 
 event_handler_set_t *alloc_event_handler_set(thread_pool_t* thread_pool,
-		resolve_handler_t resolve_handler, int handlers_count)
+		resolve_handler_t resolve_handler)
 {
-	int i;
+	int i, handlers_count;
+	handlers_count = thread_pool->threads_count;
 	event_handler_set_t* event_handler_set = (event_handler_set_t* )malloc
 			(sizeof(event_handler_set_t));
 	if(event_handler_set == NULL)
@@ -260,11 +268,17 @@ static void* thread_do(void* arg)
 		if(leader_id != NO_THREAD_LEADER && this->id != leader_id)
 		{
 #ifdef THREAD_POOL_DEBUG
-			printf("%d thread is going to wait signal\n", this->id);
+			printf("thread %d is going to wait signal\n", this->id);
 #endif
 			push_stack(this->thread_pool, this);
 			pthread_cond_wait(this->thread_pool->pool_condition + this->id,
 					this->thread_pool->pool_mutex);
+			while(this->canceled)
+			{
+				pthread_mutex_unlock(this->thread_pool->pool_mutex);
+				sleep(1);//wait cancel signal
+				pthread_testcancel();
+			}
 		}
 
 		this->thread_pool->leader_id = this->id;
@@ -275,8 +289,11 @@ static void* thread_do(void* arg)
 		this->handler(this, this->event_handler);
 
 		//reenter monitor to serialize the program
-		pthread_mutex_lock(this->thread_pool->pool_mutex);;
+		pthread_mutex_lock(this->thread_pool->pool_mutex);
+		//increase spare threads count
+		this->thread_pool->spare_treads_count++;
 	}
+
 	pthread_cleanup_pop(0);
 	return NULL;
 }
@@ -288,10 +305,10 @@ static void init_thread(thread_pool_t* thread_pool, int id, event_handler_t* eve
 	thread->handler = handle_event;
 	thread->event_handler = event_handler;
 	thread->thread_pool = thread_pool;
+	thread->canceled = 0;
 
 	//be careful about this function
 	pthread_create(&(thread->pthread), NULL, thread_do, thread);
-	pthread_detach(thread->pthread);
 }
 
 /*====================================THREAD POOL====================================*/
@@ -403,6 +420,7 @@ thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t* msg_queue)
 
 	thread_pool->msg_queue = msg_queue;
 	thread_pool->spare_stack_top = 0;
+	thread_pool->spare_treads_count = threads_count;
 	thread_pool->threads_count = threads_count;
 	thread_pool->pool_status = THREAD_POOL_UNINIT;
 	thread_pool->leader_id = NO_THREAD_LEADER;
@@ -521,17 +539,46 @@ static void start(thread_pool_t* this, event_handler_set_t* event_handler_set)
  */
 void distroy_thread_pool(thread_pool_t* thread_pool)
 {
-	int i;
+	int i, stack_num;
 	int threads_count = thread_pool->threads_count;
 	thread_t* threads = thread_pool->threads;
+	thread_t thread_temp;
+
+	sleep(1);//wait until threads are initial
+
+	//wait until threads finish its' job
+	while(thread_pool->spare_treads_count < thread_pool->threads_count)
+		sleep(1);
+
+#ifdef THREAD_POOL_DEBUG
+	printf("The number of spare threads is %d\n", thread_pool->spare_treads_count);
+#endif
 
 	//cancel threads
 	for(i = 0; i < threads_count; i++)
 	{
-		pthread_cancel(threads[i].pthread);
+		thread_pool->threads[i].canceled = 1;
 	}
-	//wait 1 second until all threads is canceled
-	sleep(1);
+
+	stack_num = thread_pool->spare_stack_top;
+	for(i = 0; i < stack_num; i++)
+	{
+		pop_stack(thread_pool, &thread_temp);
+#ifdef THREAD_POOL_DEBUG
+		printf("thread %d is going to be killed\n", thread_temp.id);
+#endif
+		pthread_cond_signal(thread_pool->pool_condition + thread_temp.id);
+	}
+
+	//awake thread who is locked by handler
+	thread_pool->tp_ops->reactive_handle(thread_pool);
+
+	//send cancel signal
+	for(i = 0; i < threads_count; i++)
+		pthread_cancel(threads[i].pthread);
+	for(i = 0; i < threads_count; i++)
+		pthread_join(threads[i].pthread, NULL);
+
 	destroy_thread_cond(thread_pool);
 	pthread_mutex_destroy(thread_pool->pool_mutex);
 	free(thread_pool->pool_mutex);
