@@ -1,4 +1,4 @@
-#include "errinfo.h"
+#include "../errinfo.h"
 #include <stdio.h>
 #include <errno.h>
 int main()

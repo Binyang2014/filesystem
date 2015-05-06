@@ -15,11 +15,11 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 		off_t offset, int seqno, int tail, msg_data_t* msg_buff)
 {
 	int ans;
+
 	//read a block from vfs
 	if((ans = vfs_read(file, buff, count, offset)) == -1)
 	{
 		err_msg("Something wrong when read from data server");
-		//send error message to client
 		return -1;
 	}
 
@@ -27,6 +27,7 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 	msg_buff->len = count;
 	msg_buff->seqno = seqno;
 	msg_buff->offset = offset + ans;//I don't know if this operation is right
+
 	//read to the end of the file unexpectedly
 	if(ans < count)
 		msg_buff->tail = 1;
@@ -72,8 +73,12 @@ int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, voi
 	{
 		if( (temp_ans = read_from_vfs(file_info->file, buff, MAX_DATA_CONTENT_LEN,
 				offset, i, 0, msg_buff)) == -1 )
+		{
+			//here thread should send error message to client
 			return -1;
+		}
 
+		//send message to client
 		d_mpi_data_send(msg_buff, source, tag);
 
 		//already read at the end of the file
@@ -114,19 +119,19 @@ static int write_to_vfs(dataserver_file_t *file, char* buff, off_t offset,
 {
 	int ans, len;
 	len = msg_buff->len;
-	//received message from client
+
 	//if we need seq number to keep message in order??
 	memcpy(buff, ((msg_data_t *)msg_buff)->data, len);
 	//write to file system
 	if((ans = vfs_write(file, buff, len, offset)) == -1)
 	{
 		err_msg("Something wrong when read from data server");
-		//send error message to client
 		return -1;
 	}
 	return ans;
 }
 
+//write message handler
 int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, void* msg_buff)
 {
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
@@ -169,7 +174,6 @@ int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, vo
 		offset = offset + temp_ans;
 		ans = ans + temp_ans;
 	}
-
 
 #ifdef DATASERVER_COMM_DEBUG
 	printf("write finish and the number of write bytes is %d\n", ans);

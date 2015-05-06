@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "bitmap.h"
+#include "../bitmap.h"
 int main()
 {
 	unsigned long bitmap[2];
