@@ -197,7 +197,7 @@ typedef struct mas_ans_cli_crea_file{
 	unsigned char success;
 	int machine_id;
 	int block_size;
-	block block_content[];
+	block block_content[512];
 	struct mas_ans_cli_crea_file* next;
 }mas_ans_cli_crea_file;
 
