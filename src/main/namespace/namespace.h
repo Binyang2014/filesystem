@@ -3,8 +3,8 @@
 
 #include <string.h>
 #include <stdio.h>
-#include "data_server_location.h"
-#include "namespace_code.h"
+#include "../structure/data_server_location.h"
+#include "../structure/namespace_code.h"
 
 #define PARENT_HASH_LENGTH 1024
 #define CHILD_HASH_LENGTH 1024

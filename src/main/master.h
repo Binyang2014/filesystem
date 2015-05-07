@@ -16,7 +16,6 @@
 #include "conf.h"
 #include "../tool/message.h"
 #include "../global.h"
-#include "../tool/error_log.h"
 
 #define LOAD_FACTOR 0.5
 

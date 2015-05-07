@@ -33,7 +33,7 @@ static int file_path_verify(const char *file_path) {
  * verify the directory path
  */
 static int dir_path_verify(const char *name) {
-	return 0;
+	return 1;
 }
 
 /**
@@ -81,6 +81,39 @@ int parse_path(char *parent_dir_name, char *file_name, const char *path, int len
 	return 0;
 }
 
+static file_dir_node* malloc_file_node(const char *file_name){
+	file_dir_node *root = (struct file_dir_node *)malloc(sizeof(struct file_dir_node));
+
+	root->file_name = (char *)malloc(sizeof(char) * 256);
+	if(root->file_name == NULL){
+		free(root);
+		return -1;
+	}
+
+	strcpy(root->file_name, file_name);
+	root->file_num = 0;
+	root->next_file = 0;
+	root->next_dir = 0;
+	root->is_dir = 0;
+	return root;
+}
+
+static file_dir_node* malloc_dir_node(const char *dir_name){
+	file_dir_node *root = (struct file_dir_node *)malloc(sizeof(struct file_dir_node));
+
+	root->file_name = (char *)malloc(sizeof(char) * 256);
+	if(root->file_name == NULL){
+		free(root);
+		return -1;
+	}
+
+	strcpy(root->file_name, dir_name);
+	root->file_num = 0;
+	root->next_file = 0;
+	root->next_dir = 0;
+	root->is_dir = 1;
+}
+
 static file_dir_node* find_file_node(const char *name){
 	return NULL;
 }
@@ -93,29 +126,29 @@ static file_dir_node* new_file_node(const char *name){
 	return NULL;
 }
 
+/**
+ * initialize the root of name space
+ * 1. allocate the space for first level mapping
+ * 2.
+ */
 static int init_root(){
-	file_dir_node *root = (struct file_dir_node *)malloc(sizeof(struct file_dir_node));
+	file_dir_node *root = malloc_dir_node("/");
 	if(root == NULL){
 		return -1;
 	}
-
-	root->file_name = (char *)malloc(sizeof(char) * 256);
-	if(root->file_name == NULL){
+	root->child = (struct file_dir_node **)malloc(sizeof(struct file_dir_node *) * CHILD_HASH_LENGTH);
+	if(root->child == NULL){
 		free(root);
+		free(root->file_name);
 		return -1;
 	}
 
-	strcpy(root->file_name, "");
-	root->file_num = 0;
-	root->next_file = 0;
-	root->next_dir = 0;
-	root->is_dir=1;
-	root->child = (struct file_dir_node **)malloc(sizeof(struct file_dir_node *) * CHILD_HASH_LENGTH);
 	memset(root->child, 0, sizeof(struct file_dir_node*) * CHILD_HASH_LENGTH);
 	int root_hash = bkdr_hash("", PARENT_HASH_LENGTH);
 	par_dirs[root_hash] = root;
 	root = 0;
 }
+
 /**
  * Initialize the name space
  * create the root directory "/"
