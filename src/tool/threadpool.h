@@ -63,7 +63,7 @@ struct msg_queue
 
 struct buffer
 {
-	char *buffer;
+	void *buffer;
 	struct buffer* next;
 };
 

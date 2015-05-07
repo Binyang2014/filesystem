@@ -40,68 +40,6 @@ void* m_cmd_receive(void* msg_queue_arg)
 }
 //------------------------------------------------------------------------------
 
-static void* d_read(data_server_t* this, common_msg_t* common_msg)
-{
-	int source, tag;
-	char* buff;
-	void* msg_buff;
-	msg_r_ctod_t* read_msg;
-	msg_for_rw_t* file_info;
-
-	//init basic information, and it just for test now!!
-	read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(common_msg);
-	source = common_msg->source;
-	tag = read_msg->unique_tag;
-	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
-	buff = this->m_data_buffer;
-	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
-	file_info->offset = read_msg->offset;
-	file_info->count = read_msg->read_len;
-	file_info->file = init_vfs_file(this->d_super_block, this->files_buffer,
-			this->f_arr_buff, VFS_READ);
-	if( m_read_handler(source, tag, file_info, buff, msg_buff) == -1 )
-	{
-		free(msg_buff);
-		free(file_info);
-		return NULL;
-	}
-	printf("It's OK here\n");
-	free(msg_buff);
-	free(file_info);
-	return NULL;
-}
-
-static void* d_write(data_server_t* this, common_msg_t* common_msg)
-{
-	int source, tag;
-	char* buff;
-	void* msg_buff;
-	msg_w_ctod_t* write_msg;
-	msg_for_rw_t* file_info;
-
-	//init basic information, and it just for test now!!
-	write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(common_msg);
-	source = common_msg->source;
-	//tag = common_msg->unique_tag;
-	tag = write_msg->unique_tag;
-	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
-	buff = this->m_data_buffer;
-	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
-	file_info->offset = write_msg->offset;
-	file_info->count = write_msg->write_len;
-	file_info->file = init_vfs_file(this->d_super_block, this->files_buffer,
-			this->f_arr_buff, VFS_WRITE);
-	if(m_write_handler(source, tag, file_info, buff, msg_buff) == -1)
-	{
-		free(msg_buff);
-		free(file_info);
-		return NULL;
-	}
-	free(msg_buff);
-	free(file_info);
-	return NULL;
-}
-
 static int resolve_msg(common_msg_t* common_msg)
 {
 	unsigned short operation_code;
@@ -115,11 +53,11 @@ static int resolve_msg(common_msg_t* common_msg)
 	{
 	case MSG_READ:
 		//invoke a thread to excuse
-		d_read(data_server, common_msg);
+		d_read_handler(data_server, common_msg);
 		break;
 	case MSG_WRITE:
 		//invoke a thread to excuse
-		d_write(data_server, common_msg);
+		d_write_handler(data_server, common_msg);
 		break;
 	default:
 		break;

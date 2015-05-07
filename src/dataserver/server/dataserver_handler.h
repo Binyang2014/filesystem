@@ -28,7 +28,7 @@ struct msg_for_rw
 
 typedef struct msg_for_rw msg_for_rw_t;
 
-int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, void* msg_buff);
-int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff,  void* msg_buff);
+void d_read_handler(data_server_t* this, common_msg_t* common_msg);
+void d_write_handler(data_server_t* this, common_msg_t* common_msg);
 //...other message passing functions
 #endif

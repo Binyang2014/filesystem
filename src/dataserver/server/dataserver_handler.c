@@ -6,11 +6,13 @@
  */
 #include <string.h>
 #include <mpi.h>
-#include "dataserver_comm_handler.h"
+#include "dataserver_handler.h"
 #include "../../tool/errinfo.h"
 #include "../structure/vfs_structure.h"
 #include "../../tool/message.h"
+#include "../../tool/threadpool.h"
 
+/*=========================INTERNEL FUNCITION EVOKED BY HANDLER================================*/
 static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 		off_t offset, int seqno, int tail, msg_data_t* msg_buff)
 {
@@ -35,12 +37,12 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 	return ans;
 }
 
-
 /**
  * handle the request from client about reading from a file
  * buff and msg_buff should be allocated properly outside
  */
-int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, void* msg_buff)
+ static int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff,
+		 void* msg_buff)
 {
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
@@ -132,7 +134,8 @@ static int write_to_vfs(dataserver_file_t *file, char* buff, off_t offset,
 }
 
 //write message handler
-int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, void* msg_buff)
+static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff,
+		void* msg_buff)
 {
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
@@ -182,4 +185,70 @@ int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff, vo
 
 	//maybe there is need to send Acc to client
 	return ans;
+}
+
+/*====================================REAL HANDLERS===========================================*/
+void d_read_handler(event_handler_t* event_handle)
+{
+	int source, tag;
+	char* buff;
+	void* msg_buff;
+	msg_r_ctod_t* read_msg;
+	msg_for_rw_t* file_info;
+	data_server_t* this;
+	common_msg_t* common_msg;
+
+	//I'will consider it later
+	this = event_handle->event_buffer;
+
+	//init basic information, and it just for test now!!
+	read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(common_msg);
+	source = common_msg->source;
+	tag = read_msg->unique_tag;
+	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
+	buff = this->m_data_buffer;
+	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
+	file_info->offset = read_msg->offset;
+	file_info->count = read_msg->read_len;
+	file_info->file = init_vfs_file(this->d_super_block, this->files_buffer,
+			this->f_arr_buff, VFS_READ);
+	if( m_read_handler(source, tag, file_info, buff, msg_buff) == -1 )
+	{
+		free(msg_buff);
+		free(file_info);
+	}
+	printf("It's OK here\n");
+	free(msg_buff);
+	free(file_info);
+}
+
+void d_write_handler(event_handler_t* event_handler)
+{
+	int source, tag;
+	char* buff;
+	void* msg_buff;
+	msg_w_ctod_t* write_msg;
+	msg_for_rw_t* file_info;
+	data_server_t* this;
+	common_msg_t* common_msg;
+
+	//init basic information, and it just for test now!!
+	write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(common_msg);
+	source = common_msg->source;
+	//tag = common_msg->unique_tag;
+	tag = write_msg->unique_tag;
+	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
+	buff = this->m_data_buffer;
+	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
+	file_info->offset = write_msg->offset;
+	file_info->count = write_msg->write_len;
+	file_info->file = init_vfs_file(this->d_super_block, this->files_buffer,
+			this->f_arr_buff, VFS_WRITE);
+	if(m_write_handler(source, tag, file_info, buff, msg_buff) == -1)
+	{
+		free(msg_buff);
+		free(file_info);
+	}
+	free(msg_buff);
+	free(file_info);
 }
