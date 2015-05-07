@@ -8,7 +8,7 @@
 #define _FILESYSTEM_DATASERVER_H_
 
 #include <pthread.h>
-#include "dataserver_comm_handler.h"
+#include "dataserver_handler.h"
 #include "dataserver_buff.h"
 #include "../structure/vfs_structure.h"
 #include "../../tool/message.h"
