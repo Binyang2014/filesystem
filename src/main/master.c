@@ -7,6 +7,9 @@
 #include "master.h"
 #include <assert.h>
 
+/*========================Private Prototypes============*/
+
+
 void init_queue() {
 	request_queue_list.head = request_queue_list.tail = NULL;
 	request_queue_list.request_num = 0;

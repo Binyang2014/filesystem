@@ -8,6 +8,8 @@ struct msg_queue_op
 {
 	void (*push)(struct msg_queue* , common_msg_t* );
 	void (*pop)(struct msg_queue* , common_msg_t* );
+	int  (*is_empty)(struct msg_queue*);
+	int  (*is_full)(struct msg_queue*);
 };
 
 /*
@@ -20,6 +22,7 @@ struct msg_queue
 	//int current_size;
 	int head_pos;
 	int tail_pos;
+	int msg_count;
 	int queue_len;
 	struct msg_queue_op* msg_op;
 	common_msg_t* msg;

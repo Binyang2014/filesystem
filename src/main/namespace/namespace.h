@@ -15,14 +15,14 @@
 typedef struct file_dir_node
 {
 	char *file_name; 					/*file full path name*/
-	unsigned int *id; 							/*文件所在机器ID列表*/
 	unsigned int access;							/*文件访问权限*/
 	unsigned int is_dir; 						/*文件是否是目录*/
 	unsigned int file_num;						//目录下的文件个数
 //	char owner[256]; 					/*文件拥有者*/
 	struct file_dir_node *next_dir;			/*下一个目录*/
+	struct file_dir_node *next;
 	struct file_dir_node *next_file;			/*下一个文件*/
-	struct file_dir_node **child;				//记录目录下的所有文件,包含目录
+	struct file_dir_node *child;				//记录目录下的所有文件,包含目录
 	unsigned long file_size;
 
 }file_dir_node;
