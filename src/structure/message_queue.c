@@ -14,8 +14,7 @@ static const double load_factor = 0.75;
 /*==============================PRIVATE PROTOTYPES=======================*/
 static int cal_new_length(int length);
 static int mes_queue_resize(const msg_queue_t* this);
-static void copy_queue_mes(msg_queue_t* des, msg_queue_t* source,
-		int source_start, int source_end, int old_length);
+static void copy_queue_mes(msg_queue_t* des, msg_queue_t* source, int source_start, int source_end, int old_length);
 
 /*==============================MESSAGE QUEUE=============================*/
 //calculate the new queue length for resizing

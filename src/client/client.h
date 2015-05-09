@@ -32,9 +32,9 @@ struct request_queue *queue_head, *queue_tail;
 
 //与master通信
 /********communicate with master************/
-static int clent_create_file(char *file_path, char *file_name);
+int clent_create_file(char *file_path, char *file_name);
 
-static void handle_create_file_ans();
+void handle_create_file_ans();
 
 void send_data(char *file_name);
 

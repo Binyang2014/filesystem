@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdio.h>
 #include "../structure/data_server_location.h"
-#include "../structure/namespace_code.h"
 
 #define PARENT_HASH_LENGTH 1024
 #define CHILD_HASH_LENGTH 1024
@@ -15,6 +14,7 @@
 typedef struct file_dir_node
 {
 	char *file_name; 					/*file full path name*/
+	//unsigned char temporary
 	unsigned int access;							/*文件访问权限*/
 	unsigned int is_dir; 						/*文件是否是目录*/
 	unsigned int file_num;						//目录下的文件个数
@@ -22,25 +22,25 @@ typedef struct file_dir_node
 	struct file_dir_node *next_dir;			/*下一个目录*/
 	struct file_dir_node *next;
 	struct file_dir_node *next_file;			/*下一个文件*/
-	struct file_dir_node *child;				//记录目录下的所有文件,包含目录
+	struct file_dir_node **child;				//记录目录下的所有文件,包含目录
 	unsigned long file_size;
 
 }file_dir_node;
 
-int namespace_create_file(char *name, int length, int size);
+typedef struct namespace{
+	int parent_hash_length;
+	int child_hash_length;
+	file_dir_node **parent_dirs;
+}namespace;
 
-int namespace_create_dir(char *name, int length);
-
-int namespace_rename_file(char *name, int length);
-
-int namespace_rename_dir(char *name, int length);
-
-int namespace_del_file(char *name);
-
-int namespace_del_dir(char *name);
-
-void namespace_list_dir_file(char *name);
-
-static void test_create_dir();
+/*========================Name Space API Declaration=====================*/
+namespace *create_namespace(int parent_hash_length, int child_hash_length);
+int namespace_create_file(namespace *this, char* name);
+int namespace_create_dir(namespace *this, char* name);
+int namespace_rename_file(namespace *this, char* old_name, char *new_name);
+int namespace_rename_dir(namespace *this, char* old_name, char *new_name);
+int namespace_del_file(namespace *this, char* name);
+int namespace_del_dir(namespace *this, char* name);
+void namespace_list_dir_file(namespace *this, char* name);
 
 #endif

@@ -15,7 +15,6 @@
 #include "conf.h"
 #include "../tool/message.h"
 #include "../tool/file_tool.h"
-#include "../tool/error_log.h"
 
 char file_buf[FILE_BLOCK_SIZE];
 char message_content[CLIENT_MASTER_MESSAGE_SIZE];

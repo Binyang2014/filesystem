@@ -6,9 +6,10 @@
  */
 #include "master.h"
 #include <assert.h>
+#include "../structure/message_queue.h"
 
 /*========================Private Prototypes============*/
-
+static msg_queue_t *msg_queue;
 
 void init_queue() {
 	request_queue_list.head = request_queue_list.tail = NULL;
@@ -90,6 +91,9 @@ void master_init() {
 //	MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 //	puts(message_buff);
 	//TODO 初始化数据服务器的状态
+	msg_queue = alloc_msg_queue();
+	assert(msg_queue != NULL);
+
 	pthread_mutex_init(&mutex_message_buff, NULL);
 	pthread_mutex_init(&mutex_namespace, NULL);
 
