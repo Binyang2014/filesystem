@@ -17,7 +17,10 @@
 #define ILLEGAL_FILE_PATH 1005
 //路径非法
 #define ILLEGAL_PATH 1005
+#define NOT_THE_SAME_DIR 1000
 //创建成功
 #define CREATE_SUCCESS 2000
+
+#define NO_ENOUGH_SPACE -1
 
 #endif

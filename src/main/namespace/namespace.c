@@ -1,19 +1,28 @@
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <regex.h>
 #include "namespace.h"
-#include "../structure/namespace_code.h"
+#include "../../structure/namespace_code.h"
+#include "../../tool/hash.h"
+
 
 /*---------------------private local variables------------------*/
 static const char dir_root = '/';
 static const char file_separator = '/';
-static const int file_name_size = 256;
+static const char *filesystem_root_name = "/";
+static const int file_name_size = 1 << 8;
 
 /*---------------------private prototypes-----------------------*/
 //verify the path of the file
 static int path_verify(const char *);
 static void path_pre_handle(char *);
-static int parse_path(char *, char *, char *, int);
+static int parse_path(char *, const char *, int);
+static int in_same_dir(const char *file_name_a, const char *file_name_b);
 
-static file_dir_node* find_file_node(const char *);
-static file_dir_node* find_dir_node(const char *);
+static file_dir_node* find_file_node(const namespace *this, const char *name);
+static file_dir_node* find_dir_node(const namespace *this, const char *name);
 
 static void node_free(file_dir_node*);
 
@@ -23,6 +32,10 @@ static void node_free(file_dir_node*);
  * verify the file path
  */
 static int path_verify(const char *path) {
+	int length = strlen(path);
+	if(length > file_name_size)
+		return ILLEGAL_FILE_PATH;
+
 	return OPERATE_SECCESS;
 }
 
@@ -48,32 +61,38 @@ static void path_pre_handle(char *path) {
  * @file_name file name
  */
 static int parse_path(char *parent_dir_name, const char *path, int len) {
-	if (!file_path_verify(path))
-		return ILLEGAL_FILE_PATH;
-
 	char *tmp_path = (char*) malloc(sizeof(char) * len);
-	if (tmp_path == NULL) {
-		return -1;
-	} else {
-		strcpy(tmp_path, path);
-	}
+	if (tmp_path == NULL)
+		return NO_ENOUGH_SPACE;
+	strcpy(tmp_path, path);
 
 	/*separator the path and copy the file name into variable file_name*/
 	char *file_name_start = strrchr(tmp_path, file_separator);
-	*file_name_start = 0;
+	*(file_name_start + 1) = 0;
+
 	strcpy(parent_dir_name, tmp_path);
 
 	free(tmp_path);
 	tmp_path = NULL;
-	return 0;
+	return OPERATE_SECCESS;
 }
 
-static file_dir_node* malloc_node(const char *name, int is_dir) {
+static int in_same_dir(const char *file_name_a, const char *file_name_b){
+	int new_name_length = strlen(file_name_a);
+	int old_name_length = strlen(file_name_b);
+	char old_dir[file_name_size], new_dir[file_name_size];
+	parse_path(old_dir, file_name_a, old_name_length);
+	parse_path(new_dir, file_name_b, new_name_length);
+	/*only in the same directory, file can be renamed*/
+	return strcmp(old_dir, new_dir);
+}
+
+static file_dir_node* malloc_node(const char *name, int is_dir, int child_hash_length) {
 	file_dir_node *root = (struct file_dir_node *) malloc(sizeof(struct file_dir_node));
 	if(root == NULL)
 		return NULL;
 
-	root->file_name = (char *) malloc(sizeof(char) * 256);
+	root->file_name = (char *) malloc(sizeof(char) * file_name_size);
 	if (root->file_name == NULL) {
 		free(root);
 		return NULL;
@@ -81,7 +100,7 @@ static file_dir_node* malloc_node(const char *name, int is_dir) {
 	strcpy(root->file_name, name);
 
 	if(is_dir){
-		root->child = (struct file_dir_node *) malloc(sizeof(struct file_dir_node *) * CHILD_HASH_LENGTH);
+		root->child = (file_dir_node **) malloc(sizeof(file_dir_node *) * child_hash_length);
 		if(root->child == NULL)
 			node_free(root);
 	}
@@ -93,17 +112,19 @@ static file_dir_node* malloc_node(const char *name, int is_dir) {
 	return root;
 }
 
-static file_dir_node* malloc_file_node(const char *file_name) {
-	return malloc_node(file_name, 0);
+static file_dir_node* malloc_file_node(const char *file_name, int child_hash_length) {
+	return malloc_node(file_name, 0, child_hash_length);
 }
 
-static file_dir_node* malloc_dir_node(const char *dir_name) {
-	return malloc_node(dir_name, 1);
+static file_dir_node* malloc_dir_node(const char *dir_name, int child_hash_length) {
+	return malloc_node(dir_name, 1, child_hash_length);
 }
 
-static file_dir_node* find_file_node(namespace *this, const char *dir_name, const char *name) {
+static file_dir_node* find_file_node(const namespace *this, const char *name) {
 	assert(this != NULL);
 
+	char dir_name[file_name_size];
+	parse_path(dir_name, name, strlen(name));
 	int dir_hash = bkdr_hash(dir_name, this->parent_hash_length);
 	int chi_hash = bkdr_hash(name, this->child_hash_length);
 	//file_dir_node *par_dirs = this->parent_dirs[dir_hash];
@@ -124,13 +145,11 @@ static file_dir_node* find_file_node(namespace *this, const char *dir_name, cons
 	return NULL;
 }
 
-static file_dir_node* find_dir_node(namespace *this, const char *name) {
+static file_dir_node* find_dir_node(const namespace *this, const char *name) {
 	assert(this != NULL);
 
 	int hash_code = bkdr_hash(name, this->parent_hash_length);
-	file_dir_node* dir_node = this->parent_dirs[hash_code];
-	if(dir_node == NULL)
-		return NULL;
+	file_dir_node* dir_node = *(this->parent_dirs + hash_code);
 
 	while(dir_node != NULL){
 		if(strcmp(dir_node->file_name, name) == 0){
@@ -157,14 +176,15 @@ static void node_free(file_dir_node* node){
  * 2.
  */
 static int init_root(namespace *this) {
-	file_dir_node *root = malloc_dir_node("/");
+	file_dir_node *root = malloc_dir_node(filesystem_root_name, this->child_hash_length);
 	if (root == NULL) {
-		return -1;
+		return NO_ENOUGH_SPACE;
 	}
 
-	int root_hash = bkdr_hash("", this->parent_hash_length);
-	this->parent_dirs[root_hash] = root;
+	int root_hash = bkdr_hash(filesystem_root_name, this->parent_hash_length);
+	*(this->parent_dirs + root_hash) = root;
 	root = 0;
+	return OPERATE_SECCESS;
 }
 
 /**
@@ -173,7 +193,7 @@ static int init_root(namespace *this) {
  */
 static int init(namespace *this) {
 	memset(this->parent_dirs, 0, sizeof(struct file_dir_node *) * this->parent_hash_length);
-	return init_root();
+	return init_root(this);
 }
 
 namespace *create_namespace(int parent_hash_length, int child_hash_length){
@@ -183,7 +203,7 @@ namespace *create_namespace(int parent_hash_length, int child_hash_length){
 		return NULL;
 	}
 
-	this->parent_dirs = (file_dir_node*)malloc(sizeof(file_dir_node*) * parent_hash_length);
+	this->parent_dirs = (file_dir_node**)malloc(sizeof(file_dir_node*) * parent_hash_length);
 	if(this->parent_dirs == NULL){
 		free(this);
 		//TODO log
@@ -192,6 +212,9 @@ namespace *create_namespace(int parent_hash_length, int child_hash_length){
 
 	this->parent_hash_length = parent_hash_length;
 	this->child_hash_length = child_hash_length;
+
+	if(init(this) != OPERATE_SECCESS)
+		return NULL;
 	return this;
 }
 
@@ -204,7 +227,7 @@ namespace *create_namespace(int parent_hash_length, int child_hash_length){
  * @file_path file path
  * @return result code
  */
-int namespace_create_file(namespace *this, const char * file_path) {
+int namespace_create_file(namespace *this, char * file_path) {
 	path_pre_handle(file_path);
 	int length = strlen(file_path);
 	char dir[file_name_size];
@@ -218,16 +241,16 @@ int namespace_create_file(namespace *this, const char * file_path) {
 	int file_hash_code = bkdr_hash(file_path, this->child_hash_length);
 
 	//parent directory node
-	file_dir_node *dir_node = find_dir_node(this->parent_dirs, dir);
+	file_dir_node *dir_node = find_dir_node(this, dir);
 	if(dir_node == NULL)
 		return DIR_NOT_EXISTS;
 
-	file_dir_node *file_node = find_file_node(file_path);
+	file_dir_node *file_node = find_file_node(this, file_path);
 	if(file_node != NULL)
 		return FILE_EXISTS;
 
-	struct file_dir_node* new_file = malloc_file_node(file_path);
-	if(file_dir_node == NULL)
+	struct file_dir_node* new_file = malloc_file_node(file_path, this->child_hash_length);
+	if(new_file == NULL)
 		return -1;
 
 	new_file->next_file = *(dir_node->child + file_hash_code);
@@ -242,63 +265,84 @@ int namespace_create_file(namespace *this, const char * file_path) {
  * 2. illegal directory name
  * 3.
  */
-int namespace_create_dir(namespace *this, const char *path) {
+int namespace_create_dir(namespace *this, char *path) {
+	path_pre_handle(path);
+	if(path_verify(path) != OPERATE_SECCESS)
+		return ILLEGAL_FILE_PATH;
+
 	int length = strlen(path) + 1;
 	char *parent_dir = (char *) malloc(length);
-	char *child_dir = (char *) malloc(length);
-	char *tmp_path = (char *) malloc(length);
-	strcpy(tmp_path, path);
 
-	int status = parse_path(parent_dir, child_dir, tmp_path, length);
+	if(parent_dir == NULL){
+		err_ret("no enough memory when malloc space for creating a new dir %s", path);
+		return NO_ENOUGH_SPACE;
+	}
+
+	err_msg(" creating dir -> before parse_path");
+	int status = parse_path(parent_dir, path, length);
 	if (status == ILLEGAL_PATH) {
 		return ILLEGAL_PATH;
 	}
 
 	//目录 文件 路径的hash映射
-	int path_hash_code = bkdr_hash(tmp_path, this->parent_hash_length);
+	int path_hash_code = bkdr_hash(path, this->parent_hash_length);
 	int dir_hash_code = bkdr_hash(parent_dir, this->parent_hash_length);
-	int file_hash_code = bkdr_hash(child_dir, this->child_hash_length);
+	//int file_hash_code = bkdr_hash(child_dir, this->child_hash_length);
 
 	//file_dir_node *tmp_node = this->parent_dirs[path_hash_code]; //遍历指针
-	file_dir_node *parent_node;			//目录节点指针 文件节点指针
 
+	err_msg(" creating dir -> before find dir_node");
 	//parent directory node
-	file_dir_node *parent_node = find_dir_node(this->parent_dirs, parent_dir);
+	file_dir_node *parent_node = find_dir_node(this, parent_dir);
 	if(parent_node == NULL){
+		err_msg(" creating dir -> directory %s not exists", parent_dir);
 		return DIR_NOT_EXISTS;
 	}
 
+	err_msg(" creating dir -> find dir_node");
 	//child node
-	file_dir_node *child_node = find_dir_node(this->parent_dirs, parent_dir);
+	file_dir_node *child_node = find_dir_node(this, path);
 	if(child_node != NULL){
 		return DIR_EXISTS;
 	}
 
+	err_msg(" creating dir -> new dir_node");
 	//新的目录节点
-	file_dir_node *new_dir_node = malloc_dir_node(tmp_path);
+	file_dir_node *new_dir_node = malloc_dir_node(path, this->child_hash_length);
 
 	new_dir_node->next_dir = this->parent_dirs[path_hash_code];
 	this->parent_dirs[path_hash_code] = new_dir_node;
 
 	new_dir_node->next_file = child_node ? child_node->next_file : 0;
-	*(parent_node->child + file_hash_code) = new_dir_node;
+	*(parent_node->child + path_hash_code) = new_dir_node;
 
 	parent_node->file_num++;
 
+	err_msg(" creating dir -> OK");
+	free(parent_dir);
+	parent_dir = NULL;
 	return CREATE_SUCCESS;
 }
 
-int namespace_rename_file(namespace *this, const char *old_name, const char *new_name) {
-	int new_name_length = strlen(new_name);
-	int old_name_length = strlen(old_name);
+int namespace_rename_file(namespace *this, char *old_name, char *new_name) {
+	path_pre_handle(old_name);
+	path_pre_handle(new_name);
 
 	//TODO need to check whether the two names are in the same directory
+	if(path_verify(old_name) != OPERATE_SECCESS || path_verify(new_name) != OPERATE_SECCESS){
+		return ILLEGAL_FILE_PATH;
+	}
+
+	/*only in the same directory, file can be renamed*/
+	if(in_same_dir(old_name, new_name) != 0)
+		return NOT_THE_SAME_DIR;
 
 	file_dir_node * node = find_file_node(this, old_name);
 	if(node == NULL){
 		return FILE_NOT_EXISTS;
 	}
 
+	int new_name_length = strlen(new_name);
 	char *name = (char *)malloc(new_name_length);
 	if(name == NULL){
 		return -1;
@@ -317,20 +361,35 @@ int namespace_rename_dir(namespace *this, char *old_name, char *new_name) {
 		return ILLEGAL_FILE_PATH;
 	}
 
-	int old_len = strlen(old_name);
 	int new_len = strlen(new_name);
+	/*only in the same directory, file can be renamed*/
+	if(in_same_dir(old_name, new_name) != 0)
+		return NOT_THE_SAME_DIR;
+
+	file_dir_node *dir_node = find_dir_node(this, old_name);
+	if(dir_node == NULL){
+		return DIR_NOT_EXISTS;
+	}
+	//TODO need a right code
+	char *name = (char *)malloc(new_len);
+	if(name == NULL)
+		return -1;
+
+	free(dir_node->file_name);
+	dir_node->file_name = name;
+	name = NULL;
+	return OPERATE_SECCESS;
+}
+
+int namespace_del_file(namespace *this, char* name){
 	return 0;
 }
 
-int namespace_del_dir() {
+int namespace_del_dir(namespace *this, char* name){
 	return 0;
 }
 
-int namespace_del_file(char *file_name) {
-	return 0;
-}
-
-void namespace_list_dir_file(char *name) {
+void namespace_list_dir_file(namespace *this, char* name){
 
 }
 
