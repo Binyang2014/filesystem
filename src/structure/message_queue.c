@@ -121,7 +121,6 @@ msg_queue_t* alloc_msg_queue() {
 
 void destroy_msg_queue(msg_queue_t* this) {
 	this->msg_op->push = NULL;
-	;
 	this->msg_op->pop = NULL;
 	free(this->msg_op);
 	free(this->msg);

@@ -188,67 +188,83 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 }
 
 /*====================================REAL HANDLERS===========================================*/
+
+static void resolve_rw_handler_buffer(event_handler_t* event_handle,
+		rw_handle_buff_t* handle_buff)
+{
+	buffer_t* buffer = event_handle->event_buffer;
+
+	handle_buff->common_msg = buffer;
+	buffer = buffer->next;
+
+	handle_buff->msg_buffer = buffer;
+	buffer = buffer->next;
+
+	handle_buff->data_buffer =buffer;
+	buffer = buffer->next;
+
+	handle_buff->file_info = buffer;
+	buffer = buffer->next;
+
+	handle_buff->f_arr_buff = buffer;
+	buffer = buffer->next;
+}
+
 void d_read_handler(event_handler_t* event_handle)
 {
 	int source, tag;
-	char* buff;
-	void* msg_buff;
+	rw_handle_buff_t handle_buff;
 	msg_r_ctod_t* read_msg;
-	msg_for_rw_t* file_info;
 	data_server_t* this;
-	common_msg_t* common_msg;
 
-	//I'will consider it later
-	this = event_handle->event_buffer;
+	resolve_rw_handler_buffer(event_handle, &handle_buff);
+	//Data server should be the special structure. It is not a buffer
+	this = event_handle->spcical_struct;
 
-	//init basic information, and it just for test now!!
-	read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(common_msg);
-	source = common_msg->source;
+	//initial basic information from handle_buffer and event_handle
+	read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(handle_buff->common_msg);
+	source = handle_buff->common_msg->source;
 	tag = read_msg->unique_tag;
-	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
-	buff = this->m_data_buffer;
-	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
-	file_info->offset = read_msg->offset;
-	file_info->count = read_msg->read_len;
-	file_info->file = init_vfs_file(this->d_super_block, this->files_buffer,
-			this->f_arr_buff, VFS_READ);
-	if( m_read_handler(source, tag, file_info, buff, msg_buff) == -1 )
+
+	handle_buff->file_info->offset = read_msg->offset;
+	handle_buff->file_info->count = read_msg->read_len;
+	handle_buff->file_info->file = init_vfs_file(this->d_super_block, handle_buff->file_info->file,
+			handle_buff->f_arr_buff, VFS_READ);
+
+	if(m_read_handler(source, tag, handle_buff->file_info, handle_buff->data_buffer,
+			handle_buff->msg_buffer) == -1)
 	{
-		free(msg_buff);
-		free(file_info);
+		//do something like sending error message to client
 	}
+
 	printf("It's OK here\n");
-	free(msg_buff);
-	free(file_info);
 }
 
-void d_write_handler(event_handler_t* event_handler)
+void d_write_handler(event_handler_t* event_handle)
 {
 	int source, tag;
-	char* buff;
-	void* msg_buff;
 	msg_w_ctod_t* write_msg;
-	msg_for_rw_t* file_info;
 	data_server_t* this;
-	common_msg_t* common_msg;
+	rw_handle_buff_t handle_buff;
+
+	resolve_rw_handler_buffer(event_handle, &handle_buff);
+	//Data server should be the special structure. It is not a buffer
+	this = event_handle->spcical_struct;
 
 	//init basic information, and it just for test now!!
-	write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(common_msg);
-	source = common_msg->source;
+	write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(handle_buff->common_msg);
+	source = handle_buff->common_msg->source;
 	//tag = common_msg->unique_tag;
 	tag = write_msg->unique_tag;
-	msg_buff = (void* )malloc(MAX_DATA_MSG_LEN);//may be should use a message queue here
-	buff = this->m_data_buffer;
-	file_info = (msg_for_rw_t* )malloc(sizeof(msg_for_rw_t));
-	file_info->offset = write_msg->offset;
-	file_info->count = write_msg->write_len;
-	file_info->file = init_vfs_file(this->d_super_block, this->files_buffer,
-			this->f_arr_buff, VFS_WRITE);
-	if(m_write_handler(source, tag, file_info, buff, msg_buff) == -1)
+
+	handle_buff->file_info->offset = write_msg->offset;
+	handle_buff->file_info->count = write_msg->write_len;
+	handle_buff->file_info->file = init_vfs_file(this->d_super_block, handle_buff->file_info->file,
+			handle_buff->f_arr_buff, VFS_WRITE);
+
+	if(m_write_handler(source, tag, handle_buff->file_info, handle_buff->data_buffer,
+			handle_buff->msg_buffer) == -1)
 	{
-		free(msg_buff);
-		free(file_info);
+		//do somthing here
 	}
-	free(msg_buff);
-	free(file_info);
 }

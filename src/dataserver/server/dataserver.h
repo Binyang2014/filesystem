@@ -55,7 +55,7 @@ extern data_server_t* data_server;
 //define of some function in struct's operations
 //about message receive and resolve
 void* m_cmd_receive(void * msg_queue_arg);//there will be a thread run this function
-void m_resolve(msg_queue_t * msg_queue);
+void m_resolve(event_handler_t* event_handler, void* msg_queue);
 
 //about data server
 data_server_t* alloc_dataserver(total_size_t t_size, int dev_num);
