@@ -12,6 +12,7 @@
 static const char dir_root = '/';
 static const char file_separator = '/';
 static const char *filesystem_root_name = "/";
+static const char *file_path_pattern = "^(/[0-9a-zA-Z]+)+$";
 static const int file_name_size = 1 << 8;
 
 /*---------------------private prototypes-----------------------*/
@@ -28,15 +29,42 @@ static void node_free(file_dir_node*);
 
 /*----------------implementation of functions-------------------*/
 
+typedef struct file_path_regex{
+	regex_t reg;
+	regmatch_t pm;
+}file_path_regex;
+
+//TODO need to free the singleTon regex
+static file_path_regex *get_regex(){
+	static file_path_regex *regex;
+	if(regex == NULL){
+		puts("regex is NULL");
+		regex = (file_path_regex *)malloc(sizeof(file_path_regex));
+		if(regex != NULL){
+			memset(regex, 0 , sizeof(file_path_regex));
+			regcomp(&(regex->reg), file_path_pattern, REG_EXTENDED);
+		}
+	}
+	return regex;
+}
+
 /*
  * verify the file path
  */
 static int path_verify(const char *path) {
 	int length = strlen(path);
-	if(length > file_name_size)
+	if(length > file_name_size){
+		err_ret("path %s length is too long", path);
 		return ILLEGAL_FILE_PATH;
+	}
 
-	return OPERATE_SECCESS;
+	file_path_regex *regex = get_regex();
+	if(regex == NULL){
+		err_ret("failed to malloc enough space for the regex of verify file path");
+		return NO_ENOUGH_SPACE;
+	}
+
+	return regexec(&(regex->reg), path, 1, &(regex->pm), 0) == REG_NOMATCH ? REG_NOMATCH : OPERATE_SECCESS;
 }
 
 /**
@@ -53,6 +81,7 @@ static void path_pre_handle(char *path) {
 		*(path + length) = 0;
 		length--;
 	}
+
 }
 
 /**
@@ -68,7 +97,10 @@ static int parse_path(char *parent_dir_name, const char *path, int len) {
 
 	/*separator the path and copy the file name into variable file_name*/
 	char *file_name_start = strrchr(tmp_path, file_separator);
-	*(file_name_start + 1) = 0;
+	if(file_name_start == tmp_path)
+		*(file_name_start + 1) = 0;
+	else
+		*file_name_start = 0;
 
 	strcpy(parent_dir_name, tmp_path);
 
@@ -101,8 +133,12 @@ static file_dir_node* malloc_node(const char *name, int is_dir, int child_hash_l
 
 	if(is_dir){
 		root->child = (file_dir_node **) malloc(sizeof(file_dir_node *) * child_hash_length);
-		if(root->child == NULL)
+		if(root->child == NULL){
 			node_free(root);
+			err_ret("There is no enough space");
+			return NULL;
+		}
+		memset(root->child, 0, sizeof(file_dir_node *) * child_hash_length);
 	}
 
 	root->file_num = 0;
@@ -136,8 +172,8 @@ static file_dir_node* find_file_node(const namespace *this, const char *name) {
 	file_dir_node *chi_node = par_node->child[chi_hash];
 	while(chi_node != NULL){
 		if(strcmp(chi_node->file_name, name) == 0){
-			if(chi_node->is_dir)
-				return NULL;
+//			if(chi_node->is_dir)
+//				return NULL;
 			return chi_node;
 		}
 		chi_node = chi_node->next_file;
@@ -229,25 +265,32 @@ namespace *create_namespace(int parent_hash_length, int child_hash_length){
  */
 int namespace_create_file(namespace *this, char * file_path) {
 	path_pre_handle(file_path);
+	if(path_verify(file_path) != OPERATE_SECCESS){
+		return ILLEGAL_FILE_PATH;
+	}
 	int length = strlen(file_path);
 	char dir[file_name_size];
 	char tmp_path[file_name_size];
 	strcpy(tmp_path, file_path);
 	int status = parse_path(dir, tmp_path, length);
-	if (status != 0)
+	if (status != OPERATE_SECCESS)
 		return status;
 
 	//parent directory hash code
 	int file_hash_code = bkdr_hash(file_path, this->child_hash_length);
 
 	//parent directory node
+	//printf("dir name = %s\n", dir);
 	file_dir_node *dir_node = find_dir_node(this, dir);
 	if(dir_node == NULL)
 		return DIR_NOT_EXISTS;
 
 	file_dir_node *file_node = find_file_node(this, file_path);
-	if(file_node != NULL)
+
+	if(file_node != NULL){
+		err_ret("exists");
 		return FILE_EXISTS;
+	}
 
 	struct file_dir_node* new_file = malloc_file_node(file_path, this->child_hash_length);
 	if(new_file == NULL)
@@ -278,7 +321,7 @@ int namespace_create_dir(namespace *this, char *path) {
 		return NO_ENOUGH_SPACE;
 	}
 
-	err_msg(" creating dir -> before parse_path");
+	//err_msg(" creating dir -> before parse_path");
 	int status = parse_path(parent_dir, path, length);
 	if (status == ILLEGAL_PATH) {
 		return ILLEGAL_PATH;
@@ -291,7 +334,7 @@ int namespace_create_dir(namespace *this, char *path) {
 
 	//file_dir_node *tmp_node = this->parent_dirs[path_hash_code]; //遍历指针
 
-	err_msg(" creating dir -> before find dir_node");
+	//err_msg(" creating dir -> before find dir_node");
 	//parent directory node
 	file_dir_node *parent_node = find_dir_node(this, parent_dir);
 	if(parent_node == NULL){
@@ -299,26 +342,31 @@ int namespace_create_dir(namespace *this, char *path) {
 		return DIR_NOT_EXISTS;
 	}
 
-	err_msg(" creating dir -> find dir_node");
+	//err_msg(" creating dir -> find dir_node");
 	//child node
 	file_dir_node *child_node = find_dir_node(this, path);
 	if(child_node != NULL){
 		return DIR_EXISTS;
 	}
 
-	err_msg(" creating dir -> new dir_node");
+	//err_msg(" creating dir -> new dir_node");
 	//新的目录节点
 	file_dir_node *new_dir_node = malloc_dir_node(path, this->child_hash_length);
 
-	new_dir_node->next_dir = this->parent_dirs[path_hash_code];
-	this->parent_dirs[path_hash_code] = new_dir_node;
+	if(new_dir_node == NULL){
+		err_ret("No enough space for create dir");
+	}
 
-	new_dir_node->next_file = child_node ? child_node->next_file : 0;
+	new_dir_node->next_dir = *(this->parent_dirs + path_hash_code);
+	*(this->parent_dirs + path_hash_code) = new_dir_node;
+
+	path_hash_code = bkdr_hash(path, this->child_hash_length);
+	new_dir_node->next_file = *(parent_node->child + path_hash_code);
 	*(parent_node->child + path_hash_code) = new_dir_node;
 
 	parent_node->file_num++;
 
-	err_msg(" creating dir -> OK");
+	//err_msg("creating dir -> OK");
 	free(parent_dir);
 	parent_dir = NULL;
 	return CREATE_SUCCESS;
