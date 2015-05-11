@@ -11,6 +11,8 @@
 #include "dataserver.h"
 #include "../structure/vfs_structure.h"
 #include "../../tool/errinfo.h"
+#include "../../structure/buffer.h"
+#include "../../tool/threadpool.h"
 
 //this is a demo, there are many things to add
 
@@ -108,7 +110,7 @@ void* m_cmd_receive(void* msg_queue_arg)
 		start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
 		d_mpi_cmd_recv(start_pos, &status);
 		t_common_msg->source = status.source;
-		//push message to the queue
+		//here should be changed, and new version of message queue isn't supports locks
 		msg_queue->msg_op->push(msg_queue, t_common_msg);
 	}
 
@@ -118,10 +120,56 @@ void* m_cmd_receive(void* msg_queue_arg)
 
 /*=================================resolve message=========================================*/
 
-void m_resolve(event_handler_t* event_handler, void* msg_queue)
+static int init_rw_event_handler(event_handler_t* event_handler,
+		common_msg_t* common_msg, int flag)
+{
+	int i;
+	unsigned int chunks_count;
+	buffer_t* t_buff;
+	msg_r_ctod_t* read_msg = NULL;
+	msg_w_ctod_t* write_msg = NULL;
+	event_handler->spcical_struct = data_server;
+
+	//get buffer structure for event handler
+	 if( (event_handler->event_buffer = get_series_buffer(data_server, 5)) == -1 )
+		 return -1;
+	t_buff = event_handler->event_buffer;
+
+	//decide use which structure
+	if(flag == MSG_READ)
+	{
+		read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(common_msg);
+		chunks_count = read_msg->chunks_count;
+	}
+	else
+	{
+		write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(common_msg);
+		chunks_count = write_msg->chunks_count;
+	}
+
+	//get specific buffer for event
+	if( (t_buff->buffer = get_common_msg_buff(data_server, common_msg)) == NULL )
+		return -1;
+	t_buff = t_buff->next;
+	if( (t_buff->buffer = get_msg_buffer(data_server)) == NULL )
+		return -1;
+	t_buff = t_buff->next;
+	if( (t_buff->buffer = get_data_buffer(data_server)) == NULL )
+		return -1;
+	t_buff = t_buff->next;
+	if( (t_buff->buffer = get_file_info(data_server)) == NULL )
+		return -1;
+	t_buff = t_buff->next;
+	if( (t_buff->buffer = get_f_arr_buff(data_server)) == NULL )
+		return -1;
+
+	return 0;
+}
+
+void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 {
 	//this variable allocate in stack. may be each thread need one common message
-	common_msg_t t_common_msg;
+	static common_msg_t t_common_msg;
 	msg_queue_t* t_msg_queue = msg_queue;
 	unsigned short operation_code;
 
@@ -129,6 +177,7 @@ void m_resolve(event_handler_t* event_handler, void* msg_queue)
 	printf("In m_resolve function\n");
 #endif
 
+	//here should be changed, and new version of message queue isn't supports locks
 	t_msg_queue->msg_op->pop(msg_queue, &t_common_msg);
 	operation_code = t_common_msg->operation_code;
 
@@ -137,15 +186,15 @@ void m_resolve(event_handler_t* event_handler, void* msg_queue)
 	switch(operation_code)
 	{
 	case MSG_READ:
+		init_rw_event_handler(event_handler, &t_common_msg, MSG_READ);
 		//invoke a thread to excuse
-		d_read_handler(event_handler);
-		break;
+		return d_read_handler;
 	case MSG_WRITE:
+		init_rw_event_handler(event_handler, &t_common_msg, MSG_WRITE);
 		//invoke a thread to excuse
-		d_write_handler(event_handler);
-		break;
+		return d_write_handler;
 	default:
-		break;
+		return NULL;
 	}
-
+	return NULL;
 }

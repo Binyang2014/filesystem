@@ -12,6 +12,7 @@
 #include "dataserver_buff.h"
 #include "../structure/vfs_structure.h"
 #include "../../tool/message.h"
+#include "../../structure/basic_queue.h"
 
 //many kinds of locks
 

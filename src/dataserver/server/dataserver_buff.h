@@ -8,53 +8,17 @@
 #define _DATASERVER_BUFF_H_
 
 #include <stdio.h>
-#include <semaphore.h>
 #include "../../tool/message.h"
 #include "../../global.h"
+#include "../../structure/buffer.h"
 
-//empty head_pos == tail_pos; full (tail_pos + 1) % size == head_pos
-#define Q_FULL(head_pos, tail_pos) (((tail_pos + 1) % D_MSG_BSIZE) == (head_pos))
-#define Q_EMPTY(head_pos, tail_pos) ((head_pos) == (tail_pos))
-
-struct msg_queue;
-
-struct msg_queue_op
-{
-	void (*push)(struct msg_queue* , common_msg_t* );
-	void (*pop)(struct msg_queue* , common_msg_t* );
-};
-
-struct msg_queue
-{
-	//int current_size;
-	int head_pos;
-	int tail_pos;
-	struct msg_queue_op* msg_op;
-	sem_t* msg_queue_full;
-	sem_t* msg_queue_empty;
-	common_msg_t* msg;
-};
-
-
-//tread thread pool as a queue??
-struct thread_pool
-{
-	pthread_t* threads;
-	int current_size;
-	int head_pos;
-	int tail_pos;
-};
-
-typedef struct msg_queue msg_queue_t;
-typedef struct msg_queue_op msg_queue_op_t;
-
-//followings are operation functions
-void msg_queue_push(msg_queue_t*, common_msg_t* );
-void msg_queue_pop(msg_queue_t* , common_msg_t* );
-
-//init function
-msg_queue_t* alloc_msg_queue();
-void destroy_msg_queue(msg_queue_t* );
+//functions about how to handle buffer in data server
+buffer_t* get_series_buffer(data_server_t*, int);
+buffer_t* get_common_msg_buff(data_server_t*, common_msg_t*);
+buffer_t* get_msg_buffer(data_server_t*);
+buffer_t* get_data_buffer(data_server_t*);
+buffer_t* get_file_info(data_server_t*);
+buffer_t* get_f_arr_buff(data_server_t*);
 
 #endif
 //void
