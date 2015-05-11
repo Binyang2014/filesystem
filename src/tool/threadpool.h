@@ -13,6 +13,7 @@
 #include <pthread.h>
 #include "message.h"
 #include "../global.h"
+#include "../structure/buffer.h"
 
 #define THREAD_POOL_UNINIT 0
 #define THREAD_POOL_INIT 1
@@ -61,12 +62,6 @@ struct msg_queue
 
 /*-----------------------------------------------------------------------------*/
 
-struct buffer
-{
-	void *buffer;
-	struct buffer* next;
-};
-
 //The event_handler should run by leader thread, there should be a common
 //event handler and different layer use different formats
 struct event_handler
@@ -75,7 +70,7 @@ struct event_handler
 	void* (*resolve_handler)(struct event_handler*, void* args);
 	void* spcical_struct;
 
-	struct buffer* event_buffer;
+	buffer_t* event_buffer;
 	struct thread_pool* thread_pool;
 };
 

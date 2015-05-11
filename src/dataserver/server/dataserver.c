@@ -16,7 +16,7 @@
 
 //many kinds of locks
 
-data_server_t* data_server;
+static data_server_t* data_server;
 
 int get_current_imformation(data_server_t * server_imf)
 {
@@ -84,4 +84,68 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 
 	return data_server;
 	//end of init
+}
+
+//receive cmd message from client or master
+void* m_cmd_receive(void* msg_queue_arg)
+{
+	void* start_pos;
+	common_msg_t* t_common_msg;
+	msg_queue_t * msg_queue;
+	mpi_status_t status;
+
+	msg_queue = (msg_queue_t* )msg_queue_arg;
+	t_common_msg = (common_msg_t* )malloc(sizeof(common_msg_t));
+
+	while (1)
+	{
+
+#ifdef DATASERVER_COMM_DEBUG
+		printf("The tid of this thread is %lu\n", (unsigned long)pthread_self());
+		printf("I'm waiting for a message\n");
+#endif
+		//receive message from client
+		start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
+		d_mpi_cmd_recv(start_pos, &status);
+		t_common_msg->source = status.source;
+		//push message to the queue
+		msg_queue->msg_op->push(msg_queue, t_common_msg);
+	}
+
+	free(t_common_msg);
+	return NULL;
+}
+
+/*=================================resolve message=========================================*/
+
+void m_resolve(event_handler_t* event_handler, void* msg_queue)
+{
+	//this variable allocate in stack. may be each thread need one common message
+	common_msg_t t_common_msg;
+	msg_queue_t* t_msg_queue = msg_queue;
+	unsigned short operation_code;
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("In m_resolve function\n");
+#endif
+
+	t_msg_queue->msg_op->pop(msg_queue, &t_common_msg);
+	operation_code = t_common_msg->operation_code;
+
+	//this function should solve how to initiate event handler, each thread has its' own
+	//event handler and we do not need to care about it
+	switch(operation_code)
+	{
+	case MSG_READ:
+		//invoke a thread to excuse
+		d_read_handler(event_handler);
+		break;
+	case MSG_WRITE:
+		//invoke a thread to excuse
+		d_write_handler(event_handler);
+		break;
+	default:
+		break;
+	}
+
 }

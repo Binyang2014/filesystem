@@ -26,9 +26,19 @@ struct msg_for_rw
 	size_t count;
 };
 
+struct rw_handle_buffer
+{
+	common_msg_t* common_msg;
+	void* msg_buffer;
+	char* data_buffer;
+	struct msg_for_rw* file_info;
+	vfs_hashtable_t* f_arr_buff;
+};
+
 typedef struct msg_for_rw msg_for_rw_t;
+typedef struct rw_handle_buffer rw_handle_buff_t;
 
 void d_read_handler(data_server_t* this, common_msg_t* common_msg);
 void d_write_handler(data_server_t* this, common_msg_t* common_msg);
-//...other message passing functions
+//...other handler functions
 #endif
