@@ -294,10 +294,12 @@ int namespace_create_file(namespace *this, char * file_path) {
 
 	struct file_dir_node* new_file = malloc_file_node(file_path, this->child_hash_length);
 	if(new_file == NULL)
-		return -1;
+		return NO_ENOUGH_SPACE;
 
 	new_file->next_file = *(dir_node->child + file_hash_code);
 	*(dir_node->child + file_hash_code) = new_file;
+
+	dir_node->file_num++;
 
 	return 0;
 }
@@ -372,6 +374,26 @@ int namespace_create_dir(namespace *this, char *path) {
 	return CREATE_SUCCESS;
 }
 
+int set_file_location(file_location_des *file_location, char *name){
+	path_pre_handle(name);
+	int status = path_verify(name);
+	if(status != OPERATE_SECCESS){
+		return status;
+	}
+
+	file_dir_node *node = find_file_node(name);
+	if(node == NULL){
+		return FILE_NOT_EXISTS;
+	}
+
+	node->location = file_location;
+	return OPERATE_SECCESS;
+}
+
+/**
+ * since the name space is implemented by full path name, a dir name modify should cause it's children's
+ * name modify, it may cost much right now and it will be implemented next
+ */
 int namespace_rename_file(namespace *this, char *old_name, char *new_name) {
 	path_pre_handle(old_name);
 	path_pre_handle(new_name);
