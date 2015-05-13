@@ -192,22 +192,22 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 static void resolve_rw_handler_buffer(event_handler_t* event_handle,
 		rw_handle_buff_t* handle_buff)
 {
-	buffer_t* buffer = event_handle->event_buffer;
-
-	handle_buff->common_msg = buffer;
-	buffer = buffer->next;
-
-	handle_buff->msg_buffer = buffer;
-	buffer = buffer->next;
-
-	handle_buff->data_buffer =buffer;
-	buffer = buffer->next;
-
-	handle_buff->file_info = buffer;
-	buffer = buffer->next;
-
-	handle_buff->f_arr_buff = buffer;
-	buffer = buffer->next;
+//	buffer_t* buffer = event_handle->event_buffer;
+//
+//	handle_buff->common_msg = buffer;
+//	buffer = buffer->next;
+//
+//	handle_buff->msg_buffer = buffer;
+//	buffer = buffer->next;
+//
+//	handle_buff->data_buffer =buffer;
+//	buffer = buffer->next;
+//
+//	handle_buff->file_info = buffer;
+//	buffer = buffer->next;
+//
+//	handle_buff->f_arr_buff = buffer;
+//	buffer = buffer->next;
 }
 
 void d_read_handler(event_handler_t* event_handle)
