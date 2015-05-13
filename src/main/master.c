@@ -4,47 +4,59 @@
  *  Created on: 2015年1月4日
  *      Author: ron
  */
-#include "master.h"
+#include <pthread.h>
+#include <mpi.h>
 #include <assert.h>
+#include "master.h"
 #include "../structure/message_queue.h"
+#include "./namespace/namespace.h"
+#include "./data_server/master_data_servers.h"
+#include "../global.h"
 
 /*========================Private Prototypes============*/
-static msg_queue_t *msg_queue;
+static namespace* namespace;
+static msg_queue_t* message_queue;
 
-void init_queue() {
-	request_queue_list.head = request_queue_list.tail = NULL;
-	request_queue_list.request_num = 0;
+static pthread_t *pthread_request_listener;
+static pthread_t *pthread_request_handler;
+static pthread_mutex_t *pthread_mutex_message_queue;
+
+char *receive_buf;
+char *send_buf;
+/*========================API Implementation============*/
+
+//TODO when shutdown the application, it must release all the memory resource
+int master_init(){
+	namespace = create_namespace(1024, 32);
+	message_queue = alloc_msg_queue();
+	pthread_request_listener = (pthread_t *)malloc(sizeof(pthread_t));
+	pthread_request_handler = (pthread_t *)malloc(sizeof(pthread_t));
+	pthread_mutex_message_queue = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
+
+	receive_buf = (char *)malloc(MAX_CMD_MSG_LEN);
+	send_buf = (char *)malloc(MAX_CMD_MSG_LEN);
+	if(namespace == NULL || message_queue == NULL || pthread_request_listener == NULL
+			|| pthread_request_handler == NULL ||pthread_mutex_message_queue == NULL){
+		master_destroy();
+		return -1;
+	}
 }
 
-int request_is_empty() {
-	return !request_queue_list.request_num;
+//TODO dangerous operation, when shutdown the application
+//TODO self-defined structure may be released by it's own free function
+int master_destroy(){
+	free(namespace);
+	free(message_queue);
+	free(pthread_request_listener);
+	free(pthread_request_handler);
+	free(pthread_mutex_message_queue);
 }
+
 
 void init_master_server_info(int machine_count){
 	master_data_servers.server_count = machine_count;
 	master_data_servers.data_server_list = (data_server_des*)malloc(sizeof(data_server_des) * machine_count);
 	assert(master_data_servers.data_server_list != NULL);
-}
-
-void in_queue(request_node *request_param) {
-	log_info("====start in queue=====");
-	if (request_is_empty()) {
-		request_queue_list.tail = request_queue_list.head = request_param;
-	} else {
-		request_queue_list.tail->next = request_param;
-		request_queue_list.tail = request_param;
-	}
-	request_queue_list.request_num++;
-	log_info("====end in queue=====");
-}
-
-request_node* de_queue() {
-	if (request_is_empty())
-		return NULL;
-	request_node *tmp_request = request_queue_list.head;
-	request_queue_list.head = tmp_request->next;
-	request_queue_list.request_num--;
-	return tmp_request;
 }
 
 void mpi_status_assignment(MPI_Status *status, MPI_Status *s) {
@@ -72,10 +84,8 @@ void data_server_init() {
 	init_queue();
 	//master_data_servers.index = 1;
 	master_data_servers.server_count = 100;
-	master_data_servers.data_server_list = (data_server_des *) malloc(
-			sizeof(data_server_des) * master_data_servers.server_count);
-	memset(&master_data_servers, 0,
-			sizeof(data_server_des) * master_data_servers.server_count);
+	master_data_servers.data_server_list = (data_server_des *) malloc(sizeof(data_server_des) * master_data_servers.server_count);
+	memset(&master_data_servers, 0, sizeof(data_server_des) * master_data_servers.server_count);
 }
 
 /**
@@ -84,28 +94,28 @@ void data_server_init() {
  * 3. request handler start
  * 4. master server start
  */
-void master_init() {
-	//puts("=====master initialize start=====");
-//	MPI_Status status;
-//	MPI_Recv(message_buff, MAX_COM_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE,
-//	MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-//	puts(message_buff);
-	//TODO 初始化数据服务器的状态
-	msg_queue = alloc_msg_queue();
-	assert(msg_queue != NULL);
-
-	pthread_mutex_init(&mutex_message_buff, NULL);
-	pthread_mutex_init(&mutex_namespace, NULL);
-
-	pthread_create(&thread_master_server, NULL, master_server, NULL);
-	pthread_create(&thread_request_handler, NULL, request_handler, NULL);
-
-	pthread_join(thread_master_server, NULL);
-	pthread_join(thread_request_handler, NULL);
-
-	pthread_cond_init(&cond_request_queue, NULL);
-	//puts("=====master initialize end=====");
-}
+//void master_init() {
+//	//puts("=====master initialize start=====");
+////	MPI_Status status;
+////	MPI_Recv(message_buff, MAX_COM_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE,
+////	MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+////	puts(message_buff);
+//	//TODO 初始化数据服务器的状态
+//	msg_queue = alloc_msg_queue();
+//	assert(msg_queue != NULL);
+//
+//	pthread_mutex_init(&mutex_message_buff, NULL);
+//	pthread_mutex_init(&mutex_namespace, NULL);
+//
+//	pthread_create(&thread_master_server, NULL, master_server, NULL);
+//	pthread_create(&thread_request_handler, NULL, request_handler, NULL);
+//
+//	pthread_join(thread_master_server, NULL);
+//	pthread_join(thread_request_handler, NULL);
+//
+//	pthread_cond_init(&cond_request_queue, NULL);
+//	//puts("=====master initialize end=====");
+//}
 
 /**
  *	master server
@@ -118,12 +128,12 @@ void* master_server(void *arg) {
 	while (1) {
 		pthread_mutex_lock(&mutex_message_buff);
 		log_info("receive message start");
-		MPI_Recv(message_buff, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+		MPI_Recv(receive_buf, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
 		log_info("receive message end");
 		//TODO...
 		//need to catch status error
 
-		request_node *reqeust = malloc_request(message_buff, MAX_CMD_MSG_LEN, &status);
+		common_msg_t *reqeust = malloc_request(message_buff, MAX_CMD_MSG_LEN, &status);
 		pthread_mutex_lock(&mutex_request_queue);
 		in_queue(reqeust);
 		log_info("signal the thread waiting request queue start");

@@ -5,6 +5,7 @@
  *      Author: ron
  */
 
+#include "../../structure/data_server_location.h"
 #ifndef SRC_MAIN_DATA_SERVERS_H_
 #define SRC_MAIN_DATA_SERVERS_H_
 
@@ -13,14 +14,15 @@ typedef enum data_server_status{
 }data_server_status;
 
 typedef struct data_server_opera{
-	int (*heart_blood)(data_servers *this, int server_id);
+	int (*heart_blood)(data_servers *, int);
+	file_location_des *(*file_location_allocate)(unsigned long);
 }data_server_opera;
 
 typedef struct master_data_server{
 	data_server_status status;
 	unsigned int used_block;
 	unsigned int free_block;
-	unsigned long last_update;
+	time_t last_update;
 }master_data_server;
 
 typedef struct data_servers{

@@ -12,12 +12,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
-#include "namespace.h"
 #include "conf.h"
-#include "../tool/message.h"
-#include "../global.h"
-
-#define LOAD_FACTOR 0.5
 
 /**
  * 数据服务器描述
@@ -61,29 +56,12 @@ typedef struct master_request_queue{
 	request_node *tail;
 }master_request_queue;
 
-/**
- * initialize request queue
- */
-void init_queue();
-
-void in_queue(request_node *request_param);
 
 void init_master_server_info(int);
 
 void init_data_server_node();
 
-request_node* de_queue();
-
-int request_is_empty();
-
 request_node* malloc_request(char *buf, int size, MPI_Status *status);
-
-file_location_des *maclloc_data_block(unsigned long file_size);
-
-/**
- * use memcpy to implement copy of MPI_Status
- */
-void mpi_status_assignment(MPI_Status *status, MPI_Status *s);
 
 /* master initialize
  */
@@ -116,16 +94,6 @@ pthread_mutex_t mutex_message_buff, mutex_namespace, mutex_request_queue;
 pthread_mutex_t mutex_send_message_buff;
 
 pthread_cond_t cond_request_queue;
-
-/**
- * receive message buff
- */
-char message_buff[MAX_CMD_MSG_LEN];
-
-/**
- * send message buff
- */
-char send_message_buff[MAX_CMD_MSG_LEN];
 
 static master_request_queue request_queue_list;
 
