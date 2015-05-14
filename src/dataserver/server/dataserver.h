@@ -36,7 +36,7 @@ struct data_server
 	struct data_server_operations* d_op;
 
 	//buffers
-	basic_queue_t* buff_ndoe_queue;//each thread buffer is construct by buffer node
+	basic_queue_t* buff_node_queue;//each thread buffer is construct by buffer node
 	basic_queue_t* f_arr_buff;//array that contain maps from global to local
 	basic_queue_t* m_data_buff;//message data buffer
 	basic_queue_t *common_msg_buff;//each thread need a common message buffer

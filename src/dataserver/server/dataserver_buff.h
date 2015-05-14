@@ -10,15 +10,15 @@
 #include <stdio.h>
 #include "../../tool/message.h"
 #include "../../global.h"
-#include "../../structure/buffer.h"
+#include "../../structure/basic_list.h"
 
 //functions about how to handle buffer in data server
-buffer_t* get_series_buffer(data_server_t*, int);
-buffer_t* get_common_msg_buff(data_server_t*, common_msg_t*);
-buffer_t* get_msg_buffer(data_server_t*);
-buffer_t* get_data_buffer(data_server_t*);
-buffer_t* get_file_info(data_server_t*);
-buffer_t* get_f_arr_buff(data_server_t*);
+list_t* get_buffer_list(data_server_t*, int);
+void* get_common_msg_buff(data_server_t*,);
+void* get_reply_msg_buffer(data_server_t*);
+void* get_data_buffer(data_server_t*);
+void* get_file_info(data_server_t*);
+void* get_f_arr_buff(data_server_t*);
 
 #endif
 //void

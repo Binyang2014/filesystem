@@ -56,7 +56,9 @@ struct list_iter
 struct list_operations
 {
 	struct list* (*list_add_node_head)(struct list *list, void *value);
+	struct list* (*list_add_exist_node_head)(struct list *list, struct node *node);
 	struct list* (*list_add_node_tail)(struct list *list, void *value);
+	struct list* (*list_add_exist_node_tail)(struct list *list, struct node *node);
 	struct list* (*list_insert_node)(struct list *list, struct node *old_node,
 			void *value, int after);
 	void (*list_del_node)(struct list *list, struct node *node);
@@ -91,6 +93,7 @@ typedef struct list_operations list_op_t;
 /* Prototypes */
 list_t *list_create();
 void list_release(list_t *list);
+void list_release_without_node(list_t *list);
 
 //struct buffer
 //{

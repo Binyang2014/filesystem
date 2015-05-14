@@ -11,7 +11,9 @@
 /*===================== Prototypes ==========================*/
 static void init_list_ops(list_op_t* list_ops);
 static list_t *list_add_node_head(list_t *list, void *value);
+static list_t *list_add_exist_node_head(list_t *list, list_node_t *node);
 static list_t *list_add_node_tail(list_t *list, void *value);
+static list_t *list_add_exist_node_tail(list_t *list, list_node_t *node);
 static list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after);
 static void list_del_node(list_t *list, list_node_t *node);
 static list_iter_t *list_get_iterator(list_t *list, int direction);
@@ -28,7 +30,9 @@ static void list_rotate(list_t *list);
 static void init_list_ops(list_op_t* list_ops)
 {
 	list_ops->list_add_node_head = list_add_node_head;
+	list_ops->list_add_exist_node_tail = list_add_exist_node_head;
 	list_ops->list_add_node_tail = list_add_node_tail;
+	list_ops->list_add_exist_node_tail = list_add_exist_node_tail;
 	list_ops->list_del_node = list_del_node;
 	list_ops->list_dup = list_dup;
 	list_ops->list_get_iterator = list_get_iterator;
@@ -88,6 +92,12 @@ void list_release(list_t *list)
     free(list);
 }
 
+void list_release_without_node(list_t *list)
+{
+    free(list->list_ops);
+    free(list);
+}
+
 /* Add a new node to the list, to head, containing the specified 'value'
  * pointer as value.
  *
@@ -114,6 +124,24 @@ static list_t *list_add_node_head(list_t *list, void *value)
     return list;
 }
 
+/* Add a new node to the list, to head, not allocate node structure in
+ * the list.
+ */
+static list_t *list_add_exist_node_head(list_t *list, list_node_t *node)
+{
+    if (list->len == 0) {
+        list->head = list->tail = node;
+        node->prev = node->next = NULL;
+    } else {
+        node->prev = NULL;
+        node->next = list->head;
+        list->head->prev = node;
+        list->head = node;
+    }
+    list->len++;
+    return list;
+}
+
 /* Add a new node to the list, to tail, containing the specified 'value'
  * pointer as value.
  *
@@ -127,6 +155,24 @@ static list_t *list_add_node_tail(list_t *list, void *value)
     if ((node = malloc(sizeof(*node))) == NULL)
         return NULL;
     node->value = value;
+    if (list->len == 0) {
+        list->head = list->tail = node;
+        node->prev = node->next = NULL;
+    } else {
+        node->prev = list->tail;
+        node->next = NULL;
+        list->tail->next = node;
+        list->tail = node;
+    }
+    list->len++;
+    return list;
+}
+
+/* Add a new node to the list, to tail, not allocate node structure in
+ * the list.
+ */
+static list_t *list_add_exist_node_tail(list_t *list, list_node_t *node)
+{
     if (list->len == 0) {
         list->head = list->tail = node;
         node->prev = node->next = NULL;
