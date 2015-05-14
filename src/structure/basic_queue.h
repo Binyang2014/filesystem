@@ -4,13 +4,16 @@
 #ifndef _BASIC_QUEUE_H_
 #define _BASIC_QUEUE_H_
 
+#define queue_set_dup_method(q,m) ((q)->dup = (m))
+#define queue_set_free_method(q,m) ((q)->free = (m))
+
 struct basic_queue;
 struct basic_queue_op;
 
 typedef struct basic_queue_op
 {
-	void (*push)(struct basic_queue* , char* );
-	void (*pop)(struct basic_queue* , char* );
+	void (*push)(struct basic_queue* , void* );
+	void (*pop)(struct basic_queue* , void* );
 	int  (*is_empty)(struct basic_queue*);
 	int  (*is_full)(struct basic_queue*);
 }basic_queue_op_t;
@@ -29,6 +32,8 @@ typedef struct basic_queue
 	int element_size;
 	basic_queue_op_t* basic_queue_op;
 	void* elements;
+	void (*free)(void *ptr);
+	void* (*dup)(void *ptr);
 }basic_queue_t;
 
 

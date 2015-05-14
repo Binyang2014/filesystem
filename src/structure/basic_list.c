@@ -5,14 +5,53 @@
  */
 
 #include <stdlib.h>
+#include <assert.h>
 #include "basic_list.h"
+
+/*===================== Prototypes ==========================*/
+static void init_list_ops(list_op_t* list_ops);
+static list_t *list_add_node_head(list_t *list, void *value);
+static list_t *list_add_exist_node_head(list_t *list, list_node_t *node);
+static list_t *list_add_node_tail(list_t *list, void *value);
+static list_t *list_add_exist_node_tail(list_t *list, list_node_t *node);
+static list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after);
+static void list_del_node(list_t *list, list_node_t *node);
+static list_iter_t *list_get_iterator(list_t *list, int direction);
+static list_node_t *list_next(list_iter_t *iter);
+static void list_release_iterator(list_iter_t *iter);
+static list_t *list_dup(list_t *orig);
+static list_node_t *list_search_key(list_t *list, void *key);
+static list_node_t *list_index(list_t *list, long index);
+static void list_rewind(list_t *list, list_iter_t *li);
+static void list_rewind_tail(list_t *list, list_iter_t *li);
+static void list_rotate(list_t *list);
+
+
+static void init_list_ops(list_op_t* list_ops)
+{
+	list_ops->list_add_node_head = list_add_node_head;
+	list_ops->list_add_exist_node_tail = list_add_exist_node_head;
+	list_ops->list_add_node_tail = list_add_node_tail;
+	list_ops->list_add_exist_node_tail = list_add_exist_node_tail;
+	list_ops->list_del_node = list_del_node;
+	list_ops->list_dup = list_dup;
+	list_ops->list_get_iterator = list_get_iterator;
+	list_ops->list_index = list_index;
+	list_ops->list_insert_node = list_insert_node;
+	list_ops->list_next = list_next;
+	list_ops->list_release_iterator = list_release_iterator;
+	list_ops->list_rewind = list_rewind;
+	list_ops->list_rewind_tail = list_rewind_tail;
+	list_ops->list_rotate = list_rotate;
+	list_ops->list_search_key = list_search_key;
+}
 
 /* Create a new list. The created list can be freed with
  * AlFreeList(), but private value of every node need to be freed
  * by the user before to call AlFreeList().
  *
  * On error, NULL is returned. Otherwise the pointer to the new list. */
-list_t *list_create(void)
+list_t *list_create()
 {
     list_t *list;
 
@@ -23,6 +62,13 @@ list_t *list_create(void)
     list->dup = NULL;
     list->free = NULL;
     list->match = NULL;
+
+    if((list->list_ops = (list_op_t* )maolloc(sizeof(list_op_t))) == NULL)
+    {
+    	free(list);
+    	return NULL;
+    }
+    init_list_ops(list->list_ops);
     return list;
 }
 
@@ -42,6 +88,13 @@ void list_release(list_t *list)
         free(current);
         current = next;
     }
+    free(list->list_ops);
+    free(list);
+}
+
+void list_release_without_node(list_t *list)
+{
+    free(list->list_ops);
     free(list);
 }
 
@@ -51,7 +104,7 @@ void list_release(list_t *list)
  * On error, NULL is returned and no operation is performed (i.e. the
  * list remains unaltered).
  * On success the 'list' pointer you pass to the function is returned. */
-list_t *list_add_node_head(list_t *list, void *value)
+static list_t *list_add_node_head(list_t *list, void *value)
 {
     list_node_t *node;
 
@@ -71,13 +124,31 @@ list_t *list_add_node_head(list_t *list, void *value)
     return list;
 }
 
+/* Add a new node to the list, to head, not allocate node structure in
+ * the list.
+ */
+static list_t *list_add_exist_node_head(list_t *list, list_node_t *node)
+{
+    if (list->len == 0) {
+        list->head = list->tail = node;
+        node->prev = node->next = NULL;
+    } else {
+        node->prev = NULL;
+        node->next = list->head;
+        list->head->prev = node;
+        list->head = node;
+    }
+    list->len++;
+    return list;
+}
+
 /* Add a new node to the list, to tail, containing the specified 'value'
  * pointer as value.
  *
  * On error, NULL is returned and no operation is performed (i.e. the
  * list remains unaltered).
  * On success the 'list' pointer you pass to the function is returned. */
-list_t *list_add_node_tail(list_t *list, void *value)
+static list_t *list_add_node_tail(list_t *list, void *value)
 {
     list_node_t *node;
 
@@ -97,7 +168,25 @@ list_t *list_add_node_tail(list_t *list, void *value)
     return list;
 }
 
-list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after)
+/* Add a new node to the list, to tail, not allocate node structure in
+ * the list.
+ */
+static list_t *list_add_exist_node_tail(list_t *list, list_node_t *node)
+{
+    if (list->len == 0) {
+        list->head = list->tail = node;
+        node->prev = node->next = NULL;
+    } else {
+        node->prev = list->tail;
+        node->next = NULL;
+        list->tail->next = node;
+        list->tail = node;
+    }
+    list->len++;
+    return list;
+}
+
+static list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after)
 {
     list_node_t *node;
 
@@ -131,7 +220,7 @@ list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int a
  * It's up to the caller to free the private value of the node.
  *
  * This function can't fail. */
-void list_del_node(list_t *list, list_node_t *node)
+static void list_del_node(list_t *list, list_node_t *node)
 {
     if (node->prev)
         node->prev->next = node->next;
@@ -150,7 +239,7 @@ void list_del_node(list_t *list, list_node_t *node)
  * call to listNext() will return the next element of the list.
  *
  * This function can't fail. */
-list_iter_t *list_get_iterator(list_t *list, int direction)
+static list_iter_t *list_get_iterator(list_t *list, int direction)
 {
     list_iter_t *iter;
 
@@ -164,17 +253,17 @@ list_iter_t *list_get_iterator(list_t *list, int direction)
 }
 
 /* Release the iterator memory */
-void list_release_iterator(list_iter_t *iter) {
+static void list_release_iterator(list_iter_t *iter) {
     free(iter);
 }
 
 /* Create an iterator in the list private iterator structure */
-void list_rewind(list_t *list, list_iter_t *li) {
+static void list_rewind(list_t *list, list_iter_t *li) {
     li->next = list->head;
     li->direction = AL_START_HEAD;
 }
 
-void list_rewind_tail(list_t *list, list_iter_t *li) {
+static void list_rewind_tail(list_t *list, list_iter_t *li) {
     li->next = list->tail;
     li->direction = AL_START_TAIL;
 }
@@ -193,7 +282,7 @@ void list_rewind_tail(list_t *list, list_iter_t *li) {
  * }
  *
  * */
-list_node_t *list_next(list_iter_t *iter)
+static list_node_t *list_next(list_iter_t *iter)
 {
     list_node_t *current = iter->next;
 
@@ -214,7 +303,7 @@ list_node_t *list_next(list_iter_t *iter)
  * the original node is used as value of the copied node.
  *
  * The original list both on success or error is never modified. */
-list_t *list_dup(list_t *orig)
+static list_t *list_dup(list_t *orig)
 {
     list_t *copy;
     list_iter_t *iter;
@@ -257,7 +346,7 @@ list_t *list_dup(list_t *orig)
  * On success the first matching node pointer is returned
  * (search starts from head). If no matching node exists
  * NULL is returned. */
-list_node_t *list_search_key(list_t *list, void *key)
+static list_node_t *list_search_key(list_t *list, void *key)
 {
     list_iter_t *iter;
     list_node_t *node;
@@ -285,7 +374,7 @@ list_node_t *list_search_key(list_t *list, void *key)
  * and so on. Negative integers are used in order to count
  * from the tail, -1 is the last element, -2 the penultimate
  * and so on. If the index is out of range NULL is returned. */
-list_node_t *list_index(list_t *list, long index) {
+static list_node_t *list_index(list_t *list, long index) {
     list_node_t *n;
 
     if (index < 0) {
@@ -300,7 +389,7 @@ list_node_t *list_index(list_t *list, long index) {
 }
 
 /* Rotate the list removing the tail node and inserting it to the head. */
-void list_rotate(list_t *list) {
+static void list_rotate(list_t *list) {
     list_node_t *tail = list->tail;
 
     if (list_length(list) <= 1) return;

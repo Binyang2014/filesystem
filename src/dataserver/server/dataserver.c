@@ -11,7 +11,7 @@
 #include "dataserver.h"
 #include "../structure/vfs_structure.h"
 #include "../../tool/errinfo.h"
-#include "../../structure/buffer.h"
+#include "../../structure/basic_list.h"
 #include "../../tool/threadpool.h"
 
 //this is a demo, there are many things to add
@@ -59,19 +59,19 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 
 	//get_current_imformation(data_server)
 	//It's just a joke, do not be serious
-	data_server->files_buffer = (dataserver_file_t* )malloc(sizeof(dataserver_file_t)
-			* D_FILE_BSIZE);
-
-	//init f_arr_buff
-	data_server->f_arr_buff = (vfs_hashtable_t* )malloc(sizeof(vfs_hashtable_t));
-	data_server->f_arr_buff->hash_table_size = D_PAIR_BSIZE;
-	data_server->f_arr_buff->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int)
-			* D_PAIR_BSIZE);
-	data_server->f_arr_buff->chunks_arr = (unsigned long long*)malloc(sizeof(unsigned long long)
-			* D_PAIR_BSIZE);
-
-	data_server->m_data_buffer = (char* )malloc(sizeof(char) * D_DATA_BSIZE
-			* MAX_DATA_MSG_LEN);
+//	data_server->files_buffer = (dataserver_file_t* )malloc(sizeof(dataserver_file_t)
+//			* D_FILE_BSIZE);
+//
+//	//init f_arr_buff
+//	data_server->f_arr_buff = (vfs_hashtable_t* )malloc(sizeof(vfs_hashtable_t));
+//	data_server->f_arr_buff->hash_table_size = D_PAIR_BSIZE;
+//	data_server->f_arr_buff->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int)
+//			* D_PAIR_BSIZE);
+//	data_server->f_arr_buff->chunks_arr = (unsigned long long*)malloc(sizeof(unsigned long long)
+//			* D_PAIR_BSIZE);
+//
+//	data_server->m_data_buffer = (char* )malloc(sizeof(char) * D_DATA_BSIZE
+//			* MAX_DATA_MSG_LEN);
 	//init threads pool
 	//data_server->t_buffer = (pthread_t* )malloc(sizeof(pthread_t) * D_THREAD_SIZE);
 
@@ -125,13 +125,13 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 {
 	int i;
 	unsigned int chunks_count;
-	buffer_t* t_buff;
+	list_node_t* t_buff;
 	msg_r_ctod_t* read_msg = NULL;
 	msg_w_ctod_t* write_msg = NULL;
 	event_handler->spcical_struct = data_server;
 
 	//get buffer structure for event handler
-	 if( (event_handler->event_buffer = get_series_buffer(data_server, 5)) == -1 )
+	 if( (event_handler->event_buffer = get_buffer_list(data_server, 5)) == -1 )
 		 return -1;
 	t_buff = event_handler->event_buffer;
 
@@ -148,19 +148,20 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	}
 
 	//get specific buffer for event
-	if( (t_buff->buffer = get_common_msg_buff(data_server, common_msg)) == NULL )
+	if( (t_buff->value = get_common_msg_buff(data_server)) == NULL )
+		return -1;
+	memcpy(t_buff->value, common_msg, sizeof(common_msg));
+	t_buff = t_buff->next;
+	if( (t_buff->value = get_msg_buffer(data_server)) == NULL )
 		return -1;
 	t_buff = t_buff->next;
-	if( (t_buff->buffer = get_msg_buffer(data_server)) == NULL )
+	if( (t_buff->value = get_data_buffer(data_server)) == NULL )
 		return -1;
 	t_buff = t_buff->next;
-	if( (t_buff->buffer = get_data_buffer(data_server)) == NULL )
+	if( (t_buff->value = get_file_info(data_server)) == NULL )
 		return -1;
 	t_buff = t_buff->next;
-	if( (t_buff->buffer = get_file_info(data_server)) == NULL )
-		return -1;
-	t_buff = t_buff->next;
-	if( (t_buff->buffer = get_f_arr_buff(data_server)) == NULL )
+	if( (t_buff->value = get_f_arr_buff(data_server)) == NULL )
 		return -1;
 
 	return 0;

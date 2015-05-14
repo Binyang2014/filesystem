@@ -83,15 +83,24 @@ basic_queue_t* alloc_msg_queue(int type_size, int queue_len)
 	this->basic_queue_op->pop = basic_queue_pop;
 	this->basic_queue_op->is_empty = is_empty;
 	this->basic_queue_op->is_full = is_full;
+
+	this->free = NULL;
+	this->dup = NULL;
 	return this;
 }
 
 void destroy_msg_queue(basic_queue_t* this)
 {
+	int i;
 	this->basic_queue_op->push = NULL;
 	this->basic_queue_op->pop = NULL;
-	free(this->basic_queue_op);
+	if(this->free)
+	{
+		for(i = 0; i < this->queue_len; i++)
+			this->free(this->elements[i]);
+	}
 	free(this->elements);
+	free(this->basic_queue_op);
 	free(this);
 }
 
