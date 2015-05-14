@@ -1,5 +1,5 @@
 /*
- * This file's copyright is blongs to redis
+ * This file's copyright blongs to redis
  * modified by: Binyang
  * modified on 2015.5.13
  */

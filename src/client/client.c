@@ -15,39 +15,35 @@
 #include "conf.h"
 #include "../tool/message.h"
 #include "../tool/file_tool.h"
+#include "../global.h"
 
-char file_buf[FILE_BLOCK_SIZE];
-char message_content[CLIENT_MASTER_MESSAGE_SIZE];
+/*================private variables===============*/
+static char *send_buf;
+static char *receive_buf;
+static char *file_buf;
 
-void client_init() {
+int client_init() {
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
-	if (send_buf == NULL) {
-		log_error("there is not enough stack space");
-		return;
-	}
+	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);
+	file_buf = (char *)malloc(BLOCK_SIZE);
+	//clent_create_file("/home/ron/test/test_struct.c", "/hello");
+}
 
-	rec_buf = (char*) malloc(MAX_CMD_MSG_LEN);
-	if(rec_buf == NULL){
-		free(send_buf);
-		log_error("there is not enough stack space");
-		return;
-	}
+void client_destroy(){
 
-	clent_create_file("/home/ron/test/test_struct.c", "/hello");
 }
 
 void send_data(char *file_name) {
 	FILE *fp = fopen(file_name, "r");
 	long length = file_size(file_name);
-	int block_num = ceil((double) length / FILE_BLOCK_SIZE);
+	int block_num = ceil((double) length / BLOCK_SIZE);
 	int i = 0, j = 0, read_size;
 	for (; i <= block_num - 1; i++) {
 		if (i != block_num - 1) {
-			read_size = fread(file_buf, sizeof(char), FILE_BLOCK_SIZE, fp);
-			fseek(fp, FILE_BLOCK_SIZE, FILE_BLOCK_SIZE * i);
+			read_size = fread(file_buf, sizeof(char), BLOCK_SIZE, fp);
+			fseek(fp, BLOCK_SIZE, BLOCK_SIZE * i);
 		} else {
-			read_size = fread(file_buf, sizeof(char),
-					length - (block_num - 1) * FILE_BLOCK_SIZE, fp);
+			read_size = fread(file_buf, sizeof(char), length - (block_num - 1) * BLOCK_SIZE, fp);
 //			for(j = 0; j != length - (block_num - 1) * FILE_BLOCK_SIZE; j++)
 //				putchar(file_buf[j]);
 		}

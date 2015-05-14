@@ -14,49 +14,6 @@
 #include <mpi.h>
 #include "conf.h"
 
-/**
- * 数据服务器描述
- */
-typedef struct data_server_des
-{
-	int id;								//机器id
-	long last_time;						//上次交互时间
-	uint32_t s_blocks_count;
-	uint32_t s_free_blocks_count;
-	uint_least8_t status;
-	block *block_mem_map;
-}data_server_des;
-
-/**
- * 数据服务器
- */
-typedef struct data_servers
-{
-	unsigned int server_count;
-	data_server_des *data_server_list;
-}data_servers;
-
-/**
- * 请求队列
- * node of request queue, including request information from client and data server
- */
-typedef struct request_node{
-	unsigned short request_type;
-	MPI_Status status;
-	void *message;
-	struct request_node *next;
-}request_node;
-
-/**
- * request queue
- */
-typedef struct master_request_queue{
-	int request_num;
-	request_node *head;
-	request_node *tail;
-}master_request_queue;
-
-
 void init_master_server_info(int);
 
 void init_data_server_node();
@@ -88,14 +45,6 @@ static void heart_blood();
 static void namespace_control();
 
 static int create_file();
-
-pthread_t thread_master_server, thread_request_handler;
-pthread_mutex_t mutex_message_buff, mutex_namespace, mutex_request_queue;
-pthread_mutex_t mutex_send_message_buff;
-
-pthread_cond_t cond_request_queue;
-
-static master_request_queue request_queue_list;
 
 /*
  * data server

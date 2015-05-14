@@ -15,11 +15,12 @@ typedef enum data_server_status{
 
 typedef struct data_server_opera{
 	int (*heart_blood)(data_servers *, int);
-	file_location_des *(*file_location_allocate)(unsigned long);
+	list *(*file_allocate_machine)(unsigned long, int);
 }data_server_opera;
 
 typedef struct master_data_server{
 	data_server_status status;
+	int server_id;
 	unsigned int used_block;
 	unsigned int free_block;
 	time_t last_update;
