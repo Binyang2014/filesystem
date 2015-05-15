@@ -13,6 +13,7 @@
 #include <string.h>
 #include "mpi.h"
 #include "conf.h"
+#include "../structure/basic_queue.h"
 #include "../tool/message.h"
 #include "../tool/file_tool.h"
 #include "../global.h"
@@ -21,11 +22,13 @@
 static char *send_buf;
 static char *receive_buf;
 static char *file_buf;
+static basic_queue_t *message_queue;
 
 int client_init() {
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	file_buf = (char *)malloc(BLOCK_SIZE);
+	message_queue = alloc_msg_queue(sizeof(common_msg_t, -1));
 	//clent_create_file("/home/ron/test/test_struct.c", "/hello");
 }
 
@@ -51,7 +54,7 @@ void send_data(char *file_name) {
 	fclose(fp);
 }
 
-int clent_create_file(char *file_path, char *file_name) {
+static int clent_create_file(char *file_path, char *file_name) {
 	//log_info("client_create_file start");
 	long file_length = file_size(file_path);
 	if (file_length == -1)
