@@ -374,7 +374,7 @@ int namespace_create_dir(namespace *this, char *path) {
 	return CREATE_SUCCESS;
 }
 
-int set_file_location(file_location_des *file_location, char *name){
+int set_file_location(list_t *file_location, char *name){
 	path_pre_handle(name);
 	int status = path_verify(name);
 	if(status != OPERATE_SECCESS){
