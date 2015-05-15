@@ -43,11 +43,11 @@ struct msg_queue_op
 	void (*pop)(struct msg_queue* , common_msg_t* );
 };
 
-/*
- * this msg_queue do not provide mutex lock
- * if multiple threads will modify it, you should
- * lock the mutex by yourself
- */
+///*
+// * this msg_queue do not provide mutex lock
+// * if multiple threads will modify it, you should
+// * lock the mutex by yourself
+// */
 struct msg_queue
 {
 	//int current_size;
