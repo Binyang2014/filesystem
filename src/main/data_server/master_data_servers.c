@@ -30,6 +30,9 @@ static int heart_bleed(data_servers *servers, int server_id){
 	return 0;
 }
 
+/**
+ * allocate storage space for the file according to the file_size
+ */
 list_t *file_allocate_machine(data_servers *servers, unsigned long file_size, int block_size){
 	int block_num = ceil(file_size / block_size);
 	list_t *list = list_create();
@@ -71,7 +74,7 @@ list_t *file_allocate_machine(data_servers *servers, unsigned long file_size, in
 			tmp = list_next(tmp);
 			//file_machine_location
 		}
-		listRelease(list);
+		list_release(list);
 		return NULL;
 	}
 }
