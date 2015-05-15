@@ -33,7 +33,7 @@ typedef struct basic_queue
 	basic_queue_op_t* basic_queue_op;
 	void* elements;
 	void (*free)(void *ptr);
-	void* (*dup)(void *dest, void *source);
+	void (*dup)(void *dest, void *source);
 }basic_queue_t;
 
 #define queue_set_free(q, m) ((q)->free=(m))

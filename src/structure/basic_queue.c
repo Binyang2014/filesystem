@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <assert.h>
 #include <string.h>
 #include "basic_queue.h"
@@ -26,7 +27,6 @@ static int cal_new_length(int length) {
 		//TODO don't forget to check here
 		new_length = new_length << 1;
 	}
-	return new_length << 1;
 }
 
 /*copy old elements to the new elements, TODO need to test*/
@@ -48,7 +48,7 @@ static int mes_queue_resize(basic_queue_t* this) {
 	if (new_elements == NULL)
 		return -1;
 
-	copy_queue_mes(new_elements, this);
+	copy_queue_content(new_elements, this);
 
 	this->head_pos = 0;
 	this->tail_pos = this->current_size;
@@ -101,7 +101,7 @@ basic_queue_t* alloc_msg_queue(int type_size, int queue_len)
 	basic_queue_t* this;
 	this = (basic_queue_t*) malloc(sizeof(basic_queue_t));
 	if (this == NULL) {
-		err_ret("error in alloc_msg_queue");
+		//err_ret("error in alloc_msg_queue");
 		return NULL;
 	}
 
@@ -117,7 +117,7 @@ basic_queue_t* alloc_msg_queue(int type_size, int queue_len)
 	}
 
 	//initial queue operations
-	this->basic_queue_op = (basic_queue_op_t*) malloc(sizeof(msg_queue_op_t));
+	this->basic_queue_op = (basic_queue_op_t*) malloc(sizeof(basic_queue_op_t));
 	if (this->basic_queue_op == NULL) {
 		free(this->elements);
 		free(this);
@@ -142,8 +142,8 @@ void destroy_msg_queue(basic_queue_t* this)
 	//TODO if this free is NULL, use the default function
 	if(!(this->free))
 		this->free = free;
-	for(i = 0; i < this->queue_len; i++)
-		this->free(this->elements[i]);
+	for(i = 0; i < this->queue_len; i += this->element_size)
+		this->free(this->elements + i);
 	free(this->elements);
 	free(this->basic_queue_op);
 	free(this);
