@@ -31,7 +31,7 @@ static char *send_buf;
 static common_msg_t *msg_buff;
 static common_msg_t *msg_pop_buff;
 
-static common_msg_t *malloc_common_msg(char *message);
+static void set_common_msg(common_msg_t msg, int source, char *message);
 static void *master_server();
 
 static int master_create_file(char *file_name, unsigned long file_size);

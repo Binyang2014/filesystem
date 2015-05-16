@@ -57,11 +57,11 @@ void send_data(char *file_name) {
 static int clent_create_file(char *file_path, char *file_name) {
 	//log_info("client_create_file start");
 	long file_length = file_size(file_path);
-	if (file_length == -1)
+	if (file_length == -1){
 		return -1;
+	}
 
 	int result;
-
 	char tmp_buf[CLIENT_MASTER_MESSAGE_SIZE];
 	int master_malloc_result;
 

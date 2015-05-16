@@ -22,7 +22,7 @@ static void free_file_machine_location(file_machine_location *location){
 	free(location);
 }
 
-static int heart_bleed(data_servers *servers, int server_id){
+static int heart_blood(data_servers *servers, int server_id){
 	if(server_id > servers->servers_count)
 		return -1;
 	//TODO here we can use a function caches a time_t value just like redis
@@ -91,6 +91,7 @@ data_servers *data_servers_create(int server_count, double load_factor){
 		return NULL;
 	}
 
+	//TODO initialize each data server machine
 	servers->global_id = 0;
 	servers->load_factor = load_factor;
 	servers->opera->heart_blood = heart_blood;

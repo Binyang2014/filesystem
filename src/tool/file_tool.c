@@ -12,8 +12,9 @@
  */
 long file_size(char *file_name) {
 	FILE *fp = fopen(file_name, "r");
-	if (fp == NULL)
+	if (fp == NULL){
 		return -1;
+	}
 	fseek(fp, 0L, SEEK_END);
 	long length = ftell(fp);
 	fclose(fp);
