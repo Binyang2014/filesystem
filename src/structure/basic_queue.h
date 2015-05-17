@@ -36,9 +36,19 @@ typedef struct basic_queue
 	void (*dup)(void *dest, void *source);
 }basic_queue_t;
 
+typedef struct basic_queue_iterator{
+	basic_queue_t *queue;
+	int offset;
+	int it_size;
+	int (*has_next)(struct basic_queue_iterator *);
+	void (*next)(struct basic_queue_iterator *, void *dest);
+}basic_queue_iterator;
+
 #define queue_set_free(q, m) ((q)->free=(m))
 #define queue_set_dup(q, m) ((q)->dup=(m))
 //you also can use pop and push function in message queue
+
+basic_queue_iterator *create_basic_queue_iterator(basic_queue_t *queue);
 basic_queue_t* alloc_msg_queue(int, int);
 void destroy_msg_queue(basic_queue_t* this);
 

@@ -11,7 +11,10 @@ static const int default_capacity = 1 << 8;
 /*==============================PRIVATE PROTOTYPES=======================*/
 static int cal_new_length(int length);
 static void copy_queue_content(void *new_elements, basic_queue_t* this);
-static int msg_queue_resize(const basic_queue_t* this);
+static int msg_queue_resize(basic_queue_t* this);
+
+static int has_next(basic_queue_iterator *);
+static void next(basic_queue_iterator *, void *dest);
 
 static void basic_queue_push(basic_queue_t*, void*);
 static void basic_queue_pop(basic_queue_t*, void*);
@@ -42,7 +45,7 @@ static void copy_queue_content(void *new_elements, basic_queue_t* this){
 }
 
 
-static int mes_queue_resize(basic_queue_t* this) {
+static int msg_queue_resize(basic_queue_t* this) {
 	int new_length = cal_new_length(this->queue_len);
 	void *new_elements = malloc(this->element_size * new_length);
 	if (new_elements == NULL)
@@ -60,10 +63,20 @@ static int mes_queue_resize(basic_queue_t* this) {
 	return 1;
 }
 
+static int has_next(basic_queue_iterator * iterator){
+	return iterator->it_size != iterator->queue->current_size;
+}
+
+static void next(basic_queue_iterator *iterator, void *dest){
+	iterator->queue->dup(dest, iterator->queue->elements + iterator->offset * iterator->queue->element_size);
+	iterator->offset = (iterator->offset + 1) % (iterator->queue->queue_len);
+	iterator->it_size++;
+}
+
 static void basic_queue_push(basic_queue_t* this, void* element)
 {
 	if(is_full(this)){
-		mes_queue_resize(this);
+		msg_queue_resize(this);
 	}
 	assert(this->current_size != this->queue_len);
 
@@ -94,6 +107,16 @@ static int is_empty(basic_queue_t* this)
 static int is_full(basic_queue_t* this)
 {
 	return this->queue_len == this->current_size;
+}
+
+basic_queue_iterator *create_basic_queue_iterator(basic_queue_t *queue){
+	basic_queue_iterator * iterator = (basic_queue_iterator *)malloc(sizeof(basic_queue_iterator));
+	iterator->queue = queue;
+	iterator->offset = queue->head_pos;
+	iterator->has_next = has_next;
+	iterator->next = next;
+	iterator->it_size = 0;
+	return iterator;
 }
 
 basic_queue_t* alloc_msg_queue(int type_size, int queue_len)

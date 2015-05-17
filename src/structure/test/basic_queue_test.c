@@ -38,17 +38,32 @@ void test_create_basic_list(){
 	queue_set_dup(queue, dup);
 	int x = 10008;
 	int i;
-	for(i = 0; i != 100; i++){
-		test_queue_push(queue, &x);
+	for(i = 0; i != 16; i++){
+		test_queue_push(queue, &i);
+		//printf("next = %d queue_len = %d head = %d tail = %d\n ", x, queue->queue_len, queue->head_pos, queue->tail_pos);
 	}
-	i = 0;
-	printf("current_size = %d\n", queue->current_size);
-	int size =  queue->current_size;
-	for(i = 0; i != size + 1; i++){
+
+	for(i = 0; i != 10; i++){
 		queue->basic_queue_op->pop(queue, &x);
-		printf("current_size = %d i = %d\n %d", queue->current_size, i, x);
+		//printf("next = %d queue_len = %d head = %d tail = %d\n ", x, queue->queue_len, queue->head_pos, queue->tail_pos);
 	}
-	print_queue(queue);
+	for(i = 0; i != 5; i++){
+			test_queue_push(queue, &i);
+			//printf("next = %d queue_len = %d head = %d tail = %d\n ", x, queue->queue_len, queue->head_pos, queue->tail_pos);
+	}
+//	printf("current_size = %d\n", queue->current_size);
+	basic_queue_iterator * iterator = create_basic_queue_iterator(queue);
+	while(iterator->has_next(iterator)){
+		iterator->next(iterator, &x);
+		printf("next = %d queue_len = %d offset=%d\n ", x, iterator->queue->queue_len, iterator->offset);
+	}
+//	printf("current_size = %d\n", queue->current_size);
+//	int size =  queue->current_size;
+//	for(i = 0; i != size + 1; i++){
+//		queue->basic_queue_op->pop(queue, &x);
+//		printf("current_size = %d i = %d\n %d", queue->current_size, i, x);
+//	}
+	//print_queue(queue);
 }
 
 int main(){
