@@ -2,8 +2,8 @@ TOPDIR = ../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = hash.o errinfo.o message.o syn_tool.o threadpool.o
-target = $(TOPDIR)/lib/libtool.a
+object = basic_queue.o bitmap.o
+target = $(TOPDIR)/lib/libstruct.a
 
 $(target): $(object)
 	$(AR) $(ARFLAG) $@ $^

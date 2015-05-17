@@ -12,6 +12,13 @@
 #include "../../structure/basic_list.h"
 #include "../../structure/basic_queue.h"
 
+//need to be init, I will do it later
+static list_node_t* list_node_arr;
+static msg_data_t* msg_dasta_arr;
+static common_msg_t* common_msg_arr;
+static dataserver_file_t* file_arr;
+static void* reply_message_arr;
+static vfs_hashtable_t* f_map_arr;
 /*===================== Prototypes ==========================*/
 static void* buff_node_dup(void*, void*);
 static void* reply_msg_dup(void*, void*);
@@ -159,22 +166,22 @@ void return_f_arr_buff(data_server_t* data_server, vfs_hashtable_t* buff)
 void set_data_server_buff(data_server_t* data_server, int init_length)
 {
 	//allocate message queue
-	if((data_server->buff_node_queue = alloc_msg_queue(sizeof(list_node_t), init_length))
+	if((data_server->buff_node_queue = alloc_msg_queue(sizeof(list_node_t*), init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((data_server->m_data_buff= alloc_msg_queue(sizeof(msg_data_t), init_length))
+	if((data_server->m_data_buff= alloc_msg_queue(sizeof(msg_data_t*), init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((data_server->common_msg_buff = alloc_msg_queue(sizeof(common_msg_t), init_length))
+	if((data_server->common_msg_buff = alloc_msg_queue(sizeof(common_msg_t*), init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((data_server->file_buff = alloc_msg_queue(sizeof(dataserver_file_t), init_length))
+	if((data_server->file_buff = alloc_msg_queue(sizeof(dataserver_file_t*), init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((data_server->reply_message_buff = alloc_msg_queue(MAX_CMD_MSG_LEN, init_length))
+	if((data_server->reply_message_buff = alloc_msg_queue(sizeof(void*), init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((data_server->f_arr_buff = alloc_msg_queue(sizeof(vfs_hashtable_t), init_length))
+	if((data_server->f_arr_buff = alloc_msg_queue(sizeof(vfs_hashtable_t*), init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
 

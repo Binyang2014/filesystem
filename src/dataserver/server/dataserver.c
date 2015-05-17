@@ -9,9 +9,11 @@
 #include <stdlib.h>
 #include <mpi.h>
 #include "dataserver.h"
+#include "dataserver_buff.h"
 #include "../structure/vfs_structure.h"
-#include "../../tool/errinfo.h"
 #include "../../structure/basic_list.h"
+#include "../../structure/basic_queue.h"
+#include "../../tool/errinfo.h"
 #include "../../tool/threadpool.h"
 
 //this is a demo, there are many things to add
@@ -57,33 +59,15 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 	if( (data_server->d_super_block = vfs_init(t_size, dev_num)) == NULL )
 		err_quit("error in init_dataserver function");
 
-	//get_current_imformation(data_server)
-	//It's just a joke, do not be serious
-//	data_server->files_buffer = (dataserver_file_t* )malloc(sizeof(dataserver_file_t)
-//			* D_FILE_BSIZE);
-//
-//	//init f_arr_buff
-//	data_server->f_arr_buff = (vfs_hashtable_t* )malloc(sizeof(vfs_hashtable_t));
-//	data_server->f_arr_buff->hash_table_size = D_PAIR_BSIZE;
-//	data_server->f_arr_buff->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int)
-//			* D_PAIR_BSIZE);
-//	data_server->f_arr_buff->chunks_arr = (unsigned long long*)malloc(sizeof(unsigned long long)
-//			* D_PAIR_BSIZE);
-//
-//	data_server->m_data_buffer = (char* )malloc(sizeof(char) * D_DATA_BSIZE
-//			* MAX_DATA_MSG_LEN);
-	//init threads pool
-	//data_server->t_buffer = (pthread_t* )malloc(sizeof(pthread_t) * D_THREAD_SIZE);
-
+	//get_current_imformation(data_server);
+	//init buffer
+	set_data_server_buff(data_server, THREAD_POOL_SIZE);
 	//init msg_cmd_buffer
-	data_server->m_cmd_queue = alloc_msg_queue();
-	if(data_server->m_cmd_queue == NULL)
-	{
-		return NULL;
-	}
+	data_server->m_cmd_queue = alloc_msg_queue(COMMON_MSG_LEN, 0);
+	//init threads pool
+	data_server->thread_pool = alloc_thread_pool(THREAD_POOL_SIZE, data_server->m_cmd_queue);
 
 	//init many kinds of locks
-
 	return data_server;
 	//end of init
 }
@@ -93,10 +77,10 @@ void* m_cmd_receive(void* msg_queue_arg)
 {
 	void* start_pos;
 	common_msg_t* t_common_msg;
-	msg_queue_t * msg_queue;
+	basic_queue_t * msg_queue;
 	mpi_status_t status;
 
-	msg_queue = (msg_queue_t* )msg_queue_arg;
+	msg_queue = (basic_queue_t* )msg_queue_arg;
 	t_common_msg = (common_msg_t* )malloc(sizeof(common_msg_t));
 
 	while (1)
@@ -111,7 +95,7 @@ void* m_cmd_receive(void* msg_queue_arg)
 		d_mpi_cmd_recv(start_pos, &status);
 		t_common_msg->source = status.source;
 		//here should be changed, and new version of message queue isn't supports locks
-		msg_queue->msg_op->push(msg_queue, t_common_msg);
+		msg_queue->basic_queue_op->push(msg_queue, t_common_msg);
 	}
 
 	free(t_common_msg);
@@ -131,9 +115,9 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	event_handler->spcical_struct = data_server;
 
 	//get buffer structure for event handler
-	 if( (event_handler->event_buffer = get_buffer_list(data_server, 5)) == -1 )
+	 if( (event_handler->event_buffer_list = get_buffer_list(data_server, 5)) == NULL )
 		 return -1;
-	t_buff = event_handler->event_buffer;
+	t_buff = event_handler->event_buffer_list;
 
 	//decide use which structure
 	if(flag == MSG_READ)
@@ -152,13 +136,13 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 		return -1;
 	memcpy(t_buff->value, common_msg, sizeof(common_msg));
 	t_buff = t_buff->next;
-	if( (t_buff->value = get_msg_buffer(data_server)) == NULL )
+	if( (t_buff->value = get_msg_buff(data_server)) == NULL )
 		return -1;
 	t_buff = t_buff->next;
-	if( (t_buff->value = get_data_buffer(data_server)) == NULL )
+	if( (t_buff->value = get_data_buff(data_server)) == NULL )
 		return -1;
 	t_buff = t_buff->next;
-	if( (t_buff->value = get_file_info(data_server)) == NULL )
+	if( (t_buff->value = get_file_info_buff(data_server)) == NULL )
 		return -1;
 	t_buff = t_buff->next;
 	if( (t_buff->value = get_f_arr_buff(data_server)) == NULL )
@@ -171,7 +155,7 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 {
 	//this variable allocate in stack. may be each thread need one common message
 	static common_msg_t t_common_msg;
-	msg_queue_t* t_msg_queue = msg_queue;
+	basic_queue_t* t_msg_queue = msg_queue;
 	unsigned short operation_code;
 
 #ifdef DATASERVER_COMM_DEBUG
@@ -179,7 +163,7 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 #endif
 
 	//here should be changed, and new version of message queue isn't supports locks
-	t_msg_queue->msg_op->pop(msg_queue, &t_common_msg);
+	t_msg_queue->basic_queue_op->pop(msg_queue, &t_common_msg);
 	operation_code = t_common_msg->operation_code;
 
 	//this function should solve how to initiate event handler, each thread has its' own
