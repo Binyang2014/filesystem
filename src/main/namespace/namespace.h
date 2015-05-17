@@ -3,7 +3,7 @@
 
 #include <stdio.h>
 #include "../../structure/data_server_location.h"
-#include "../../structure/basic_list.h"
+#include "../../structure/basic_queue.h"
 
 /*
  * 父目录节点数据结构
@@ -21,7 +21,7 @@ typedef struct file_dir_node
 	struct file_dir_node *next_file;			/*下一个文件*/
 	struct file_dir_node **child;				//记录目录下的所有文件,包含目录
 	unsigned long file_size;
-	list_t *location;
+	basic_queue_t *location;
 }file_dir_node;
 
 typedef struct namespace{
@@ -34,7 +34,7 @@ typedef struct namespace{
 namespace *create_namespace(int parent_hash_length, int child_hash_length);
 int namespace_create_file(namespace *this, char* name);
 int namespace_create_dir(namespace *this, char* name);
-int set_file_location(list_t *location);
+int set_file_location(const namespace *namespace, basic_queue_t *location, char *name);
 int namespace_rename_file(namespace *this, char* old_name, char *new_name);
 int namespace_rename_dir(namespace *this, char* old_name, char *new_name);
 int namespace_del_file(namespace *this, char* name);
