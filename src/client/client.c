@@ -24,6 +24,9 @@ static char *receive_buf;
 static char *file_buf;
 static basic_queue_t *message_queue;
 
+/*==================private functions====================*/
+static int client_create_file(char *file_path, char *file_name);
+
 int client_init() {
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);

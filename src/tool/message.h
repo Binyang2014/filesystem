@@ -57,23 +57,29 @@ struct common_msg
 /*
  * structure instruction of create file
  */
-typedef struct{
-	unsigned short instruction_code;
+typedef struct client_create_file{
+	unsigned short operation_code;
 	unsigned long file_size;
 	char file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
-}create_file_structure;
+}client_create_file;
+
+typedef struct block_location{
+	unsigned int server_id;
+	unsigned long global_id;
+	unsigned long block_seq;
+}block_location;
 
 /**
  * master answer of client create file
  */
-typedef struct{
-	unsigned short ans_code;
+typedef struct ans_client_create_file{
+	unsigned short operation_code;
 	unsigned char is_tail;
-	unsigned int seq_num;
-	int machine_rank;
-	int block_count;
-	unsigned long long block_global_num[MASTER_ANSWER_CLIENT_BLOCK_SIZE];
-}create_file_ans_structure;
+	unsigned int block_num;
+	unsigned int block_count;
+	unsigned long generated_id;
+	block_location block_global_num[(4096 - 18) / sizeof(block_location)];
+}ans_client_create_file;
 
 
 /**

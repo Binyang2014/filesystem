@@ -23,6 +23,7 @@ static basic_queue_t* message_queue;
 
 static pthread_t *pthread_request_listener;
 static pthread_t *pthread_request_handler;
+static pthread_t *pthread_damon_handler;
 static pthread_mutex_t *mutex_message_queue;
 static pthread_cond_t *cond_message_queue;
 
@@ -134,6 +135,10 @@ int master_destroy(){
 	free(mutex_message_queue);
 }
 
+static void master_create_file(common_msg_t *msg){
+
+}
+
 /**
  * 1. name space lock initialize
  * 2. message buffer lock initialize
@@ -205,22 +210,22 @@ int master_destroy(){
 //	return t;
 //}
 
-//void answer_client_create_file(request_node *request){
-//	create_file_structure *create = request->message;
-//	int i;
-//	file_location_des *file_location = maclloc_data_block(create->file_size);
-//
-//	//there is not enough space to storage the file
-//	if(!file_location){
-//		MPI_Send(0, 1, MPI_INT, request->status->MPI_SOURCE, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
-//		return;
-//	}
-//
-//	//allocate space success
-//	MPI_Send(1, 1, MPI_INT, request->status->MPI_SOURCE, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
-//
-//	for(i = 0; i != file_location->machinde_count; i++){
-//		//TODO 发送创建文件信息
-//	}
-//	free_request_node(request);
-//}
+void answer_client_create_file(common_msg_t *request){
+	client_create_file *create = request->rest;
+	int i;
+	file_location_des *file_location = maclloc_data_block(create->file_size);
+
+	//there is not enough space to storage the file
+	if(!file_location){
+		MPI_Send(0, 1, MPI_INT, request->status->MPI_SOURCE, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+		return;
+	}
+
+	//allocate space success
+	MPI_Send(1, 1, MPI_INT, request->status->MPI_SOURCE, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+
+	for(i = 0; i != file_location->machinde_count; i++){
+		//TODO 发送创建文件信息
+	}
+	free_request_node(request);
+}
