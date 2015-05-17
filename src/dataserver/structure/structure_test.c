@@ -1,5 +1,7 @@
+#include "../../global.h"
 #include "basic_structure.h"
 #include <stdio.h>
+
 int main()
 {
 	char * mem_file_system;

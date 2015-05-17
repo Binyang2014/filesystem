@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
-#include "../../tool/bitmap.h"
+#include "../../structure/bitmap.h"
 #include "../../tool/hash.h"
 #include "../../tool/errinfo.h"
 

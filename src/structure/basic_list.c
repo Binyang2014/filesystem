@@ -94,6 +94,18 @@ void list_release(list_t *list)
 
 void list_release_without_node(list_t *list)
 {
+	unsigned long len;
+	list_node_t *current, *next;
+
+    current = list->head;
+    len = list->len;
+    while(len--) {
+        next = current->next;
+        if (list->free) list->free(current->value);
+        current->prev = NULL;
+        current->next = NULL;
+        current = next;
+    }
     free(list->list_ops);
     free(list);
 }
