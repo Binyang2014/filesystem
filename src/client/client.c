@@ -25,7 +25,7 @@ static char *file_buf;
 static basic_queue_t *message_queue;
 
 /*==================private functions====================*/
-static int client_create_file(char *file_path, char *file_name);
+static int client_create_file_op(char *file_path, char *file_name);
 
 int client_init() {
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
@@ -57,7 +57,7 @@ void send_data(char *file_name) {
 	fclose(fp);
 }
 
-static int clent_create_file(char *file_path, char *file_name) {
+static int client_create_file_op(char *file_path, char *file_name) {
 	//log_info("client_create_file start");
 	long file_length = file_size(file_path);
 	if (file_length == -1){
@@ -70,17 +70,23 @@ static int clent_create_file(char *file_path, char *file_name) {
 
 	MPI_Status status;
 
-	create_file_structure message;
-	message.instruction_code = CREATE_FILE_CODE;
+	client_create_file message;
+	message.operation_code = CREATE_FILE_CODE;
 	message.file_size = file_length;
 	strcpy(message.file_name, file_name);
 	//log_info("send message start");
 
 	MPI_Send((void*) &message, sizeof(message), MPI_CHAR, master.rank, CLIENT_INSTRCTION_MESSAGE_TAG, MPI_COMM_WORLD);
 	MPI_Recv(&master_malloc_result, 1, MPI_INT, master.rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+	if(master_malloc_result == 0)
+		return -1;
 	if(master_malloc_result == 1){
 		while(1){
 			MPI_Recv(tmp_buf, CLIENT_MASTER_MESSAGE_SIZE, MPI_CHAR, master.rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+			ans_client_create_file *ans = tmp_buf;
+			for(int i = 0; i != ans->block_num; i++){
+				printf("server_id = %d, block_seq = %d, global_num = %d\n", ans->block_global_num[i].server_id, ans->block_global_num[i].block_seq, ans->block_global_num[i].global_id);
+			}
 		}
 	}
 	//TODO 如果master成功分配内存，那么此时应该等待接收data server机器信息

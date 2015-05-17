@@ -41,6 +41,7 @@
  */
 #define CREATE_FILE_SUCCESS 600
 #define CREATE_FILE_FAIL 601
+#define LOCATION_MAX_BLOCK 170
 
 #define MSG_COMM_TO_CMD(p_common_msg) ((char*)(p_common_msg) + COMMON_MSG_HEAD)
 
@@ -76,9 +77,8 @@ typedef struct ans_client_create_file{
 	unsigned short operation_code;
 	unsigned char is_tail;
 	unsigned int block_num;
-	unsigned int block_count;
 	unsigned long generated_id;
-	block_location block_global_num[(4096 - 18) / sizeof(block_location)];
+	block_location block_global_num[LOCATION_MAX_BLOCK];
 }ans_client_create_file;
 
 

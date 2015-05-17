@@ -50,6 +50,8 @@ typedef struct basic_queue_iterator{
 
 basic_queue_iterator *create_basic_queue_iterator(basic_queue_t *queue);
 basic_queue_t* alloc_msg_queue(int, int);
+/*TODO, allocate file space can use this reuse old queue space */
+basic_queue_t *reuse_alloc_msg_queue(basic_queue_t *queue);
 void destroy_msg_queue(basic_queue_t* this);
 
 #endif
