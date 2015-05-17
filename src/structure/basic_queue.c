@@ -30,6 +30,7 @@ static int cal_new_length(int length) {
 		//TODO don't forget to check here
 		new_length = new_length << 1;
 	}
+	return new_length;
 }
 
 /*copy old elements to the new elements, TODO need to test*/
@@ -80,7 +81,10 @@ static void basic_queue_push(basic_queue_t* this, void* element)
 	}
 	assert(this->current_size != this->queue_len);
 
-	this->dup(this->elements + this->tail_pos * this->element_size, element);
+	if(this->dup)
+		this->dup(this->elements + this->tail_pos * this->element_size, element);
+	else
+		memcpy(this->elements+this->tail_pos * this->element_size, element, this->element_size);
 	this->tail_pos = (this->tail_pos + 1) % this->queue_len;
 	this->current_size++;
 }
@@ -94,7 +98,10 @@ static void basic_queue_pop(basic_queue_t* this, void* element)
 		return;
 	}
 	offset = this->head_pos;
-	this->dup(element, this->elements + offset * this->element_size);
+	if(this->dup)
+		this->dup(element, this->elements + offset * this->element_size);
+	else
+		memcpy(element, this->elements+this->tail_pos * this->element_size, this->element_size);
 	this->head_pos = (this->head_pos + 1) % this->queue_len;
 	this->current_size--;
 }

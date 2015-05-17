@@ -5,7 +5,7 @@
  * to complete functions
  */
 #include "basic_structure.h"
-#include "../../tool/bitmap.h"
+#include "../../structure/bitmap.h"
 #include "../../tool/errinfo.h"
 #include <stdio.h>
 #include <stdlib.h>
