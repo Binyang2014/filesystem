@@ -8,10 +8,11 @@
 /**
  * 1. 监听来自客户的请求
  */
-#include "client.h"
 #include <math.h>
 #include <string.h>
-#include "mpi.h"
+#include <pthread.h>
+#include <mpi.h>
+#include "client.h"
 #include "conf.h"
 #include "../structure/basic_queue.h"
 #include "../tool/message.h"
@@ -24,32 +25,25 @@ static char *receive_buf;
 static char *file_buf;
 static basic_queue_t *message_queue;
 
-/*==================private functions====================*/
+/*====================private declarations====================*/
+static void send_data(char *file_name);
 static int client_create_file_op(char *file_path, char *file_name);
 
-int client_init() {
-	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
-	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);
-	file_buf = (char *)malloc(BLOCK_SIZE);
-	message_queue = alloc_msg_queue(sizeof(common_msg_t, -1));
-	//clent_create_file("/home/ron/test/test_struct.c", "/hello");
-}
-
-void client_destroy(){
-
-}
-
-void send_data(char *file_name) {
+/*====================private functions====================*/
+static void send_data(char *file_name, unsigned long file_size, basic_queue_t *location_queue)
+{
 	FILE *fp = fopen(file_name, "r");
-	long length = file_size(file_name);
-	int block_num = ceil((double) length / BLOCK_SIZE);
+	int block_num = ceil((double) file_size / BLOCK_SIZE);
 	int i = 0, j = 0, read_size;
-	for (; i <= block_num - 1; i++) {
-		if (i != block_num - 1) {
+	for (; i <= block_num - 1; i++)
+	{
+		if (i != block_num - 1)
+		{
 			read_size = fread(file_buf, sizeof(char), BLOCK_SIZE, fp);
 			fseek(fp, BLOCK_SIZE, BLOCK_SIZE * i);
-		} else {
-			read_size = fread(file_buf, sizeof(char), length - (block_num - 1) * BLOCK_SIZE, fp);
+		} else
+		{
+			read_size = fread(file_buf, sizeof(char), file_size - (block_num - 1) * BLOCK_SIZE, fp);
 //			for(j = 0; j != length - (block_num - 1) * FILE_BLOCK_SIZE; j++)
 //				putchar(file_buf[j]);
 		}
@@ -57,15 +51,16 @@ void send_data(char *file_name) {
 	fclose(fp);
 }
 
-static int client_create_file_op(char *file_path, char *file_name) {
-	//log_info("client_create_file start");
+static int client_create_file_op(char *file_path, char *file_name)
+{
 	long file_length = file_size(file_path);
-	if (file_length == -1){
+	if (file_length == -1)
+	{
 		return -1;
 	}
 
 	int result;
-	char tmp_buf[CLIENT_MASTER_MESSAGE_SIZE];
+	char create_file_buff[CLIENT_MASTER_MESSAGE_SIZE];
 	int master_malloc_result;
 
 	MPI_Status status;
@@ -80,11 +75,14 @@ static int client_create_file_op(char *file_path, char *file_name) {
 	MPI_Recv(&master_malloc_result, 1, MPI_INT, master.rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
 	if(master_malloc_result == 0)
 		return -1;
-	if(master_malloc_result == 1){
-		while(1){
-			MPI_Recv(tmp_buf, CLIENT_MASTER_MESSAGE_SIZE, MPI_CHAR, master.rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
-			ans_client_create_file *ans = tmp_buf;
-			for(int i = 0; i != ans->block_num; i++){
+	if(master_malloc_result == 1)
+	{
+		while(1)
+		{
+			MPI_Recv(create_file_buff, CLIENT_MASTER_MESSAGE_SIZE, MPI_CHAR, master.rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+			ans_client_create_file *ans = create_file_buff;
+			for(int i = 0; i != ans->block_num; i++)
+			{
 				printf("server_id = %d, block_seq = %d, global_num = %d\n", ans->block_global_num[i].server_id, ans->block_global_num[i].block_seq, ans->block_global_num[i].global_id);
 			}
 		}
@@ -92,6 +90,29 @@ static int client_create_file_op(char *file_path, char *file_name) {
 	//TODO 如果master成功分配内存，那么此时应该等待接收data server机器信息
 	//log_info("client_create_file end");
 	return 0;
+}
+
+int client_init() {
+	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
+	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);
+	file_buf = (char *)malloc(BLOCK_SIZE);
+	message_queue = alloc_msg_queue(sizeof(common_msg_t, -1));
+	message_queue->dup = common_msg_dup;
+	message_queue->free = common_msg_free;
+
+	if(send_buf == NULL || receive_buf == NULL || file_buf == NULL || message_queue == NULL){
+		client_destroy();
+	}
+
+	client_create_file_op("/home/ron/test/read.in", "/read.in");
+	return 0;
+}
+
+void client_destroy(){
+	free(send_buf);
+	free(receive_buf);
+	free(file_buf);
+	destroy_msg_queue(message_queue);
 }
 
 

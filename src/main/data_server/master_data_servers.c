@@ -70,11 +70,7 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 	master_data_server *ptr;
 	for(server_index = 0; server_index != servers->servers_count; server_index++){
 		ptr = servers->server_list + server_index;
-		//TODO
-//		if(ptr->status != AVAILABLE || ptr->free_block == 0){
-//			continue;
-//		}
-		if(ptr->free_block == 0){
+		if(ptr->status != AVAILABLE || ptr->free_block == 0){
 			continue;
 		}
 

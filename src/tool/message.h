@@ -223,4 +223,6 @@ void d_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 void d_mpi_data_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 void d_mpi_data_send(void* msg, int source, int tag);
 
+void common_msg_dup(void *dest, void *source);
+void common_msg_free(void *msg);
 #endif

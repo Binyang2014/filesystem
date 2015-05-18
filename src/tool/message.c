@@ -56,3 +56,12 @@ void d_mpi_data_send(void* msg, int source, int tag)
 {
 	MPI_Send(msg, MAX_DATA_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD);
 }
+
+
+void common_msg_dup(void *dest, void *source){
+	memcpy(dest, source, sizeof(common_msg_t));
+}
+
+void common_msg_free(void *msg){
+	free(msg);
+}

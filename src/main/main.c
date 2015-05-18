@@ -7,7 +7,7 @@
 #include <mpi.h>
 #include "conf.h"
 #include "master.h"
-#include "client.h"
+#include "../client/client.h"
 
 int main(argc, argv)
 	int argc;char ** argv; {
