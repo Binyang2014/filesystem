@@ -1,8 +1,8 @@
 #include <pthread.h>
 #include <stdio.h>
-#include "syn_tool.h"
-#include "message.h"
-#include "../structure/basic_queue.h"
+#include "../syn_tool.h"
+#include "../message.h"
+#include "../../structure/basic_queue.h"
 
 queue_syn_t* queue_syn;
 

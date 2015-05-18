@@ -12,6 +12,7 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include "message.h"
+#include "syn_tool.h"
 #include "../global.h"
 #include "../structure/basic_list.h"
 #include "../structure/basic_queue.h"
@@ -77,6 +78,7 @@ struct thread_pool
 
 	pthread_cond_t* pool_condition;
 	pthread_mutex_t* pool_mutex;
+	pthread_mutex_t* handle_mutex;
 
 	int leader_id;
 	int spare_stack_top;
