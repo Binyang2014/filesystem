@@ -16,6 +16,7 @@
 #include "../../tool/threadpool.h"
 
 #define F_ARR_SIZE 1 << 8
+#define THREAD_POOL_SIZE 8
 //many kinds of locks
 
 struct data_server_operations

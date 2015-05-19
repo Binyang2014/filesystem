@@ -1,5 +1,19 @@
-test_basic_queue:
-	gcc -o test_basic_queue ./basic_queue_test.c ../basic_queue.c
+TOPDIR = ../../..
+LIBDIR = $(TOPDIR)/lib
+LIB = $(LIBDIR)/libstruct.a
+TEST_PROGRAM = bitmap_test basic_queue_test
 
-clean:
-	rm test_basic_queue
+include $(TOPDIR)/GlobalMakefile
+test_obj = bitmap_test.o basic_queue_test.o
+
+all_test:: $(TEST_PROGRAM)
+
+bitmap_test: bitmap_test.o $(LIB)
+	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lstruct -o $@
+
+basic_queue_test: basic_queue_test.o $(LIB)
+	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lstruct -o $@
+
+include $(TOPDIR)/GlobalRules
+
+include $(test_obj:.$(OBJSUF)=.d)

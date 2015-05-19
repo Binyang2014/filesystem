@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <stdlib.h>
 #include "message.h"
 
 void printf_msg_status(mpi_status_t* status)

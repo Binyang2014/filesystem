@@ -116,7 +116,7 @@ static void basic_queue_pop(basic_queue_t* this, void* element)
 	if(this->dup)
 		this->dup(element, this->elements + offset * this->element_size);
 	else
-		memcpy(element, this->elements+this->tail_pos * this->element_size, this->element_size);
+		memcpy(element, this->elements + offset * this->element_size, this->element_size);
 	this->head_pos = (this->head_pos + 1) % this->queue_len;
 	this->current_size--;
 }
@@ -142,7 +142,7 @@ basic_queue_iterator *create_basic_queue_iterator(basic_queue_t *queue)
 	return iterator;
 }
 
-basic_queue_t* alloc_msg_queue(int type_size, int queue_len)
+basic_queue_t* alloc_basic_queue(int type_size, int queue_len)
 {
 	basic_queue_t* this;
 	this = (basic_queue_t*) malloc(sizeof(basic_queue_t));
@@ -183,8 +183,9 @@ basic_queue_t* alloc_msg_queue(int type_size, int queue_len)
 	return this;
 }
 
-void destroy_msg_queue(basic_queue_t* this)
+void destroy_basic_queue(basic_queue_t* this)
 {
+	int i;
 	if(this == NULL)
 	{
 		return;
@@ -195,15 +196,16 @@ void destroy_msg_queue(basic_queue_t* this)
 	{
 		this->free = free;
 	}
-	int i;
-	for(i = 0; i < this->queue_len; i += this->element_size)
-	{
-		this->free(this->elements + i);
-	}
-	this->free = NULL;
-	this->dup = NULL;
 	this->basic_queue_op->push = NULL;
 	this->basic_queue_op->pop = NULL;
+
+	//TODO if this free is NULL, use the default function
+	if(this->free)
+	{
+		for(i = 0; i < this->queue_len; i += this->element_size)
+			this->free(this->elements + i);
+	}
+
 	free(this->elements);
 	free(this->basic_queue_op);
 	free(this);

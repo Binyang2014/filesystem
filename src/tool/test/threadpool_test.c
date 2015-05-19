@@ -1,54 +1,10 @@
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
+#include "../syn_tool.h"
 #include "../threadpool.h"
 
-/*=============================MESSAGE QUEUE TEST===================================*/
-void* thread_push(void* msg_queue)
-{
-	int i, j;
-	common_msg_t common_msg;
-	msg_queue_t* t_msg_queue = msg_queue;
-	for(i = 55, j = 21; i < 60; i++, j++)
-	{
-		common_msg.operation_code = i;
-		common_msg.source = j;
-		printf("push a common message with code %d, source %d\n",
-				common_msg.operation_code, common_msg.source);
-		t_msg_queue->msg_op->push(t_msg_queue, &common_msg);
-	}
-	return NULL;
-}
-
-void* thread_pop(void* msg_queue)
-{
-	int i;
-	common_msg_t common_msg;
-	msg_queue_t* t_msg_queue = msg_queue;
-	for(i = 0; i < 5; i++)
-	{
-		t_msg_queue->msg_op->pop(t_msg_queue, &common_msg);
-		printf("pop a common message with code %d, source %d\n",
-				common_msg.operation_code, common_msg.source);
-	}
-	return NULL;
-}
-
-//int main()
-//{
-//	msg_queue_t* msg_queue_test;
-//	pthread_t tid[2];
-//
-//	msg_queue_test = alloc_msg_queue();
-//
-//	pthread_create(&tid[0], NULL, thread_push, msg_queue_test);
-//	pthread_create(&tid[1], NULL, thread_pop, msg_queue_test);
-//
-//	pthread_join(tid[0], NULL);
-//	pthread_join(tid[1], NULL);
-//	destroy_msg_queue(msg_queue_test);
-//	return 0;
-//}
+queue_syn_t* queue_syn;
 
 /*=================================EVENT STUB=====================================*/
 
@@ -72,8 +28,8 @@ void sub(event_handler_t* event_handler)
 void* resolve_handler(event_handler_t* event_handler, void* msg_queue)
 {
 	common_msg_t common_msg;
-	msg_queue_t* t_msg_queue = msg_queue;
-	t_msg_queue->msg_op->pop(t_msg_queue, &common_msg);
+	basic_queue_t* t_msg_queue = msg_queue;
+	syn_queue_pop(t_msg_queue, queue_syn, &common_msg);
 	switch(common_msg.operation_code)
 	{
 	case 1:
@@ -94,13 +50,14 @@ void* resolve_handler(event_handler_t* event_handler, void* msg_queue)
 /*================================MAIN FUNCTION====================================*/
 int main()
 {
-	msg_queue_t* msg_queue;
+	basic_queue_t* msg_queue;
 	thread_pool_t* thread_pool;
 	event_handler_set_t* event_handler;
 	common_msg_t common_msg;
 	int i;
 
-	msg_queue = alloc_msg_queue();
+	msg_queue = alloc_basic_queue(sizeof(common_msg_t), 10);
+	queue_syn = alloc_queue_syn();
 	thread_pool = alloc_thread_pool(8, msg_queue);
 	event_handler = alloc_event_handler_set(thread_pool, resolve_handler);
 
@@ -108,14 +65,15 @@ int main()
 	for(i = 0; i < 30; i++)
 	{
 		common_msg.operation_code = 1;
-		msg_queue->msg_op->push(msg_queue, &common_msg);
+		syn_queue_push(msg_queue, queue_syn, &common_msg);
 
 		common_msg.operation_code = 2;
-		msg_queue->msg_op->push(msg_queue, &common_msg);
+		syn_queue_push(msg_queue, queue_syn, &common_msg);
 	}
 
 	distroy_thread_pool(thread_pool);
 	destroy_event_handler_set(event_handler);
-	destroy_msg_queue(msg_queue);
+	destroy_queue_syn(queue_syn);
+	destroy_basic_queue(msg_queue);
 	return 0;
 }

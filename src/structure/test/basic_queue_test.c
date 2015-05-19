@@ -33,7 +33,7 @@ void test_queue_push(basic_queue_t *queue, void *element){
 }
 
 void test_create_basic_list(){
-	basic_queue_t *queue = alloc_msg_queue(sizeof(int), 4);
+	basic_queue_t *queue = alloc_basic_queue(sizeof(int), 4);
 	queue_set_free(queue, free_val);
 	queue_set_dup(queue, dup);
 	int x = 10008;

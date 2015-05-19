@@ -7,14 +7,9 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
-#include <signal.h>
 #include "threadpool.h"
+#include "syn_tool.h"
 #include "errinfo.h"
-
-//static functions prototypes
-static void msg_queue_push(msg_queue_t*, common_msg_t* );
-static void msg_queue_pop(msg_queue_t* , common_msg_t* );
-
 
 static void* thread_do(void* arg);
 
@@ -30,113 +25,6 @@ static void start(thread_pool_t*, event_handler_set_t*);
 static event_handler_t* alloc_event_handler(thread_pool_t*, resolve_handler_t);
 static void destory_event_handler(event_handler_t*);
 static int handle_event(thread_t* thread, event_handler_t* event_handler);
-
-/*==============================MESSAGE QUEUE=============================*/
-void msg_queue_push(msg_queue_t* this, common_msg_t* msg )
-{
-	int offset;
-
-	sem_wait(this->msg_queue_empty);
-	offset = this->tail_pos;
-	memcpy(this->msg + offset, msg, sizeof(common_msg_t));
-	this->tail_pos = this->tail_pos + 1;
-	sem_post(this->msg_queue_full);
-}
-
-void msg_queue_pop(msg_queue_t* this, common_msg_t* msg)
-{
-	int offset;
-
-	sem_wait(this->msg_queue_full);
-	offset = this->head_pos;
-	memcpy(msg, this->msg + offset, sizeof(common_msg_t));
-	this->head_pos = this->head_pos + 1;
-	sem_post(this->msg_queue_empty);
-}
-
-msg_queue_t* alloc_msg_queue()
-{
-	msg_queue_t* this;
-	this = (msg_queue_t* )malloc(sizeof(msg_queue_t));
-	if(this == NULL)
-	{
-		err_ret("error in alloc_msg_queue");
-		return NULL;
-	}
-
-	this->head_pos = 0;
-	this->tail_pos = 0;
-	//this->current_size = 0;
-	this->msg = (common_msg_t* )malloc(sizeof(common_msg_t) * D_MSG_BSIZE);
-	if(this->msg == NULL)
-	{
-		free(this);
-		return NULL;
-	}
-
-	//allocate message mutex lock
-	this->msg_mutex = (pthread_mutex_t* )malloc(sizeof(pthread_mutex_t));
-	if(this->msg_mutex == NULL)
-	{
-		free(this->msg);
-		free(this);
-		return NULL;
-	}
-
-	//allocate message segment
-	this->msg_queue_empty = (sem_t* )malloc(sizeof(sem_t));
-	if(this->msg_queue_empty == NULL)
-	{
-		free(this->msg_mutex);
-		free(this->msg);
-		free(this);
-		return NULL;
-	}
-	this->msg_queue_full = (sem_t* )malloc(sizeof(sem_t));
-	if(this->msg_queue_full == NULL)
-	{
-		free(this->msg_queue_empty);
-		free(this->msg_mutex);
-		free(this->msg);
-		free(this);
-		return NULL;
-	}
-
-	//init message operations
-	this->msg_op = (msg_queue_op_t* )malloc(sizeof(msg_queue_op_t));
-	if(this->msg_op == NULL)
-	{
-		free(this->msg_queue_full);
-		free(this->msg_queue_empty);
-		free(this->msg_mutex);
-		free(this->msg);
-		free(this);
-		return NULL;
-	}
-
-	pthread_mutex_init(this->msg_mutex, NULL);
-
-	sem_init(this->msg_queue_empty, 0, D_MSG_BSIZE);
-	sem_init(this->msg_queue_full, 0, 0);
-
-	this->msg_op->push = msg_queue_push;
-	this->msg_op->pop = msg_queue_pop;
-	return this;
-}
-
-void destroy_msg_queue(msg_queue_t* this)
-{
-	this->msg_op->push = NULL;;
-	this->msg_op->pop = NULL;
-	sem_destroy(this->msg_queue_empty);
-	sem_destroy(this->msg_queue_full);
-	pthread_mutex_destroy(this->msg_mutex);
-	free(this->msg_op);
-	free(this->msg_queue_empty);
-	free(this->msg_queue_full);
-	free(this->msg);
-	free(this);
-}
 
 /*================================EVENT HANDLER=======================================*/
 
@@ -192,7 +80,7 @@ static event_handler_t* alloc_event_handler(thread_pool_t* thread_pool,
 		err_ret("allocate event handler error");
 		return NULL;
 	}
-	event_handler->event_buffer = NULL;
+	event_handler->event_buffer_list = NULL;
 	event_handler->handler = NULL;
 	event_handler->resolve_handler = resolve_handler;
 	event_handler->thread_pool = thread_pool;
@@ -205,7 +93,7 @@ static event_handler_t* alloc_event_handler(thread_pool_t* thread_pool,
  */
 static void destory_event_handler(event_handler_t* event_handler)
 {
-	event_handler->event_buffer = NULL;
+	event_handler->event_buffer_list = NULL;
 	event_handler->handler = NULL;
 	event_handler->resolve_handler = NULL;
 	event_handler->thread_pool = NULL;
@@ -353,7 +241,7 @@ static void destroy_thread_cond(thread_pool_t* this)
 	free(this->pool_condition);
 }
 
-thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t* msg_queue)
+thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t* msg_queue)
 {
 	thread_pool_t *thread_pool;
 	thread_pool = (thread_pool_t*)malloc(sizeof(thread_pool_t));
@@ -392,7 +280,8 @@ thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t* msg_queue)
 	thread_pool->pool_mutex = (pthread_mutex_t* )malloc(sizeof(pthread_mutex_t));
 	if(pthread_mutex_init(thread_pool->pool_mutex, NULL) != 0)
 	{
-		free(thread_pool->pool_mutex);
+		if(thread_pool->pool_mutex)
+			free(thread_pool->pool_mutex);
 		thread_pool->pool_mutex = NULL;
 	}
 	if(thread_pool->pool_mutex == NULL)
@@ -404,10 +293,29 @@ thread_pool_t* alloc_thread_pool(int threads_count, msg_queue_t* msg_queue)
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
+	thread_pool->handle_mutex = (pthread_mutex_t* )malloc(sizeof(pthread_mutex_t));
+	if(pthread_mutex_init(thread_pool->handle_mutex, NULL) != 0)
+	{
+		if(thread_pool->handle_mutex)
+			free(thread_pool->handle_mutex);
+		thread_pool->handle_mutex = NULL;
+	}
+	if(thread_pool->handle_mutex == NULL)
+	{
+		free(thread_pool->pool_mutex);
+		free(thread_pool->tp_ops);
+		free(thread_pool->spare_stack);
+		free(thread_pool->threads);
+		free(thread_pool);
+		err_ret("error in allocate thread_pool");
+		return NULL;
+	}
 
 	thread_pool->pool_condition = alloc_thread_cond(threads_count);
 	if(thread_pool->pool_condition == NULL)
 	{
+		pthread_mutex_destroy(thread_pool->handle_mutex);
+		free(thread_pool->handle_mutex);
 		pthread_mutex_destroy(thread_pool->pool_mutex);
 		free(thread_pool->pool_mutex);
 		free(thread_pool->tp_ops);
@@ -467,14 +375,14 @@ static int pop_stack(thread_pool_t* this, thread_t* stack_top)
 //the function will lock the message queue
 static void deactive_handle(thread_pool_t* this)
 {
-	if(pthread_mutex_lock(this->msg_queue->msg_mutex) != 0)
+	if(pthread_mutex_lock(this->handle_mutex) != 0)
 		err_ret("wrong in deactive handle function");
 }
 
 //this function will unlock the message queue
 static void reactive_handle(thread_pool_t* this)
 {
-	if(pthread_mutex_unlock(this->msg_queue->msg_mutex) != 0)
+	if(pthread_mutex_unlock(this->handle_mutex) != 0)
 		err_ret("wrong in reactive handle function");
 }
 
@@ -580,6 +488,8 @@ void distroy_thread_pool(thread_pool_t* thread_pool)
 		pthread_join(threads[i].pthread, NULL);
 
 	destroy_thread_cond(thread_pool);
+	pthread_mutex_destroy(thread_pool->handle_mutex);
+	free(thread_pool->handle_mutex);
 	pthread_mutex_destroy(thread_pool->pool_mutex);
 	free(thread_pool->pool_mutex);
 	free(thread_pool->tp_ops);
