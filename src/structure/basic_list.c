@@ -63,7 +63,7 @@ list_t *list_create()
     list->free = NULL;
     list->match = NULL;
 
-    if((list->list_ops = (list_op_t* )maolloc(sizeof(list_op_t))) == NULL)
+    if((list->list_ops = (list_op_t* )malloc(sizeof(list_op_t))) == NULL)
     {
     	free(list);
     	return NULL;

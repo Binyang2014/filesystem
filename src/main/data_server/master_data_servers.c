@@ -60,7 +60,7 @@ static void block_dup(void *dest, void *source){
  */
 basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_size, int block_size){
 	int block_num = ceil(file_size / block_size);
-	basic_queue_t *queue = alloc_msg_queue(sizeof(block_location), block_num);
+	basic_queue_t *queue = alloc_basic_queue(sizeof(block_location), block_num);
 	queue_set_dup_method(queue, block_dup);
 	block_location tmp;
 	int seq = 0;
@@ -104,7 +104,7 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 			//file_machine_location
 		}
 		free(iterator);
-		destroy_msg_queue(queue);
+		destroy_basic_queue(queue);
 		return NULL;
 	}
 }
@@ -141,6 +141,10 @@ data_servers *data_servers_create(unsigned int server_count, double load_factor,
 	servers->server_block_size = server_block_size;
 	//servers->
 	return servers;
+}
+
+int data_servers_destroy(){
+	return 0;
 }
 
 

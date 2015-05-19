@@ -16,7 +16,7 @@ static int msg_queue_resize(basic_queue_t* this);
 static int has_next(basic_queue_iterator *);
 static void next(basic_queue_iterator *, void *dest);
 
-static void basic_queue_push(basic_queue_t*, void*);
+static int basic_queue_push(basic_queue_t*, void*);
 static void basic_queue_pop(basic_queue_t*, void*);
 static int is_empty(basic_queue_t*);
 static int is_full(basic_queue_t*);

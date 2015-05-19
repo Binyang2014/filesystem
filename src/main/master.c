@@ -21,8 +21,8 @@
 #include "../global.h"
 
 /*====================Private Prototypes====================*/
-static namespace* master_namespace;
-static basic_queue_t* message_queue;
+static namespace *master_namespace;
+static basic_queue_t *message_queue;
 static data_servers *master_data_servers;
 
 static pthread_t *pthread_request_listener;
@@ -81,7 +81,6 @@ static void* master_server(void *arg) {
 static void* request_handler(void *arg) {
 	while (1) {
 		pthread_mutex_lock(mutex_message_queue);
-		log_info("dequeue loop start");
 		while (message_queue->basic_queue_op->is_empty(message_queue))
 		{
 			pthread_cond_wait(cond_message_queue, mutex_message_queue);
@@ -141,7 +140,7 @@ static int answer_client_create_file(common_msg_t *request){
 int master_init(){
 	/*allocate necessary memory*/
 	master_namespace = create_namespace(1024, 32);
-	message_queue = alloc_msg_queue(sizeof(common_msg_t), -1);
+	message_queue = alloc_basic_queue(sizeof(common_msg_t), -1);
 	master_data_servers = data_servers_create(1024, 0.75, 10);
 	queue_set_free(message_queue, common_msg_free);
 	queue_set_dup(message_queue, common_msg_dup);
@@ -182,4 +181,6 @@ int master_destroy()
 	free(pthread_request_listener);
 	free(pthread_request_handler);
 	free(mutex_message_queue);
+	data_servers_destroy();
+
 }

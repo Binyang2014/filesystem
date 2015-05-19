@@ -5,7 +5,6 @@
  */
 #include <stdio.h>
 #include <mpi.h>
-#include "conf.h"
 #include "master.h"
 #include "../client/client.h"
 

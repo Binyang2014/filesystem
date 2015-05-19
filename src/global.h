@@ -69,4 +69,5 @@ typedef enum TOTAL_SIZE total_size_t;
 #define LOG_FATAL 5
 #define LOG_LEVEL 0
 
+extern int master_rank;
 #endif

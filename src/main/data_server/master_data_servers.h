@@ -43,5 +43,6 @@ typedef struct data_server_opera{
 }data_server_opera;
 
 data_servers *data_servers_create(unsigned int server_count, double load_factor, unsigned int server_block_size);
+int data_servers_destroy();
 
 #endif /* SRC_MAIN_DATA_SERVERS_H_ */

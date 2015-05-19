@@ -12,7 +12,7 @@ struct basic_queue_op;
 
 typedef struct basic_queue_op
 {
-	void (*push)(struct basic_queue* , void* );
+	int (*push)(struct basic_queue* , void* );
 	void (*pop)(struct basic_queue* , void* );
 	int  (*is_empty)(struct basic_queue*);
 	int  (*is_full)(struct basic_queue*);
