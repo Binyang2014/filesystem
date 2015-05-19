@@ -4,7 +4,7 @@ objects=main.o master_data_servers.o namespace.o master.o message.o basic_queue.
 		file_tool.o errinfo.o client.o 
 
 filesystem: ${objects}
-	${cc} ${objects} -lm -o
+	${cc} -o filesystem ${objects} -lm -lpthread
 	
 #src/main
 main.o: main.c master.h ../client/client.h
