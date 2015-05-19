@@ -1,0 +1,3 @@
+#src/main
+cc=mpicc
+master_data_server.o:./data_server/master_data_server.c ./data_server/master_data_server.h ../tool/message.h

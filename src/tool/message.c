@@ -4,6 +4,8 @@
  *
  * This file offer complete some basic message functions
  */
+#include <string.h>
+#include <stdlib.h>
 #include <mpi.h>
 #include "message.h"
 

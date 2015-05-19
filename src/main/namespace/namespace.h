@@ -2,7 +2,6 @@
 #define _FILESYSTEM_MAIN_NAMESPACE_H_
 
 #include <stdio.h>
-#include "../../structure/data_server_location.h"
 #include "../../structure/basic_queue.h"
 
 /*

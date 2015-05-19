@@ -10,7 +10,7 @@
 
 /* master initialize
  */
-master_init();
+int master_init();
 
 /**
  * receive information from client and data server
