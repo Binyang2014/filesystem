@@ -7,7 +7,7 @@
  *
  * list is used to implement buffer
  */
-#ifndef _BAISIC_LIST_H_
+#ifndef _BASIC_LIST_H_
 #define _BASIC_LIST_H_
 
 /* weather allocate a new room for a node */
@@ -94,13 +94,5 @@ typedef struct list_operations list_op_t;
 list_t *list_create();
 void list_release(list_t *list);
 void list_release_without_node(list_t *list);
-
-//struct buffer
-//{
-//	void *buffer;
-//	struct buffer* next;
-//};
-//
-//typedef struct buffer buffer_t;
 
 #endif

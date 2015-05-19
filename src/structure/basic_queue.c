@@ -84,7 +84,7 @@ static void next(basic_queue_iterator *iterator, void *dest)
 
 static int basic_queue_push(basic_queue_t* this, void* element)
 {
-	int result;
+	int result = 0;
 	if(is_full(this))
 	{
 		result = msg_queue_resize(this);
@@ -191,11 +191,6 @@ void destroy_basic_queue(basic_queue_t* this)
 		return;
 	}
 
-	/*if this free is NULL, use the default function*/
-	if(!(this->free))
-	{
-		this->free = free;
-	}
 	this->basic_queue_op->push = NULL;
 	this->basic_queue_op->pop = NULL;
 

@@ -55,7 +55,7 @@ list_t *list_create()
 {
     list_t *list;
 
-    if ((list = malloc(sizeof(list_t))) == NULL)
+    if ((list = (list_t* )malloc(sizeof(list_t))) == NULL)
         return NULL;
     list->head = list->tail = NULL;
     list->len = 0;
