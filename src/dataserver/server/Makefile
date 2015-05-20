@@ -2,7 +2,7 @@ TOPDIR = ../../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = dataserver_buff.o
+object = dataserver_buff.o dataserver_handler.o dataserver.o
 target = $(TOPDIR)/lib/libdataserver.a
 
 $(target): $(object)

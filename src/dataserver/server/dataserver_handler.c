@@ -6,7 +6,9 @@
  */
 #include <string.h>
 #include <mpi.h>
+#include <stdlib.h>
 #include "dataserver_handler.h"
+#include "dataserver_buff.h"
 #include "../../tool/errinfo.h"
 #include "../structure/vfs_structure.h"
 #include "../../tool/message.h"
@@ -192,22 +194,58 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 static void resolve_rw_handler_buffer(event_handler_t* event_handle,
 		rw_handle_buff_t* handle_buff)
 {
-//	buffer_t* buffer = event_handle->event_buffer;
-//
-//	handle_buff->common_msg = buffer;
-//	buffer = buffer->next;
-//
-//	handle_buff->msg_buffer = buffer;
-//	buffer = buffer->next;
-//
-//	handle_buff->data_buffer =buffer;
-//	buffer = buffer->next;
-//
-//	handle_buff->file_info = buffer;
-//	buffer = buffer->next;
-//
-//	handle_buff->f_arr_buff = buffer;
-//	buffer = buffer->next;
+	list_node_t* node;
+	list_t* buffer_list = event_handle->event_buffer_list;
+	list_iter_t* iter = buffer_list->list_ops->list_get_iterator(buffer_list, 0);
+
+	node = buffer_list->list_ops->list_next(iter);
+	handle_buff->common_msg = list_node_value(node);
+
+	node = buffer_list->list_ops->list_next(iter);
+	handle_buff->msg_buffer = list_node_value(node);
+
+	node = buffer_list->list_ops->list_next(iter);
+	handle_buff->data_buffer = list_node_value(node);
+
+	node = buffer_list->list_ops->list_next(iter);
+	handle_buff->file_info->file = list_node_value(node);
+
+	node = buffer_list->list_ops->list_next(iter);
+	handle_buff->f_arr_buff =  list_node_value(node);
+
+	buffer_list->list_ops->list_release_iterator(iter);
+}
+
+static void release_rw_handler_buffer(event_handler_t* event_handle)
+{
+	list_node_t* node;
+	list_t* buffer_list = event_handle->event_buffer_list;
+	list_iter_t* iter = buffer_list->list_ops->list_get_iterator(buffer_list, 0);
+	data_server_t* dataserver = event_handle->spcical_struct;
+	void* value;
+
+	node = buffer_list->list_ops->list_next(iter);
+	value = list_node_value(node);
+	reture_common_msg_buff(dataserver, value);
+
+	node = buffer_list->list_ops->list_next(iter);
+	value = list_node_value(node);
+	return_reply_msg_buff(dataserver, value);
+
+	node = buffer_list->list_ops->list_next(iter);
+	value = list_node_value(node);
+	return_data_buff(dataserver, value);
+
+	node = buffer_list->list_ops->list_next(iter);
+	value = list_node_value(node);
+	return_file_info_buff(dataserver, value);
+
+	node = buffer_list->list_ops->list_next(iter);
+	value = list_node_value(node);
+	return_f_arr_buff(dataserver, value);
+
+	buffer_list->list_ops->list_release_iterator(iter);
+	return_buffer_list(dataserver, buffer_list);
 }
 
 void d_read_handler(event_handler_t* event_handle)
@@ -217,26 +255,32 @@ void d_read_handler(event_handler_t* event_handle)
 	msg_r_ctod_t* read_msg;
 	data_server_t* this;
 
+	//allocate file_info this structure do not need buffer
+	handle_buff.file_info = (msg_for_rw_t*)malloc(sizeof(msg_for_rw_t));
 	resolve_rw_handler_buffer(event_handle, &handle_buff);
 	//Data server should be the special structure. It is not a buffer
 	this = event_handle->spcical_struct;
 
 	//initial basic information from handle_buffer and event_handle
-	read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(handle_buff->common_msg);
-	source = handle_buff->common_msg->source;
+	read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(handle_buff.common_msg);
+	source = handle_buff.common_msg->source;
 	tag = read_msg->unique_tag;
 
-	handle_buff->file_info->offset = read_msg->offset;
-	handle_buff->file_info->count = read_msg->read_len;
-	handle_buff->file_info->file = init_vfs_file(this->d_super_block, handle_buff->file_info->file,
-			handle_buff->f_arr_buff, VFS_READ);
+	handle_buff.file_info->offset = read_msg->offset;
+	handle_buff.file_info->count = read_msg->read_len;
+	handle_buff.file_info->file = init_vfs_file(this->d_super_block, handle_buff.file_info->file,
+			handle_buff.f_arr_buff, VFS_READ);
 
-	if(m_read_handler(source, tag, handle_buff->file_info, handle_buff->data_buffer,
-			handle_buff->msg_buffer) == -1)
+
+	if(m_read_handler(source, tag, handle_buff.file_info, handle_buff.data_buffer,
+			handle_buff.msg_buffer) == -1)
 	{
 		//do something like sending error message to client
+		//release_rw_handler_buffer(event_handle, &handle_buff);
 	}
-
+	//free(file_info)
+	free(handle_buff.file_info);
+	release_rw_handler_buffer(event_handle);
 	printf("It's OK here\n");
 }
 
@@ -247,24 +291,30 @@ void d_write_handler(event_handler_t* event_handle)
 	data_server_t* this;
 	rw_handle_buff_t handle_buff;
 
+	//allocate file_info this structure do not need buffer
+	handle_buff.file_info = (msg_for_rw_t*)malloc(sizeof(msg_for_rw_t));
 	resolve_rw_handler_buffer(event_handle, &handle_buff);
 	//Data server should be the special structure. It is not a buffer
 	this = event_handle->spcical_struct;
 
 	//init basic information, and it just for test now!!
-	write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(handle_buff->common_msg);
-	source = handle_buff->common_msg->source;
+	write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(handle_buff.common_msg);
+	source = handle_buff.common_msg->source;
 	//tag = common_msg->unique_tag;
 	tag = write_msg->unique_tag;
 
-	handle_buff->file_info->offset = write_msg->offset;
-	handle_buff->file_info->count = write_msg->write_len;
-	handle_buff->file_info->file = init_vfs_file(this->d_super_block, handle_buff->file_info->file,
-			handle_buff->f_arr_buff, VFS_WRITE);
+	handle_buff.file_info->offset = write_msg->offset;
+	handle_buff.file_info->count = write_msg->write_len;
+	handle_buff.file_info->file = init_vfs_file(this->d_super_block, handle_buff.file_info->file,
+			handle_buff.f_arr_buff, VFS_WRITE);
 
-	if(m_write_handler(source, tag, handle_buff->file_info, handle_buff->data_buffer,
-			handle_buff->msg_buffer) == -1)
+	if(m_write_handler(source, tag, handle_buff.file_info, handle_buff.data_buffer,
+			handle_buff.msg_buffer) == -1)
 	{
 		//do somthing here
+		//release_rw_handler_buffer(event_handle, &handle_buff);
 	}
+	//free(file_info)
+	free(handle_buff.file_info);
+	release_rw_handler_buffer(event_handle);
 }

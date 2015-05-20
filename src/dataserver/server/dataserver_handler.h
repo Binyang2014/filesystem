@@ -38,7 +38,7 @@ struct rw_handle_buffer
 typedef struct msg_for_rw msg_for_rw_t;
 typedef struct rw_handle_buffer rw_handle_buff_t;
 
-void d_read_handler(data_server_t* this, common_msg_t* common_msg);
-void d_write_handler(data_server_t* this, common_msg_t* common_msg);
+void d_read_handler(event_handler_t* event_handle);
+void d_write_handler(event_handler_t* event_handle);
 //...other handler functions
 #endif

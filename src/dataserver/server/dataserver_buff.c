@@ -18,6 +18,7 @@ static common_msg_t* common_msg_arr;
 static dataserver_file_t* file_arr;
 static void* reply_message_arr;
 static vfs_hashtable_t* f_map_arr;
+static vfs_hashtable_t summary_table;
 
 /*===================== Prototypes ==========================*/
 static void buff_node_dup(void*, void*);
@@ -115,8 +116,11 @@ void* get_f_arr_buff(data_server_t* data_server, int num)
 #endif
 
 	//if pos == size, do something, maybe realloc
-	f_arr_buffer->blocks_arr = &f_map_arr->blocks_arr[pos];
-	f_arr_buffer->chunks_arr = &f_map_arr->chunks_arr[pos];
+	f_arr_buffer->blocks_arr = &summary_table.blocks_arr[pos];
+	f_arr_buffer->chunks_arr = &summary_table.chunks_arr[pos];
+#ifdef DATASERVER_BUFF_DEBUG
+	printf("The blocks buffer address is %p\n", &summary_table.blocks_arr[pos]);
+#endif
 	bitmap_set(data_server->f_arr_bitmap, pos, num);
 	return f_arr_buffer;
 }
@@ -162,7 +166,8 @@ void return_f_arr_buff(data_server_t* data_server, vfs_hashtable_t* buff)
 	buff_queue->basic_queue_op->push(buff_queue, &buff);
 	num = buff->hash_table_size;
 	//Calculate start position
-	pos = (buff->blocks_arr - f_map_arr->blocks_arr) / sizeof(unsigned int);
+	pos = ((unsigned long)(buff->blocks_arr) - (unsigned long)(summary_table.blocks_arr)) /
+			sizeof(unsigned int);
 
 #ifdef DATASERVER_BUFF_DEBUG
 	printf("The release position is %ld\n", pos);
@@ -223,11 +228,11 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 		err_sys("error when allocate buffer");
 
 	//allocate for data server array map structure
-	f_map_arr->hash_table_size = F_ARR_SIZE;
-	if((f_map_arr->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int)	* F_ARR_SIZE))
+	summary_table.hash_table_size = F_ARR_SIZE;
+	if((summary_table.blocks_arr = (unsigned int* )malloc(sizeof(unsigned int)	* F_ARR_SIZE))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((f_map_arr->chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long)*
+	if((summary_table.chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long)*
 			F_ARR_SIZE)) == NULL)
 		err_sys("error when allocate buffer");
 	if((data_server->f_arr_bitmap = (unsigned long*)malloc(sizeof(unsigned long) *

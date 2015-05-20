@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include "dataserver.h"
+#include "../dataserver.h"
 
 void init_w_struct(msg_w_ctod_t* w_msg)
 {
@@ -47,8 +47,6 @@ int main(int argc, char* argv[])
 	int id, p, provided;
 	int i;
 	data_server_t* dataserver;
-	pthread_t tid[2];
-	pthread_t tid_test;
 	msg_w_ctod_t w_msg;
 	msg_acc_candd_t acc_msg;
 	msg_data_t data_msg;
@@ -61,12 +59,7 @@ int main(int argc, char* argv[])
 	if(!id)
 	{
 		dataserver = alloc_dataserver(MIDDLE, 0);
-		pthread_create(&tid[0], NULL, m_cmd_receive, dataserver->m_cmd_queue);
-
-		tid_test = pthread_self();
-		printf("The tid of the test program is %lu\n", (unsigned long)tid_test);
-		m_resolve(dataserver->m_cmd_queue);
-		pthread_join(tid[0], NULL);
+		dataserver_run(dataserver);
 	}
 	else
 	{
@@ -78,6 +71,7 @@ int main(int argc, char* argv[])
 		init_data_structure(&data_msg);
 		MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
 		MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
+		sleep(1);
 
 		//I will test read function
 		init_r_structure(&r_msg);
@@ -88,7 +82,7 @@ int main(int argc, char* argv[])
 		//printf_msg_status(&status);
 		for(i = 0 ; i < 16; i++)
 			printf("%c ", *((char*)data_msg.data + i));;
-		sleep(1000);
+		sleep(2);
 	}
 	MPI_Finalize();
 	return 0;

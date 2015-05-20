@@ -14,7 +14,7 @@
 #include "../../structure/basic_queue.h"
 
 #define F_ARR_SIZE (1 << 8)
-#define BUFF_NODE_SIZE (1 << 3)
+#define BUFF_NODE_SIZE (1 << 8)
 #define THREAD_POOL_SIZE 8
 //many kinds of locks
 
@@ -52,14 +52,16 @@ struct data_server
 	basic_queue_t* m_cmd_queue;
 	//event handler
 	event_handler_set_t* event_handler;
+	//used to provide synchronized visit to a queue
+	queue_syn_t* queue_syn;
 };
 
 typedef struct data_server data_server_t;
 
 //define of some function in struct's operations
 //about message receive and resolve
-void* m_cmd_receive(void * msg_queue_arg);//there will be a thread run this function
-void m_resolve(event_handler_t* event_handler, void* msg_queue);
+void m_cmd_receive();//there will be a thread run this function
+void* m_resolve(event_handler_t* event_handler, void* msg_queue);
 
 //about data server
 data_server_t* alloc_dataserver(total_size_t t_size, int dev_num);
@@ -67,5 +69,5 @@ int get_current_imformation(data_server_t* server_imf);//返回目前数据节�
 void destory_datasrever();
 
 //this is the ultimate goal!
-void datasecer_run();
+void dataserver_run(data_server_t* dateserver);
 #endif

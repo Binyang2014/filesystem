@@ -10,10 +10,12 @@
 #include <mpi.h>
 #include "dataserver.h"
 #include "dataserver_buff.h"
+#include "dataserver_handler.h"
 #include "../structure/vfs_structure.h"
 #include "../../structure/basic_list.h"
 #include "../../structure/basic_queue.h"
 #include "../../tool/errinfo.h"
+#include "../../tool/syn_tool.h"
 #include "../../tool/threadpool.h"
 
 //this is a demo, there are many things to add
@@ -63,43 +65,39 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 	//init buffer
 	set_data_server_buff(data_server, THREAD_POOL_SIZE);
 	//init msg_cmd_buffer
-	data_server->m_cmd_queue = alloc_msg_queue(COMMON_MSG_LEN, 0);
+	data_server->m_cmd_queue = alloc_basic_queue(COMMON_MSG_LEN, 0);
 	//init threads pool
 	data_server->thread_pool = alloc_thread_pool(THREAD_POOL_SIZE, data_server->m_cmd_queue);
-
+	//init queue_syn_tool
+	data_server->queue_syn = alloc_queue_syn();
+	//init event_handler
+	data_server->event_handler = alloc_event_handler_set(data_server->thread_pool,
+			m_resolve);
 	//init many kinds of locks
 	return data_server;
 	//end of init
 }
 
 //receive cmd message from client or master
-void* m_cmd_receive(void* msg_queue_arg)
+void m_cmd_receive()
 {
 	void* start_pos;
-	common_msg_t* t_common_msg;
 	basic_queue_t * msg_queue;
-	mpi_status_t status;
+	static common_msg_t t_common_msg;
+	static mpi_status_t status;
 
-	msg_queue = (basic_queue_t* )msg_queue_arg;
-	t_common_msg = (common_msg_t* )malloc(sizeof(common_msg_t));
-
-	while (1)
-	{
+	msg_queue = data_server->m_cmd_queue;
 
 #ifdef DATASERVER_COMM_DEBUG
-		printf("The tid of this thread is %lu\n", (unsigned long)pthread_self());
-		printf("I'm waiting for a message\n");
+	printf("The tid of this thread is %lu\n", (unsigned long)pthread_self());
+	printf("I'm waiting for a message\n");
 #endif
-		//receive message from client
-		start_pos = (char*) t_common_msg + COMMON_MSG_HEAD;
-		d_mpi_cmd_recv(start_pos, &status);
-		t_common_msg->source = status.source;
-		//here should be changed, and new version of message queue isn't supports locks
-		msg_queue->basic_queue_op->push(msg_queue, t_common_msg);
-	}
-
-	free(t_common_msg);
-	return NULL;
+	//receive message from client
+	start_pos = (char*) (&t_common_msg) + COMMON_MSG_HEAD;
+	d_mpi_cmd_recv(start_pos, &status);
+	t_common_msg.source = status.source;
+	//use syn_queue_push here
+	syn_queue_push(msg_queue, data_server->queue_syn, &t_common_msg);
 }
 
 /*=================================resolve message=========================================*/
@@ -107,9 +105,10 @@ void* m_cmd_receive(void* msg_queue_arg)
 static int init_rw_event_handler(event_handler_t* event_handler,
 		common_msg_t* common_msg, int flag)
 {
-	int i;
 	unsigned int chunks_count;
+	list_t* t_buff_list;
 	list_node_t* t_buff;
+	list_iter_t* iter;
 	msg_r_ctod_t* read_msg = NULL;
 	msg_w_ctod_t* write_msg = NULL;
 	event_handler->spcical_struct = data_server;
@@ -117,7 +116,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	//get buffer structure for event handler
 	 if( (event_handler->event_buffer_list = get_buffer_list(data_server, 5)) == NULL )
 		 return -1;
-	t_buff = event_handler->event_buffer_list;
+	t_buff_list = event_handler->event_buffer_list;
 
 	//decide use which structure
 	if(flag == MSG_READ)
@@ -131,23 +130,70 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 		chunks_count = write_msg->chunks_count;
 	}
 
+	//get iterator for the list
+	iter = t_buff_list->list_ops->list_get_iterator(t_buff_list, 0);
+
+	t_buff = t_buff_list->list_ops->list_next(iter);
 	//get specific buffer for event
 	if( (t_buff->value = get_common_msg_buff(data_server)) == NULL )
+	{
+		t_buff_list->list_ops->list_release_iterator(iter);
 		return -1;
-	memcpy(t_buff->value, common_msg, sizeof(common_msg));
-	t_buff = t_buff->next;
-	if( (t_buff->value = get_msg_buff(data_server)) == NULL )
-		return -1;
-	t_buff = t_buff->next;
-	if( (t_buff->value = get_data_buff(data_server)) == NULL )
-		return -1;
-	t_buff = t_buff->next;
-	if( (t_buff->value = get_file_info_buff(data_server)) == NULL )
-		return -1;
-	t_buff = t_buff->next;
-	if( (t_buff->value = get_f_arr_buff(data_server)) == NULL )
-		return -1;
+	}
+	memcpy(t_buff->value, common_msg, sizeof(common_msg_t));
 
+#ifdef DATASERVER_COMM_DEBUG
+	printf("the cmmon_msg is %p\n", t_buff->value);
+#endif
+
+	t_buff = t_buff_list->list_ops->list_next(iter);
+	if( (t_buff->value = get_reply_msg_buff(data_server)) == NULL )
+	{
+		t_buff_list->list_ops->list_release_iterator(iter);
+		return -1;
+	}
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("the reply_msg_buff is %p\n", t_buff->value);
+#endif
+
+	t_buff = t_buff_list->list_ops->list_next(iter);
+	if( (t_buff->value = get_data_buff(data_server)) == NULL )
+	{
+		t_buff_list->list_ops->list_release_iterator(iter);
+		return -1;
+	}
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("the data_buff is %p\n", t_buff->value);
+#endif
+
+	t_buff = t_buff_list->list_ops->list_next(iter);
+	if( (t_buff->value = get_file_info_buff(data_server)) == NULL )
+	{
+		t_buff_list->list_ops->list_release_iterator(iter);
+		return -1;
+	}
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("the file_info_buff is %p\n", t_buff->value);
+#endif
+
+	t_buff = t_buff_list->list_ops->list_next(iter);
+	if( (t_buff->value = get_f_arr_buff(data_server, chunks_count)) == NULL )
+	{
+		t_buff_list->list_ops->list_release_iterator(iter);
+		return -1;
+	}
+
+#ifdef DATASERVER_COMM_DEBUG
+	printf("the f_arr_buff is %p\n", t_buff->value);
+	printf("the buffer size is %d\n", ((vfs_hashtable_t*)t_buff->value)->hash_table_size);
+	printf("the array buffer is %p\n", ((vfs_hashtable_t*)t_buff->value)->blocks_arr);
+	printf("the chunks buffer is %p\n", ((vfs_hashtable_t*)t_buff->value)->chunks_arr);
+#endif
+
+	t_buff_list->list_ops->list_release_iterator(iter);
 	return 0;
 }
 
@@ -157,29 +203,43 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 	static common_msg_t t_common_msg;
 	basic_queue_t* t_msg_queue = msg_queue;
 	unsigned short operation_code;
+	int error;
 
 #ifdef DATASERVER_COMM_DEBUG
 	printf("In m_resolve function\n");
 #endif
 
-	//here should be changed, and new version of message queue isn't supports locks
-	t_msg_queue->basic_queue_op->pop(msg_queue, &t_common_msg);
-	operation_code = t_common_msg->operation_code;
+	//access queue use syn_queue_push
+	syn_queue_pop(t_msg_queue, data_server->queue_syn, &t_common_msg);
+	operation_code = t_common_msg.operation_code;
 
 	//this function should solve how to initiate event handler, each thread has its' own
 	//event handler and we do not need to care about it
 	switch(operation_code)
 	{
 	case MSG_READ:
-		init_rw_event_handler(event_handler, &t_common_msg, MSG_READ);
+		error = init_rw_event_handler(event_handler, &t_common_msg, MSG_READ);
+		if(error == -1)
+			err_quit("error when allocate buffer");
 		//invoke a thread to excuse
 		return d_read_handler;
 	case MSG_WRITE:
-		init_rw_event_handler(event_handler, &t_common_msg, MSG_WRITE);
+		error = init_rw_event_handler(event_handler, &t_common_msg, MSG_WRITE);
+		if(error == -1)
+			err_quit("error when allocate buffer");
 		//invoke a thread to excuse
 		return d_write_handler;
 	default:
 		return NULL;
 	}
 	return NULL;
+}
+
+void dataserver_run(data_server_t* dateserver)
+{
+	dateserver->thread_pool->tp_ops->start(dateserver->thread_pool, dateserver->event_handler);
+	for(;;)
+	{
+		m_cmd_receive();
+	}
 }
