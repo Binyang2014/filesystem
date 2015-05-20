@@ -109,6 +109,7 @@ static void basic_queue_pop(basic_queue_t* this, void* element)
 	int offset;
 	if (is_empty(this))
 	{
+		//TODO Does this works ?
 		element = NULL;
 		return;
 	}

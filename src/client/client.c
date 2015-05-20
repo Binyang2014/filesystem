@@ -77,6 +77,7 @@ static int client_create_file_op(char *file_path, char *file_name)
 	memcpy(send_buf, &message, sizeof(client_create_file));
 
 	//TODO not stable
+	//MPI_Barrier( MPI_COMM_WORLD);
 	MPI_Send(send_buf, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRCTION_MESSAGE_TAG, MPI_COMM_WORLD);
 	err_ret("client.c: client_create_file_op waiting for allocate answer");
 	MPI_Recv(&master_malloc_result, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);

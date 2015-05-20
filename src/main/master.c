@@ -114,7 +114,10 @@ static int answer_client_create_file(common_msg_t *request){
 static void* master_server(void *arg) {
 	MPI_Status status;
 	while (1) {
+		//MPI_Barrier( MPI_COMM_WORLD);
 		MPI_Recv(receive_buf, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+		client_create_file *message = (client_create_file *)receive_buf;
+		err_ret("master.c: master_server client_create_file name = %s", message->file_name);
 		//TODO need to catch status error
 		pthread_mutex_lock(mutex_message_queue);
 		//err_ret("master.c: master_server listening request");
@@ -130,12 +133,12 @@ static void* master_server(void *arg) {
 static void* request_handler(void *arg) {
 	while (1) {
 		pthread_mutex_lock(mutex_message_queue);
-		if (message_queue->basic_queue_op->is_empty(message_queue))
+		while (message_queue->basic_queue_op->is_empty(message_queue))
 		{
-			//err_ret("master.c:request_handler message queue is empty queue->length = %d\n", message_queue->current_size);
+			err_ret("master.c:request_handler message queue is empty queue->length = %d\n", message_queue->current_size);
 			pthread_cond_wait(cond_message_queue, mutex_message_queue);
 		}
-		err_ret("master.c:request_handler message queue is empty queue->length = %d\n", message_queue->current_size);
+		//err_ret("master.c:request_handler queue is empty queue->length = %d", message_queue->current_size);
 		message_queue->basic_queue_op->pop(message_queue, msg_pop_buff);
 		pthread_mutex_unlock(mutex_message_queue);
 		if (msg_pop_buff != NULL)
@@ -148,7 +151,7 @@ static void* request_handler(void *arg) {
 		}
 	//	err_ret("master.c: requesCOUUUUUUUUUUURTTTTt_handler get create message end21213-1 count = %d", count);
 	//	TODO TODO TODO why don't sleep results in error?
-		sleep(1);
+	//	sleep(1);
 	//	puts("***********************************");
 	}
 	return 0;
