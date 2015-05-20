@@ -18,9 +18,10 @@
 #include "../tool/message.h"
 #include "../tool/file_tool.h"
 #include "../global.h"
+#include "../tool/errinfo.h"
 
 //TODO temporary definition
-int master_rank = 1;
+int master_rank = 0;
 
 /*================private variables===============*/
 static char *send_buf;
@@ -56,6 +57,7 @@ static void send_data(char *file_name, unsigned long file_size, basic_queue_t *l
 
 static int client_create_file_op(char *file_path, char *file_name)
 {
+
 	long file_length = file_size(file_path);
 	if (file_length == -1)
 	{
@@ -72,12 +74,17 @@ static int client_create_file_op(char *file_path, char *file_name)
 	message.operation_code = CREATE_FILE_CODE;
 	message.file_size = file_length;
 	strcpy(message.file_name, file_name);
-	//log_info("send message start");
+	memcpy(send_buf, &message, sizeof(client_create_file));
 
-	MPI_Send((void*) &message, sizeof(message), MPI_CHAR, master_rank, CLIENT_INSTRCTION_MESSAGE_TAG, MPI_COMM_WORLD);
+	//TODO not stable
+	MPI_Send(send_buf, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRCTION_MESSAGE_TAG, MPI_COMM_WORLD);
+	err_ret("client.c: client_create_file_op waiting for allocate answer");
 	MPI_Recv(&master_malloc_result, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
-	if(master_malloc_result == 0)
+	if(master_malloc_result == 0){
+		err_ret("client.c: client_create_file_op master allocate new file space failed");
 		return -1;
+	}
+	err_ret("client.c: client_create_file_op waiting for allocate location");
 	if(master_malloc_result == 1)
 	{
 		while(1)
@@ -92,6 +99,7 @@ static int client_create_file_op(char *file_path, char *file_name)
 	}
 	//TODO 如果master成功分配内存，那么此时应该等待接收data server机器信息
 	//log_info("client_create_file end");
+	err_ret("client.c: client_create_file_op end without error");
 	return 0;
 }
 
@@ -101,13 +109,15 @@ int client_init() {
 	file_buf = (char *)malloc(BLOCK_SIZE);
 	message_queue = alloc_basic_queue(sizeof(common_msg_t), -1);
 	message_queue->dup = common_msg_dup;
-	message_queue->free = common_msg_free;
+	//message_queue->free = common_msg_free;
 
 	if(send_buf == NULL || receive_buf == NULL || file_buf == NULL || message_queue == NULL){
 		client_destroy();
 	}
 
-	client_create_file_op("/home/ron/test/read.in", "/read.in");
+	client_create_file_op("/home/ron/test/read.in", "/readin");
+	client_create_file_op("/home/ron/test/read.in", "/readin");
+	client_create_file_op("/home/ron/test/read.in", "/readin");
 	return 0;
 }
 

@@ -1,3 +1,3 @@
 make clean
-make
-./namespace_test
+make namespace
+./namespace

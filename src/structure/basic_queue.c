@@ -133,6 +133,9 @@ static int is_full(basic_queue_t* this)
 
 basic_queue_iterator *create_basic_queue_iterator(basic_queue_t *queue)
 {
+	if(queue == NULL){
+		return NULL;
+	}
 	basic_queue_iterator * iterator = (basic_queue_iterator *)malloc(sizeof(basic_queue_iterator));
 	iterator->queue = queue;
 	iterator->offset = queue->head_pos;
@@ -191,19 +194,13 @@ void destroy_basic_queue(basic_queue_t* this)
 		return;
 	}
 
-	/*if this free is NULL, use the default function*/
-	if(!(this->free))
-	{
-		this->free = free;
-	}
 	this->basic_queue_op->push = NULL;
 	this->basic_queue_op->pop = NULL;
 
 	//TODO if this free is NULL, use the default function
-	if(this->free)
-	{
-		for(i = 0; i < this->queue_len; i += this->element_size)
-			this->free(this->elements + i);
+	if(this->free){
+		for(i = 0; i < this->queue_len; i++)
+			this->free(this->elements + i * this->element_size);
 	}
 
 	free(this->elements);

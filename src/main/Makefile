@@ -4,7 +4,7 @@ objects=main.o master_data_servers.o namespace.o master.o message.o basic_queue.
 		file_tool.o errinfo.o client.o 
 
 filesystem: ${objects}
-	${cc} -o filesystem ${objects} -lm -lpthread
+	${cc} -o filesystem ${objects} -lm -lpthread -g -O0
 	
 #src/main
 main.o: main.c master.h ../client/client.h
@@ -35,11 +35,11 @@ errinfo.o: ../tool/errinfo.c ../tool/errinfo.h
 	${cc} -c ../tool/errinfo.c
 #src/client
 client.o: ../client/client.c ../client/client.h ../tool/file_tool.h ../tool/message.h ../structure/basic_queue.h\
-			../global.h
+			../global.h ../tool/errinfo.h
 	${cc} -c ../client/client.c
 	
 #src/dataserver
 
 .PHONY : clean
 clean:
-	-rm ${objects}
+	-rm filesystem ${objects}

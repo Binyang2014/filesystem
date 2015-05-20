@@ -43,6 +43,7 @@ static int init_data_server(master_data_server *server, unsigned int server_id, 
 	server->free_block = block_size;
 	server->server_id = server_id;
 	server->status = UNINITIAL;
+	return 0;
 }
 
 static void block_dup(void *dest, void *source){
@@ -96,7 +97,7 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 	}
 	else{
 		basic_queue_iterator *iterator = create_basic_queue_iterator(queue);
-		while(iterator->has_next(iterator)){
+		while(iterator != NULL && iterator->has_next(iterator)){
 			iterator->next(iterator, &tmp);
 			servers->global_id--;
 			(servers->server_list + tmp.server_id)->free_block++;

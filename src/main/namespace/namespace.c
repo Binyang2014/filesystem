@@ -234,6 +234,7 @@ static int init(namespace *this) {
 }
 
 namespace *create_namespace(int parent_hash_length, int child_hash_length){
+	err_ret("namespace.c start create name space");
 	namespace *this = (namespace *)malloc(sizeof(namespace));
 
 	if(this == NULL){
@@ -243,15 +244,17 @@ namespace *create_namespace(int parent_hash_length, int child_hash_length){
 	this->parent_dirs = (file_dir_node**)malloc(sizeof(file_dir_node*) * parent_hash_length);
 	if(this->parent_dirs == NULL){
 		free(this);
-		//TODO log
+		err_sys("namespace.c failed to allocate directory space");
 		return NULL;
 	}
 
 	this->parent_hash_length = parent_hash_length;
 	this->child_hash_length = child_hash_length;
 
-	if(init(this) != OPERATE_SECCESS)
+	if(init(this) != OPERATE_SECCESS){
+		err_ret("namespace.c create name space SUCCESS");
 		return NULL;
+	}
 	return this;
 }
 
@@ -302,7 +305,7 @@ int namespace_create_file(namespace *this, char * file_path) {
 
 	dir_node->file_num++;
 
-	return 0;
+	return OPERATE_SECCESS;
 }
 
 /**

@@ -64,7 +64,3 @@ void d_mpi_data_send(void* msg, int source, int tag)
 void common_msg_dup(void *dest, void *source){
 	memcpy(dest, source, sizeof(common_msg_t));
 }
-
-void common_msg_free(void *msg){
-	free(msg);
-}

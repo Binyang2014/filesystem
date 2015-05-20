@@ -50,9 +50,9 @@ static void test_create_file(namespace *namespace, char *name){
 
 static void test_namespace_create(){
 	char first_directory[100] = "/heallo/";
-	char first_file[1000] = "/heallo/abc";
+	char first_file[1000] = "/readin";
 	namespace *namespace = create_namespace(1024, 8);
-	test_create_dir(namespace, first_directory);
+	//test_create_dir(namespace, first_directory);
 	//test_create_file(namespace, first_file);
 	test_create_file(namespace, first_file);
 	print_namesapce(namespace);

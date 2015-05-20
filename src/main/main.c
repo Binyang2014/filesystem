@@ -1,28 +1,39 @@
 /**
  * 1. master
  * 2. dataserver
- * 3. 
+ * 3.
  */
 #include <stdio.h>
+#include <unistd.h>
 #include <mpi.h>
 #include "master.h"
 #include "../client/client.h"
 
 int main(argc, argv)
-	int argc;char ** argv; {
+int argc;char ** argv;
+{
+	MPI_Init(&argc, &argv);
 	int rank, size;
 
-	MPI_Init(&argc, &argv);
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	/*mpi gdb debug*/
+//	int i = 1;
+//	printf("i = %d master PID %d on ready for attach\n", i, getpid());
+//	fflush(stdout);
+//	while(i == 1)
+//		sleep(5);
+
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	if (rank == 0) {
 		puts("========master start========");
 		master_init();
 	} else if (rank == 1) {
 		puts("========client start========");
+		//sleep(3);
 		client_init();
 	}
 
-	return MPI_Finalize();
+	MPI_Finalize();
+	return 0;
 }
