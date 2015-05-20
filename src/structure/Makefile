@@ -2,7 +2,7 @@ TOPDIR = ../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = basic_queue.o bitmap.o
+object = basic_queue.o bitmap.o basic_list.o
 target = $(TOPDIR)/lib/libstruct.a
 
 $(target): $(object)

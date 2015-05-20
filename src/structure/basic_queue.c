@@ -84,7 +84,7 @@ static void next(basic_queue_iterator *iterator, void *dest)
 
 static int basic_queue_push(basic_queue_t* this, void* element)
 {
-	int result;
+	int result = 0;
 	if(is_full(this))
 	{
 		result = msg_queue_resize(this);

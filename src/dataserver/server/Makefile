@@ -1,20 +1,19 @@
 TOPDIR = ../../..
-LIBDIR = $(TOPDIR)/lib
-LIB = $(LIBDIR)/libtool.a $(LIBDIR)/libvfs.a
-TEST_PROGRAM = dataserver_test buffer_test
+TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
+object = dataserver_buff.o
+target = $(TOPDIR)/lib/libdataserver.a
 
-objects = dataserver_test.o dataserver.o dataserver_comm_handler.o dataserver_buff.o dataserver_operations.o
-buffer_test_obj = buffer_test.o dataserver_buff.o
+$(target): $(object)
+	$(AR) $(ARFLAG) $@ $^
 
-default:: $(objects)
+default:: $(object)
+
+test::
+	cd $(TESTDIR) &&  make || exit 1;
 
 include $(TOPDIR)/GlobalRules
-include $(objects:.o=.d)
 
-dataserver_test:$(objects) $(LIB)
-	$(CC) $(CFLAGS) $(objects) -L$(LIBDIR) -lvfs -ltool -o $@
+include $(object:.$(OBJSUF)=.d)
 
-buffer_test: $(buffer_test_obj) $(LIB)
-	$(CC) $(CFLAGS) $(buffer_test_obj) -L$(LIBDIR) -ltool -o $@
