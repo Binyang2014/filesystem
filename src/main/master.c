@@ -19,6 +19,7 @@
 #include "../structure/namespace_code.h"
 #include "../tool/message.h"
 #include "../global.h"
+#include "../tool/syn_tool.h"
 
 /*====================Private Prototypes====================*/
 static namespace *master_namespace;
@@ -36,6 +37,8 @@ static char *send_buf;
 static common_msg_t *msg_buff;
 static common_msg_t *msg_pop_buff;
 static common_msg_t *request_handle_buff;
+
+static queue_syn_t *syn_message_queue;
 
 static void set_common_msg(common_msg_t *msg, int source, char *message);
 static void *master_server();
@@ -85,9 +88,9 @@ static int answer_client_create_file(common_msg_t *request){
 		err_ret("master.c answer_client_create_file: allocate space fail for answer client create file buff");
 		return NO_ENOUGH_SPACE;
 	}
-	int ans_message_size = ceil(queue->current_size / LOCATION_MAX_BLOCK);
+	int ans_message_size = ceil((double)queue->current_size / LOCATION_MAX_BLOCK);
 	int i;
-	err_ret("master.c:answer_client_create_file: start send file location information to client");
+	err_ret("master.c:answer_client_create_file: start send file %d location information to client", queue->current_size);
 	for(i = 1; i <= ans_message_size; i++){
 		if(i != ans_message_size){
 			ans->is_tail = 0;
@@ -113,18 +116,13 @@ static int answer_client_create_file(common_msg_t *request){
  */
 static void* master_server(void *arg) {
 	MPI_Status status;
+	sleep(1);
 	while (1) {
-		//MPI_Barrier( MPI_COMM_WORLD);
+		err_ret("master.c: master_server listening request");
 		MPI_Recv(receive_buf, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-		client_create_file *message = (client_create_file *)receive_buf;
-		err_ret("master.c: master_server client_create_file name = %s", message->file_name);
-		//TODO need to catch status error
-		pthread_mutex_lock(mutex_message_queue);
-		//err_ret("master.c: master_server listening request");
-		queue_push_msg(message_queue, status.MPI_SOURCE, receive_buf);
-		pthread_mutex_unlock(mutex_message_queue);
-		pthread_cond_signal(cond_message_queue);
-		err_ret("master.c: master_server put message");
+		set_common_msg(msg_buff, status.MPI_SOURCE, receive_buf);
+		syn_queue_push(message_queue, syn_message_queue, msg_buff);
+		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	}
 	pthread_cond_destroy(cond_message_queue);
 	return 0;
@@ -132,15 +130,7 @@ static void* master_server(void *arg) {
 
 static void* request_handler(void *arg) {
 	while (1) {
-		pthread_mutex_lock(mutex_message_queue);
-		while (message_queue->basic_queue_op->is_empty(message_queue))
-		{
-			err_ret("master.c:request_handler message queue is empty queue->length = %d\n", message_queue->current_size);
-			pthread_cond_wait(cond_message_queue, mutex_message_queue);
-		}
-		//err_ret("master.c:request_handler queue is empty queue->length = %d", message_queue->current_size);
-		message_queue->basic_queue_op->pop(message_queue, msg_pop_buff);
-		pthread_mutex_unlock(mutex_message_queue);
+		syn_queue_pop(message_queue, syn_message_queue, msg_pop_buff);
 		if (msg_pop_buff != NULL)
 		{
 			unsigned short operation_code = msg_pop_buff->operation_code;
@@ -149,10 +139,6 @@ static void* request_handler(void *arg) {
 				err_ret("master.c: handle create message end");
 			}
 		}
-	//	err_ret("master.c: requesCOUUUUUUUUUUURTTTTt_handler get create message end21213-1 count = %d", count);
-	//	TODO TODO TODO why don't sleep results in error?
-	//	sleep(1);
-	//	puts("***********************************");
 	}
 	return 0;
 }
@@ -166,6 +152,8 @@ int master_init(){
 	master_data_servers = data_servers_create(1024, 0.75, 10);
 	queue_set_dup(message_queue, common_msg_dup);
 
+	syn_message_queue = alloc_queue_syn();
+
 	pthread_request_listener = (pthread_t *)malloc(sizeof(pthread_t));
 	pthread_request_handler = (pthread_t *)malloc(sizeof(pthread_t));
 	mutex_message_queue = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
@@ -175,20 +163,20 @@ int master_init(){
 	msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
 	msg_pop_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
 	request_handle_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
+	//TODO check this
 	if(master_namespace == NULL || message_queue == NULL || pthread_request_listener == NULL
 			|| pthread_request_handler == NULL || mutex_message_queue == NULL){
 		master_destroy();
 		return -1;
 	}
 
-
 	/*initialize server thread and critical resource lock*/
 	pthread_cond_init(cond_message_queue, NULL);
 	pthread_mutex_init(mutex_message_queue, NULL);
 	pthread_create(pthread_request_listener, NULL, master_server, NULL);
 	pthread_create(pthread_request_handler, NULL, request_handler, NULL);
-	pthread_join(*pthread_request_listener, NULL);
 	pthread_join(*pthread_request_handler, NULL);
+	pthread_join(*pthread_request_listener, NULL);
 	return 0;
 }
 

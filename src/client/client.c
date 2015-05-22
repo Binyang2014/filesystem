@@ -28,6 +28,7 @@ static char *send_buf;
 static char *receive_buf;
 static char *file_buf;
 static basic_queue_t *message_queue;
+static char *create_file_buff;
 
 /*====================private declarations====================*/
 static void send_data(char *file_name, unsigned long file_size, basic_queue_t *location_queue);
@@ -65,7 +66,6 @@ static int client_create_file_op(char *file_path, char *file_name)
 	}
 
 	int result, i;
-	char create_file_buff[CLIENT_MASTER_MESSAGE_SIZE];
 	int master_malloc_result;
 
 	MPI_Status status;
@@ -85,18 +85,21 @@ static int client_create_file_op(char *file_path, char *file_name)
 		err_ret("client.c: client_create_file_op master allocate new file space failed");
 		return -1;
 	}
+	ans_client_create_file *ans;
 	err_ret("client.c: client_create_file_op waiting for allocate location");
 	if(master_malloc_result == 1)
 	{
-		while(1)
+		do
 		{
-			MPI_Recv(create_file_buff, CLIENT_MASTER_MESSAGE_SIZE, MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
-			ans_client_create_file *ans = (ans_client_create_file *)create_file_buff;
+		//	puts("client.c hehe 123456");
+			MPI_Recv(create_file_buff, sizeof(ans_client_create_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+			ans = (ans_client_create_file *)create_file_buff;
+		//	puts("client.c hehe 123456");
 			for(i = 0; i != ans->block_num; i++)
 			{
-				printf("server_id = %d, block_seq = %ld, global_num = %ld\n", ans->block_global_num[i].server_id, ans->block_global_num[i].block_seq, ans->block_global_num[i].global_id);
+			//	printf("client.c: client_create_file_op server_id = %d, block_seq = %ld, global_num = %ld\n", ans->block_global_num[i].server_id, ans->block_global_num[i].block_seq, ans->block_global_num[i].global_id);
 			}
-		}
+		}while(!ans->is_tail);
 	}
 	//TODO 如果master成功分配内存，那么此时应该等待接收data server机器信息
 	//log_info("client_create_file end");
@@ -108,6 +111,7 @@ int client_init() {
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	file_buf = (char *)malloc(BLOCK_SIZE);
+	create_file_buff = (char *)malloc(sizeof(ans_client_create_file));
 	message_queue = alloc_basic_queue(sizeof(common_msg_t), -1);
 	message_queue->dup = common_msg_dup;
 	//message_queue->free = common_msg_free;
@@ -119,6 +123,7 @@ int client_init() {
 	client_create_file_op("/home/ron/test/read.in", "/readin");
 	client_create_file_op("/home/ron/test/read.in", "/readin");
 	client_create_file_op("/home/ron/test/read.in", "/readin");
+	err_ret("end create file");
 	return 0;
 }
 

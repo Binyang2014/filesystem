@@ -73,7 +73,7 @@ void destroy_queue_syn(queue_syn_t* queue_syn)
 void syn_queue_push(basic_queue_t* queue, queue_syn_t* queue_syn, void* element)
 {
 	pthread_mutex_lock(queue_syn->queue_mutex);
-	if(queue->basic_queue_op->is_full(queue))
+	while(queue->basic_queue_op->is_full(queue))
 	{
 		pthread_cond_wait(queue_syn->no_full_cond, queue_syn->queue_mutex);
 	}
@@ -85,7 +85,7 @@ void syn_queue_push(basic_queue_t* queue, queue_syn_t* queue_syn, void* element)
 void syn_queue_pop(basic_queue_t* queue, queue_syn_t* queue_syn, void* element)
 {
 	pthread_mutex_lock(queue_syn->queue_mutex);
-	if(queue->basic_queue_op->is_empty(queue))
+	while(queue->basic_queue_op->is_empty(queue))
 	{
 		pthread_cond_wait(queue_syn->no_empty_cond, queue_syn->queue_mutex);
 	}

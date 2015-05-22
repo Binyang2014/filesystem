@@ -110,7 +110,6 @@ static void basic_queue_pop(basic_queue_t* this, void* element)
 	if (is_empty(this))
 	{
 		//TODO Does this works ?
-		element = NULL;
 		return;
 	}
 	offset = this->head_pos;
@@ -198,7 +197,6 @@ void destroy_basic_queue(basic_queue_t* this)
 	this->basic_queue_op->push = NULL;
 	this->basic_queue_op->pop = NULL;
 
-	//TODO if this free is NULL, use the default function
 	if(this->free){
 		for(i = 0; i < this->queue_len; i++)
 			this->free(this->elements + i * this->element_size);

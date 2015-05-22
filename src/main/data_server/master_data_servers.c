@@ -60,7 +60,7 @@ static void block_dup(void *dest, void *source){
  * allocate storage space for the file according to the file_size
  */
 basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_size, int block_size){
-	int block_num = ceil(file_size / block_size);
+	int block_num = ceil((double)file_size / block_size);
 	basic_queue_t *queue = alloc_basic_queue(sizeof(block_location), block_num);
 	queue_set_dup_method(queue, block_dup);
 	block_location tmp;
@@ -71,7 +71,7 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 	master_data_server *ptr;
 	for(server_index = 0; server_index != servers->servers_count; server_index++){
 		ptr = servers->server_list + server_index;
-		if(ptr->status != AVAILABLE || ptr->free_block == 0){
+		if(/*ptr->status != AVAILABLE || */ptr->free_block == 0){
 			continue;
 		}
 

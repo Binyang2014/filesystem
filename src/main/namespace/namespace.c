@@ -255,6 +255,7 @@ namespace *create_namespace(int parent_hash_length, int child_hash_length){
 		err_ret("namespace.c create name space SUCCESS");
 		return NULL;
 	}
+	err_ret("namespace.c: create name space success");
 	return this;
 }
 
