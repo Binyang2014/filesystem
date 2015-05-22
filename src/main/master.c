@@ -29,15 +29,12 @@ static data_servers *master_data_servers;
 static pthread_t *pthread_request_listener;
 static pthread_t *pthread_request_handler;
 //static pthread_t *pthread_damon_handler;
-static pthread_mutex_t *mutex_message_queue;
-static pthread_cond_t *cond_message_queue;
 
 static char *receive_buf;
 static char *send_buf;
 static common_msg_t *msg_buff;
 static common_msg_t *msg_pop_buff;
 static common_msg_t *request_handle_buff;
-
 static queue_syn_t *syn_message_queue;
 
 static void set_common_msg(common_msg_t *msg, int source, char *message);
@@ -51,14 +48,6 @@ static void set_common_msg(common_msg_t *msg, int source, char *message){
 	msg->operation_code = *operation_code;
 	msg->source = source;
 	memcpy(msg->rest, message, MAX_CMD_MSG_LEN);
-	//client_create_file *file_request = msg->rest;
-	//err_ret("set_common_msg: file_name = %s", file_request->file_name);
-}
-
-static int queue_push_msg(basic_queue_t *queue, int source, char *message){
-	set_common_msg(msg_buff, source, receive_buf);
-	queue->basic_queue_op->push(queue, msg_buff);
-	return OPERATE_SECCESS;
 }
 
 static int answer_client_create_file(common_msg_t *request){
@@ -71,7 +60,6 @@ static int answer_client_create_file(common_msg_t *request){
 		err_ret("answer_client_create_file: name space create file failed, status = %d", status);
 		return status;
 	}
-	err_ret("master.c:answer_client_create_file: file_allocate_machine file_size = %ld, block_size = %d", file_request->file_size, BLOCK_SIZE);
 	basic_queue_t *queue = master_data_servers->opera->file_allocate_machine(master_data_servers, file_request->file_size, BLOCK_SIZE);
 	malloc_result = (queue == NULL ? 0 : 1);
 //	//TODO if communicate error
@@ -82,7 +70,6 @@ static int answer_client_create_file(common_msg_t *request){
 		return NO_ENOUGH_SPACE;
 	}
 
-	err_ret("master.c:answer_client_create_file: allocate space success for new file");
 	ans_client_create_file *ans = (ans_client_create_file *)malloc(sizeof(ans_client_create_file));
 	if(ans == NULL){
 		err_ret("master.c answer_client_create_file: allocate space fail for answer client create file buff");
@@ -90,7 +77,6 @@ static int answer_client_create_file(common_msg_t *request){
 	}
 	int ans_message_size = ceil((double)queue->current_size / LOCATION_MAX_BLOCK);
 	int i;
-	err_ret("master.c:answer_client_create_file: start send file %d location information to client", queue->current_size);
 	for(i = 1; i <= ans_message_size; i++){
 		if(i != ans_message_size){
 			ans->is_tail = 0;
@@ -105,7 +91,6 @@ static int answer_client_create_file(common_msg_t *request){
 		memcpy(ans->block_global_num, queue->elements + (i - 1) * LOCATION_MAX_BLOCK * queue->element_size, ans->block_num * queue->element_size);
 		MPI_Send(ans, sizeof(ans_client_create_file), MPI_CHAR, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 	}
-	err_ret("master.c:answer_client_create_file: end send file location information to client");
 	free(ans);
 	return 0;
 }
@@ -116,7 +101,6 @@ static int answer_client_create_file(common_msg_t *request){
  */
 static void* master_server(void *arg) {
 	MPI_Status status;
-	sleep(1);
 	while (1) {
 		err_ret("master.c: master_server listening request");
 		MPI_Recv(receive_buf, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
@@ -124,19 +108,19 @@ static void* master_server(void *arg) {
 		syn_queue_push(message_queue, syn_message_queue, msg_buff);
 		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	}
-	pthread_cond_destroy(cond_message_queue);
 	return 0;
 }
 
 static void* request_handler(void *arg) {
+	int status;
 	while (1) {
 		syn_queue_pop(message_queue, syn_message_queue, msg_pop_buff);
+
 		if (msg_pop_buff != NULL)
 		{
 			unsigned short operation_code = msg_pop_buff->operation_code;
 			if (operation_code == CREATE_FILE_CODE) {
-				answer_client_create_file(msg_pop_buff);
-				err_ret("master.c: handle create message end");
+				status = answer_client_create_file(msg_pop_buff);
 			}
 		}
 	}
@@ -156,8 +140,7 @@ int master_init(){
 
 	pthread_request_listener = (pthread_t *)malloc(sizeof(pthread_t));
 	pthread_request_handler = (pthread_t *)malloc(sizeof(pthread_t));
-	mutex_message_queue = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-	cond_message_queue = (pthread_cond_t *)malloc(sizeof(cond_message_queue));
+
 	receive_buf = (char *)malloc(MAX_CMD_MSG_LEN);
 	send_buf = (char *)malloc(MAX_CMD_MSG_LEN);
 	msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
@@ -165,14 +148,12 @@ int master_init(){
 	request_handle_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
 	//TODO check this
 	if(master_namespace == NULL || message_queue == NULL || pthread_request_listener == NULL
-			|| pthread_request_handler == NULL || mutex_message_queue == NULL){
+			|| pthread_request_handler == NULL){
 		master_destroy();
 		return -1;
 	}
 
 	/*initialize server thread and critical resource lock*/
-	pthread_cond_init(cond_message_queue, NULL);
-	pthread_mutex_init(mutex_message_queue, NULL);
 	pthread_create(pthread_request_listener, NULL, master_server, NULL);
 	pthread_create(pthread_request_handler, NULL, request_handler, NULL);
 	pthread_join(*pthread_request_handler, NULL);
@@ -190,7 +171,7 @@ int master_destroy()
 	free(message_queue);
 	free(pthread_request_listener);
 	free(pthread_request_handler);
-	free(mutex_message_queue);
 	data_servers_destroy();
+	destroy_queue_syn(syn_message_queue);
 	return 0;
 }
