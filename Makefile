@@ -1,3 +1,0 @@
-filesyetem: 
-clean:
-	-rm *.o;

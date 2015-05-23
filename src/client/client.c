@@ -77,7 +77,6 @@ static int client_create_file_op(char *file_path, char *file_name)
 	memcpy(send_buf, &message, sizeof(client_create_file));
 
 	//TODO not stable
-	//MPI_Barrier( MPI_COMM_WORLD);
 	MPI_Send(send_buf, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRCTION_MESSAGE_TAG, MPI_COMM_WORLD);
 	err_ret("client.c: client_create_file_op waiting for allocate answer");
 	MPI_Recv(&master_malloc_result, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
@@ -91,10 +90,8 @@ static int client_create_file_op(char *file_path, char *file_name)
 	{
 		do
 		{
-		//	puts("client.c hehe 123456");
 			MPI_Recv(create_file_buff, sizeof(ans_client_create_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
 			ans = (ans_client_create_file *)create_file_buff;
-		//	puts("client.c hehe 123456");
 			for(i = 0; i != ans->block_num; i++)
 			{
 			//	printf("client.c: client_create_file_op server_id = %d, block_seq = %ld, global_num = %ld\n", ans->block_global_num[i].server_id, ans->block_global_num[i].block_seq, ans->block_global_num[i].global_id);
@@ -120,8 +117,6 @@ int client_init() {
 		client_destroy();
 	}
 
-	client_create_file_op("/home/ron/test/read.in", "/readin");
-	client_create_file_op("/home/ron/test/read.in", "/readin");
 	client_create_file_op("/home/ron/test/read.in", "/readin");
 	err_ret("end create file");
 	return 0;

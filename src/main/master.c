@@ -20,6 +20,7 @@
 #include "../tool/message.h"
 #include "../global.h"
 #include "../tool/syn_tool.h"
+#include "../tool/errinfo.h"
 
 /*====================Private Prototypes====================*/
 static namespace *master_namespace;
@@ -112,7 +113,7 @@ static void* master_server(void *arg) {
 }
 
 static void* request_handler(void *arg) {
-	int status;
+	//int status;
 	while (1) {
 		syn_queue_pop(message_queue, syn_message_queue, msg_pop_buff);
 
@@ -120,7 +121,8 @@ static void* request_handler(void *arg) {
 		{
 			unsigned short operation_code = msg_pop_buff->operation_code;
 			if (operation_code == CREATE_FILE_CODE) {
-				status = answer_client_create_file(msg_pop_buff);
+				//status =
+				answer_client_create_file(msg_pop_buff);
 			}
 		}
 	}

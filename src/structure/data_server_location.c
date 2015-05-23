@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "data_server_location.h"
 
 /**fun of file_machine_location**/

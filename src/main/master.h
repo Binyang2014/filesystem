@@ -11,6 +11,7 @@
 /* master initialize
  */
 int master_init();
+int master_destroy();
 
 /**
  * receive information from client and data server
@@ -18,6 +19,5 @@ int master_init();
  * 1. client operation code
  * 2. data server heart blood information
  */
-static void* master_server(void *arg);
 
 #endif /* SRC_MAIN_MASTER_H_ */

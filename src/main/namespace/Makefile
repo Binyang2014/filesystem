@@ -1,9 +1,9 @@
-TOPDIR = ../..
-TESTDIR = ./test
+TOPDIR = ../../..
+#TESTDIR = ../test
 
 include $(TOPDIR)/GlobalMakefile
-object = basic_queue.o bitmap.o basic_list.o namespace_code.o data_server_location.o
-target = $(TOPDIR)/lib/libstruct.a
+object = namespace.o
+target = $(TOPDIR)/lib/namespace.a
 
 $(target): $(object)
 	$(AR) $(ARFLAG) $@ $^

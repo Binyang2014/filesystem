@@ -4,7 +4,7 @@ default::
 	for dir in $(SUBDIRS); \
 		do \
 		(cd $${dir} && $(MAKE) $(JOBS)) || exit 1;\
-		done
+		done\
 
 clean::
 	for dir in $(SUBDIRS); \
