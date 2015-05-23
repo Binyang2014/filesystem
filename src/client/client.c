@@ -118,6 +118,8 @@ int client_init() {
 	}
 
 	client_create_file_op("/home/ron/test/read.in", "/readin");
+	//client_create_file_op("/home/ron/test/read.in", "/readin");
+	//client_create_file_op("/home/ron/test/read.in", "/readin");
 	err_ret("end create file");
 	return 0;
 }

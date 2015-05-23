@@ -10,7 +10,7 @@
 #include <string.h>
 #include <math.h>
 #include "master_data_servers.h"
-#include "../../tool/message.h"
+#include "../tool/message.h"
 
 /*===============private functions===============*/
 static double load_situation(master_data_server *);

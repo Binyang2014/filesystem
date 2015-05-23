@@ -2,5 +2,5 @@ TOPDIR = ..
 
 include $(TOPDIR)/GlobalMakefile
 
-SUBDIRS = structure dataserver tool client main 
+SUBDIRS = client dataserver master structure tool 
 include $(TOPDIR)/GlobalSubDirs

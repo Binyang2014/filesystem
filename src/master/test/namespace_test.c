@@ -5,7 +5,8 @@
  *      Author: ron
  */
 
-#include "../namespace/namespace.h"
+#include "../../master/namespace/namespace.h"
+
 #include "../../tool/errinfo.h"
 
 static void print_namesapce(namespace *namespace){

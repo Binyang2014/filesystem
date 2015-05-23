@@ -1,8 +1,8 @@
 TOPDIR = ../..
 
 include $(TOPDIR)/GlobalMakefile
-object = client.o
-target = $(TOPDIR)/lib/libclient.a
+object = master.o namespace.o master_data_servers.o
+target = $(TOPDIR)/lib/libmaster.a
 
 $(target): $(object)
 	$(AR) $(ARFLAG) $@ $^

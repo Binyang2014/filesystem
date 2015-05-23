@@ -5,8 +5,8 @@
  *      Author: ron
  */
 
-#ifndef SRC_MAIN_MASTER_H_
-#define SRC_MAIN_MASTER_H_
+#ifndef SRC_MASTER_MASTER_H_
+#define SRC_MASTER_MASTER_H_
 
 /* master initialize
  */
@@ -20,4 +20,4 @@ int master_destroy();
  * 2. data server heart blood information
  */
 
-#endif /* SRC_MAIN_MASTER_H_ */
+#endif /* SRC_MASTER_MASTER_H_ */

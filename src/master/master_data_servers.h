@@ -6,8 +6,8 @@
  */
 
 #include <time.h>
-#include "../../structure/data_server_location.h"
-#include "../../structure/basic_queue.h"
+#include "../structure/data_server_location.h"
+#include "../structure/basic_queue.h"
 #ifndef SRC_MAIN_DATA_SERVERS_H_
 #define SRC_MAIN_DATA_SERVERS_H_
 

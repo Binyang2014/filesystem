@@ -2,7 +2,7 @@
 #define _FILESYSTEM_MAIN_NAMESPACE_H_
 
 #include <stdio.h>
-#include "../../structure/basic_queue.h"
+#include "../structure/basic_queue.h"
 
 /*
  * 父目录节点数据结构

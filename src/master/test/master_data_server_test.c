@@ -5,7 +5,8 @@
  *      Author: ron
  */
 #include <stdio.h>
-#include "../data_server/master_data_servers.h"
+
+#include "../../master/data_server/master_data_servers.h"
 #include "../../structure/basic_queue.h"
 #include "../../tool/message.h"
 

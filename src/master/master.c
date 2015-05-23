@@ -13,14 +13,14 @@
 #include <mpi.h>
 #include <assert.h>
 #include "master.h"
-#include "./namespace/namespace.h"
-#include "./data_server/master_data_servers.h"
+#include "master_data_servers.h"
+#include "namespace.h"
 #include "../structure/basic_queue.h"
 #include "../structure/namespace_code.h"
 #include "../tool/message.h"
-#include "../global.h"
 #include "../tool/syn_tool.h"
 #include "../tool/errinfo.h"
+#include "../global.h"
 
 /*====================Private Prototypes====================*/
 static namespace *master_namespace;

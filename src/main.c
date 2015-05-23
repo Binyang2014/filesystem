@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <mpi.h>
-#include "master.h"
-#include "../client/client.h"
+#include "./client/client.h"
+#include "./master/master.h"
 
 int main(argc, argv)
 int argc;char ** argv;

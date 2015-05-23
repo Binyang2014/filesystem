@@ -4,9 +4,9 @@
 #include <assert.h>
 #include <regex.h>
 #include "namespace.h"
-#include "../../structure/namespace_code.h"
-#include "../../tool/hash.h"
-#include "../../tool/errinfo.h"
+#include "../structure/namespace_code.h"
+#include "../tool/hash.h"
+#include "../tool/errinfo.h"
 
 
 /*---------------------private local variables------------------*/
