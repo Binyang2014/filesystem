@@ -22,5 +22,6 @@ file_machine_location* create_file_machine_location(unsigned long count, int mac
 	location->block_golobal_point.s = id_seq;
 	location->block_golobal_point.e = id_seq + count - 1;
 	location->machinde_id = machine_id;
+	return location;
 }
 

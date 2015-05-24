@@ -25,23 +25,31 @@
 /*====================Private Prototypes====================*/
 static namespace *master_namespace;
 static basic_queue_t *message_queue;
+static queue_syn_t *syn_message_queue;
+static char *master_cmd_buff;
+static common_msg_t *master_msg_buff;
+static pthread_t *master_threads;
 static data_servers *master_data_servers;
 
-static pthread_t *pthread_request_listener;
-static pthread_t *pthread_request_handler;
 //static pthread_t *pthread_damon_handler;
 
-static char *receive_buf;
-static char *send_buf;
-static common_msg_t *msg_buff;
-static common_msg_t *msg_pop_buff;
-static common_msg_t *request_handle_buff;
-static queue_syn_t *syn_message_queue;
+typedef enum thread_buff{
+	MASTER_REQUEST_LISTENER,
+	MASTER_REQUEST_HANDLER,
+	MASTER_NAMESPACE_HANDLER
+}thread_buff;
 
-static void set_common_msg(common_msg_t *msg, int source, char *message);
-static void *master_server();
+typedef enum cmd_buff{
+	MASTER_CMD_SEND_BUFF = 0,
+	MASTER_CMD_RECV_BUFF = 1 * MAX_CMD_MSG_LEN
+}cmd_buff;
 
-//static int master_create_file(char *file_name, unsigned long file_size);
+typedef enum msg_buff{
+	MASTER_MSG_SEND_BUFF,
+	MASTER_MSG_RECV_BUFF,
+	MASTER_MSG_TO_RUN,
+	MASTER_REQUEST_MSG_BUFF
+}msg_buff;
 
 /*====================private functions====================*/
 static void set_common_msg(common_msg_t *msg, int source, char *message){
@@ -102,11 +110,13 @@ static int answer_client_create_file(common_msg_t *request){
  */
 static void* master_server(void *arg) {
 	MPI_Status status;
+	common_msg_t *m = master_msg_buff + MASTER_MSG_RECV_BUFF;
+	char *c = master_cmd_buff + MASTER_CMD_RECV_BUFF;
 	while (1) {
 		err_ret("master.c: master_server listening request");
-		MPI_Recv(receive_buf, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
-		set_common_msg(msg_buff, status.MPI_SOURCE, receive_buf);
-		syn_queue_push(message_queue, syn_message_queue, msg_buff);
+		MPI_Recv(c, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+		set_common_msg(m, status.MPI_SOURCE, c);
+		syn_queue_push(message_queue, syn_message_queue, m);
 		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	}
 	return 0;
@@ -114,15 +124,15 @@ static void* master_server(void *arg) {
 
 static void* request_handler(void *arg) {
 	//int status;
+	common_msg_t *cmd = master_msg_buff + MASTER_MSG_TO_RUN;
 	while (1) {
-		syn_queue_pop(message_queue, syn_message_queue, msg_pop_buff);
+		syn_queue_pop(message_queue, syn_message_queue, cmd);
 
-		if (msg_pop_buff != NULL)
+		if (cmd != NULL)
 		{
-			unsigned short operation_code = msg_pop_buff->operation_code;
+			unsigned short operation_code = cmd->operation_code;
 			if (operation_code == CREATE_FILE_CODE) {
-				//status =
-				answer_client_create_file(msg_pop_buff);
+				answer_client_create_file(cmd);
 			}
 		}
 	}
@@ -135,31 +145,27 @@ int master_init(){
 	/*allocate necessary memory*/
 	master_namespace = create_namespace(1024, 32);
 	message_queue = alloc_basic_queue(sizeof(common_msg_t), -1);
+	master_cmd_buff = (char *)malloc(MAX_CMD_MSG_LEN * 4);
+	master_msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t) * 4);
+	master_threads = (pthread_t *)malloc(sizeof(pthread_t) * 4);
 	master_data_servers = data_servers_create(1024, 0.75, 10);
-	queue_set_dup(message_queue, common_msg_dup);
-
 	syn_message_queue = alloc_queue_syn();
 
-	pthread_request_listener = (pthread_t *)malloc(sizeof(pthread_t));
-	pthread_request_handler = (pthread_t *)malloc(sizeof(pthread_t));
-
-	receive_buf = (char *)malloc(MAX_CMD_MSG_LEN);
-	send_buf = (char *)malloc(MAX_CMD_MSG_LEN);
-	msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
-	msg_pop_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
-	request_handle_buff = (common_msg_t *)malloc(sizeof(common_msg_t));
 	//TODO check this
-	if(master_namespace == NULL || message_queue == NULL || pthread_request_listener == NULL
-			|| pthread_request_handler == NULL){
+	if(master_namespace == NULL || message_queue == NULL || master_cmd_buff == NULL
+			|| master_msg_buff == NULL || master_threads == NULL || master_data_servers == NULL
+			|| syn_message_queue == NULL){
 		master_destroy();
 		return -1;
 	}
 
+	queue_set_dup(message_queue, common_msg_dup);
+
 	/*initialize server thread and critical resource lock*/
-	pthread_create(pthread_request_listener, NULL, master_server, NULL);
-	pthread_create(pthread_request_handler, NULL, request_handler, NULL);
-	pthread_join(*pthread_request_handler, NULL);
-	pthread_join(*pthread_request_listener, NULL);
+	pthread_create(master_threads + MASTER_REQUEST_LISTENER, NULL, master_server, NULL);
+	pthread_create(master_threads + MASTER_REQUEST_HANDLER, NULL, request_handler, NULL);
+	pthread_join(*(master_threads + MASTER_REQUEST_LISTENER), NULL);
+	pthread_join(*(master_threads + MASTER_REQUEST_HANDLER), NULL);
 	return 0;
 }
 
@@ -170,9 +176,10 @@ int master_init(){
 int master_destroy()
 {
 	free(master_namespace);
-	free(message_queue);
-	free(pthread_request_listener);
-	free(pthread_request_handler);
+	destroy_basic_queue(message_queue);
+	free(master_cmd_buff);
+	free(master_msg_buff);
+	free(master_threads);
 	data_servers_destroy();
 	destroy_queue_syn(syn_message_queue);
 	return 0;

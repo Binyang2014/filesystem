@@ -60,6 +60,10 @@ queue_syn_t* alloc_queue_syn(void)
 
 void destroy_queue_syn(queue_syn_t* queue_syn)
 {
+	if(queue_syn == NULL){
+		return;
+	}
+
 	pthread_cond_destroy(queue_syn->no_full_cond);
 	pthread_cond_destroy(queue_syn->no_empty_cond);
 	pthread_mutex_destroy(queue_syn->queue_mutex);

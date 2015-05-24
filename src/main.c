@@ -15,13 +15,6 @@ int argc;char ** argv;
 	MPI_Init(&argc, &argv);
 	int rank, size;
 
-	/*mpi gdb debug*/
-//	int i = 1;
-//	printf("i = %d master PID %d on ready for attach\n", i, getpid());
-//	fflush(stdout);
-//	while(i == 1)
-//		sleep(5);
-
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 

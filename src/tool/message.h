@@ -35,6 +35,9 @@
  */
 #define CREATE_FILE_CODE 3001
 #define CREATE_FILE_ANS_CODE 3002
+#define D_M_HEART_BLOOD_CODE 3003
+#define C_D_WRITE_BLOCK_CODE 3004
+#define C_D_READ_BLOCK_CODE 3005
 
 /**
  * master answer code
@@ -81,6 +84,27 @@ typedef struct ans_client_create_file{
 	block_location block_global_num[LOCATION_MAX_BLOCK];
 }ans_client_create_file;
 
+/*
+ * data server send heart blood to master
+ */
+typedef struct d_server_heart_blood{
+	unsigned short operation_code;
+	int id;
+}d_server_heart_bleed;
+
+/**
+ * client send write cmd request to data server
+ */
+typedef struct c_d_write_cmd{
+	unsigned short operation_code;
+	int block_num;
+}c_d_cmd_t;
+
+
+typedef struct c_d_block_data{
+	block_location block_info;
+	char data[BLOCK_SIZE];
+}c_d_block_data_t;
 
 /**
  *Following structure defined message structure between client and data server
@@ -223,6 +247,11 @@ void d_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 void d_mpi_data_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 void d_mpi_data_send(void* msg, int source, int tag);
 
+void m_mpi_cmd_send(void *msg, int source, int tag);
+void m_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
+
+void c_mpi_cmd_send(void *msg, mpi_status_t* status_t);
+void c_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
+
 void common_msg_dup(void *dest, void *source);
-void common_msg_free(void *msg);
 #endif
