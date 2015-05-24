@@ -380,6 +380,12 @@ int namespace_create_dir(namespace *this, char *path) {
 }
 
 int set_file_location(const namespace *namespace, basic_queue_t *file_location, char *name){
+	path_pre_handle(name);
+	int status = path_verify(name);
+	if(status != OPERATE_SECCESS){
+		return status;
+	}
+
 	file_dir_node *node = find_file_node(namespace, name);
 	if(node == NULL){
 		return FILE_NOT_EXISTS;

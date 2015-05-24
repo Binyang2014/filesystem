@@ -13,21 +13,14 @@
 #include "../tool/message.h"
 
 /*===============private functions===============*/
-static double load_situation(master_data_server *);
-static void free_file_machine_location(file_machine_location *);
+//static double load_situation(master_data_server *);
+//static void free_file_machine_location(file_machine_location *);
 static int heart_blood(data_servers *servers, int server_id, data_server_status status);
 static int init_data_server(master_data_server *server, unsigned int server_id, unsigned int block_size);
 
 static void block_dup(void *dest, void *source);
 
 /*================private functions implementation===============*/
-static double load_situation(master_data_server *server){
-	return (double)server->used_block/(server->used_block + server->free_block);
-}
-
-static void free_file_machine_location(file_machine_location *location){
-	free(location);
-}
 
 static int heart_blood(data_servers *servers, int server_id, data_server_status status){
 	if(server_id > servers->servers_count)

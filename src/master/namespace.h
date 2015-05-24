@@ -5,22 +5,21 @@
 #include "../structure/basic_queue.h"
 
 /*
- * 父目录节点数据结构
+ * structure of file and directory node
  */
 typedef struct file_dir_node
 {
 	char *file_name; 							/*file full path name*/
-	//unsigned char temporary
-	unsigned int access;						/*文件访问权限*/
-	unsigned int is_dir; 						/*文件是否是目录*/
-	unsigned int file_num;						//目录下的文件个数
-//	char owner[256]; 							/*文件拥有者*/
-	struct file_dir_node *next_dir;				/*下一个目录*/
-	struct file_dir_node *next;
-	struct file_dir_node *next_file;			/*下一个文件*/
-	struct file_dir_node **child;				//记录目录下的所有文件,包含目录
-	unsigned long file_size;
-	basic_queue_t *location;
+	unsigned char temporary;
+	unsigned int access;						/*file access mode*/
+	unsigned int is_dir; 						/*whether the file is directory*/
+	unsigned int file_num;						/*number of sub file*/
+	//char owner[256]; 							/*file owner*/
+	struct file_dir_node *next_dir;				/*next directory*/
+	struct file_dir_node *next_file;			/*next file*/
+	struct file_dir_node **child;				/*children file*/
+	unsigned long file_size;					/*file size*/
+	basic_queue_t *location;					/*file location*/
 }file_dir_node;
 
 typedef struct namespace{

@@ -5,7 +5,7 @@
  *      Author: ron
  */
 
-#include "../../master/namespace/namespace.h"
+#include "../namespace.h"
 
 #include "../../tool/errinfo.h"
 
@@ -33,13 +33,13 @@ static void print_namesapce(namespace *namespace){
 	}
 }
 
-
-static void test_create_dir(namespace *namespace, char *name){
-	//err_ret("-----before create dir-----");
-	int status = namespace_create_dir(namespace, name);
-	printf("create dir status = %d\n", status);
-	//err_ret("-----after create dir-----");
-}
+//
+//static void test_create_dir(namespace *namespace, char *name){
+//	//err_ret("-----before create dir-----");
+//	int status = namespace_create_dir(namespace, name);
+//	printf("create dir status = %d\n", status);
+//	//err_ret("-----after create dir-----");
+//}
 
 static void test_create_file(namespace *namespace, char *name){
 	//err_ret("-----before create file-----");
