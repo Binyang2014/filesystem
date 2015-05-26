@@ -90,7 +90,7 @@ typedef struct ans_client_create_file{
 typedef struct d_server_heart_blood{
 	unsigned short operation_code;
 	int id;
-}d_server_heart_bleed;
+}d_server_heart_blood_t;
 
 /**
  * client send write cmd request to data server

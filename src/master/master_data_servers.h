@@ -12,11 +12,11 @@
 #define SRC_MAIN_DATA_SERVERS_H_
 
 typedef enum data_server_status{
-	UNINITIAL,
-	AVAILABLE,
-	FULL,
-	DOWN,
-	TIME_OUT
+	SERVER_UNINITIAL,
+	SERVER_AVAILABLE,
+	SERVER_FULL,
+	SERVER_DOWN,
+	SERVER_TIME_OUT
 }data_server_status;
 
 
@@ -38,7 +38,7 @@ typedef struct data_servers{
 }data_servers;
 
 typedef struct data_server_opera{
-	int (*heart_blood)(data_servers *servers, int index, data_server_status status);
+	int (*heart_blood)(data_servers *servers, int index, data_server_status status, time_t time);
 	basic_queue_t *(*file_allocate_machine)(data_servers *servers, unsigned long file_size, int block_size);
 }data_server_opera;
 

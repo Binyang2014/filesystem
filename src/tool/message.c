@@ -73,10 +73,22 @@ void d_mpi_data_send(void* msg, int source, int tag)
 
 
 //master send cmd message
-void m_mpi_cmd_send(void *msg, int source, int tag){
+void m_mpi_cmd_send(void *msg, int source, int tag)
+{
 	assert(msg != NULL);
 
 	MPI_Send(msg, MAX_CMD_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD);
+}
+
+void m_mpi_cmd_recv(void *msg, mpi_status_t* status_t)
+{
+	assert(msg != NULL && status_t != NULL);
+	MPI_Status status;
+	MPI_Recv(msg, MAX_DATA_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+	status_t->error_num = status.MPI_ERROR;
+	status_t->size = status.count;
+	status_t->source = status.MPI_SOURCE;
+	status_t->tag = status.MPI_TAG;
 }
 
 void common_msg_dup(void *dest, void *source){

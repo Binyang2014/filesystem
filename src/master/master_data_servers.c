@@ -15,18 +15,20 @@
 /*===============private functions===============*/
 //static double load_situation(master_data_server *);
 //static void free_file_machine_location(file_machine_location *);
-static int heart_blood(data_servers *servers, int server_id, data_server_status status);
-static int init_data_server(master_data_server *server, unsigned int server_id, unsigned int block_size);
-
-static void block_dup(void *dest, void *source);
+//static int heart_blood(data_servers *servers, int server_id, data_server_status status);
+//static int init_data_server(master_data_server *server, unsigned int server_id, unsigned int block_size);
+//
+//static void block_dup(void *dest, void *source);
 
 /*================private functions implementation===============*/
 
-static int heart_blood(data_servers *servers, int server_id, data_server_status status){
-	if(server_id > servers->servers_count)
+static int heart_blood(data_servers *servers, int server_id, data_server_status status, time_t time){
+	if(servers == NULL || server_id > servers->servers_count){
 		return -1;
-	//TODO here we can use a function caches a time_t value just like redis
-	time(&((servers->server_list + server_id)->last_update));
+	}
+
+	(servers->server_list + server_id)->last_update = time;
+	(servers->server_list + server_id)->status = status;
 	return 0;
 }
 
@@ -35,19 +37,13 @@ static int init_data_server(master_data_server *server, unsigned int server_id, 
 	server->used_block = 0;
 	server->free_block = block_size;
 	server->server_id = server_id;
-	server->status = UNINITIAL;
+	server->status = SERVER_UNINITIAL;
 	return 0;
 }
 
 static void block_dup(void *dest, void *source){
 	memcpy(dest, source, sizeof(block_location));
 }
-
-//TODO
-////server thread
-//static void thread_handle_servers(){
-//
-//}
 
 /**
  * allocate storage space for the file according to the file_size
@@ -64,7 +60,7 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 	master_data_server *ptr;
 	for(server_index = 0; server_index != servers->servers_count; server_index++){
 		ptr = servers->server_list + server_index;
-		if(/*ptr->status != AVAILABLE || */ptr->free_block == 0){
+		if(/*TODO ptr->status != AVAILABLE || */ptr->free_block == 0){
 			continue;
 		}
 
@@ -116,6 +112,7 @@ data_servers *data_servers_create(unsigned int server_count, double load_factor,
 	}
 
 	int i;
+	//initialize each data server machine
 	for(i = 0; i != server_count; i++){
 		init_data_server(servers->server_list + i, i, server_block_size);
 	}
@@ -126,18 +123,23 @@ data_servers *data_servers_create(unsigned int server_count, double load_factor,
 		free(servers->server_list);
 		return NULL;
 	}
-	//TODO initialize each data server machine
+
 	servers->global_id = 0;
 	servers->load_factor = load_factor;
 	servers->opera->heart_blood = heart_blood;
 	servers->opera->file_allocate_machine = file_allocate_machine;
 	servers->servers_count = server_count;
 	servers->server_block_size = server_block_size;
-	//servers->
 	return servers;
 }
 
-int data_servers_destroy(){
+int data_servers_destroy(data_servers * servers){
+	if(servers != NULL)
+	{
+		free(servers->opera);
+		free(servers->server_list);
+		free(servers);
+	}
 	return 0;
 }
 

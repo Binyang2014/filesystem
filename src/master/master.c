@@ -104,6 +104,12 @@ static int answer_client_create_file(common_msg_t *request){
 	return 0;
 }
 
+static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
+	d_server_heart_blood_t *cmd = (d_server_heart_blood_t *)msg->rest;
+	//int server_id, data_server_status status, time_t time
+	return master_data_servers->opera->heart_blood(servers, cmd->id,  SERVER_AVAILABLE, time);
+}
+
 /**
  *	master server
  *	receive message and put message into the message queue
@@ -114,7 +120,7 @@ static void* master_server(void *arg) {
 	char *c = master_cmd_buff + MASTER_CMD_RECV_BUFF;
 	while (1) {
 		err_ret("master.c: master_server listening request");
-		MPI_Recv(c, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+		m_mpi_cmd_recv(c, &status);
 		set_common_msg(m, status.MPI_SOURCE, c);
 		syn_queue_push(message_queue, syn_message_queue, m);
 		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
@@ -131,8 +137,16 @@ static void* request_handler(void *arg) {
 		if (cmd != NULL)
 		{
 			unsigned short operation_code = cmd->operation_code;
-			if (operation_code == CREATE_FILE_CODE) {
-				answer_client_create_file(cmd);
+			switch(operation_code)
+			{
+				case CREATE_FILE_CODE:
+					answer_client_create_file(cmd);
+					continue;
+				case D_M_HEART_BLOOD_CODE:
+					heart_blood(master_data_servers, cmd, time(NULL));
+					continue;
+				default:
+					continue;
 			}
 		}
 	}
