@@ -29,6 +29,7 @@ static int heart_blood(data_servers *servers, int server_id, data_server_status 
 
 	(servers->server_list + server_id)->last_update = time;
 	(servers->server_list + server_id)->status = status;
+	err_ret("heart blood from machine %d", server_id);
 	return 0;
 }
 
