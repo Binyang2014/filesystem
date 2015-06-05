@@ -239,7 +239,9 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 void dataserver_run(data_server_t* dateserver)
 {
 	time_t last_time, cur_time;
+	char* msg;
 
+	msg = (char*)malloc(sizeof(char) * MAX_CMD_MSG_LEN);
 	last_time = time(NULL);
 	dateserver->thread_pool->tp_ops->start(dateserver->thread_pool, dateserver->event_handler);
 	for(;;)
@@ -248,7 +250,8 @@ void dataserver_run(data_server_t* dateserver)
 		cur_time = time(NULL);
 		if(cur_time - last_time >= HEART_FREQ)
 		{
-			d_server_heart_blood_t heart_beat_msg;
+			d_server_heart_blood_t* heart_beat_msg;
+			heart_beat_msg = (d_server_heart_blood_t*)msg;
 			heart_beat_msg.operation_code = D_M_HEART_BLOOD_CODE;
 			heart_beat_msg.id = data_server->machine_id;
 			//send heart beat to master
