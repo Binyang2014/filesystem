@@ -253,6 +253,10 @@ static void list_del_node(list_t *list, list_node_t *node)
  * This function can't fail. */
 static list_iter_t *list_get_iterator(list_t *list, int direction)
 {
+	if(list == NULL){
+		return NULL;
+	}
+
     list_iter_t *iter;
 
     if ((iter = malloc(sizeof(*iter))) == NULL) return NULL;

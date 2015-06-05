@@ -52,6 +52,7 @@ basic_queue_iterator *create_basic_queue_iterator(basic_queue_t *queue);
 
 /*TODO, allocate file space can use this reuse old queue space */
 basic_queue_t* alloc_basic_queue(int, int);
+void *get_queue_element(int index);
 void destroy_basic_queue(basic_queue_t* this);
 
 #endif

@@ -70,3 +70,10 @@ unsigned int bkdr_hash(const char *str, int length)
 	}
 	return(hash % length);
 }
+
+unsigned int bddr_long_hash(unsigned long value, int size)
+{
+	unsigned int seed = 131;// 31 131 1313 13131 131313 etc..
+	unsigned long hash = value * seed;
+	return(hash % size);
+}

@@ -100,7 +100,6 @@ typedef struct c_d_write_cmd{
 	int block_num;
 }c_d_cmd_t;
 
-
 typedef struct c_d_block_data{
 	block_location block_info;
 	char data[BLOCK_SIZE];

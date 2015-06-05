@@ -186,6 +186,14 @@ basic_queue_t* alloc_basic_queue(int type_size, int queue_len)
 	return this;
 }
 
+void *get_queue_element(basic_queue_t* this, int index){
+	if(this == NULL){
+		return NULL;
+	}
+
+	return this->elements + index * this->element_size;
+}
+
 void destroy_basic_queue(basic_queue_t* this)
 {
 	int i;

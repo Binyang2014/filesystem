@@ -19,7 +19,6 @@ typedef enum data_server_status{
 	SERVER_TIME_OUT
 }data_server_status;
 
-
 typedef struct master_data_server{
 	data_server_status status;
 	unsigned int server_id;
