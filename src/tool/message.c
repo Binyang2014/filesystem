@@ -71,6 +71,13 @@ void d_mpi_data_send(void* msg, int source, int tag)
 	MPI_Send(msg, MAX_DATA_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD);
 }
 
+//data send cmd message
+void d_mpi_cmd_send(void* msg, int source, int tag)
+{
+	assert(msg != NULL);
+
+	MPI_Send(msg, MAX_CMD_MSG_LEN, MPI_CHAR, source, tag, MPI_COMM_WORLD);
+}
 
 //master send cmd message
 void m_mpi_cmd_send(void *msg, int source, int tag)
