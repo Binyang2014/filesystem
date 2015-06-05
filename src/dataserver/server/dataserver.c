@@ -249,6 +249,7 @@ void dataserver_run(data_server_t* dateserver)
 		if(cur_time - last_time >= HEART_FREQ)
 		{
 			d_server_heart_blood_t heart_beat_msg;
+			heart_beat_msg.operation_code = D_M_HEART_BLOOD_CODE;
 			heart_beat_msg.id = data_server->machine_id;
 			//send heart beat to master
 			//d_mpi_cmd_send(void* msg, int source, int tag);
