@@ -8,6 +8,7 @@
 #include <mpi.h>
 #include "./client/client.h"
 #include "./master/master.h"
+#include "./dataserver/server/dataserver.h"
 
 int main(argc, argv)
 int argc;char ** argv;
