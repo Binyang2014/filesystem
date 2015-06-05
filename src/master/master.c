@@ -107,7 +107,7 @@ static int answer_client_create_file(common_msg_t *request){
 static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
 	d_server_heart_blood_t *cmd = (d_server_heart_blood_t *)msg->rest;
 	//int server_id, data_server_status status, time_t time
-	return master_data_servers->opera->heart_blood(servers, cmd->id,  SERVER_AVAILABLE, time);
+	return master_data_servers->opera->heart_blood(servers, cmd->id - 1,  SERVER_AVAILABLE, time);
 }
 
 /**
