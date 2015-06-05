@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <mpi.h>
 #include "dataserver.h"
 #include "dataserver_buff.h"
@@ -237,9 +238,21 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 
 void dataserver_run(data_server_t* dateserver)
 {
+	time_t last_time, cur_time;
+
+	last_time = time(NULL);
 	dateserver->thread_pool->tp_ops->start(dateserver->thread_pool, dateserver->event_handler);
 	for(;;)
 	{
 		m_cmd_receive();
+		cur_time = time(NULL);
+		if(cur_time - last_time >= HEART_FREQ)
+		{
+			d_server_heart_blood_t heart_beat_msg;
+			heart_beat_msg.id = data_server->machine_id;
+			//send heart beat to master
+			//d_mpi_cmd_send(void* msg, int source, int tag);
+			last_time = cur_time;
+		}
 	}
 }

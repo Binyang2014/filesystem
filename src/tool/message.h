@@ -246,6 +246,7 @@ void d_mpi_cmd_recv(void* msg, mpi_status_t* status_t);
 void d_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 void d_mpi_data_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 void d_mpi_data_send(void* msg, int source, int tag);
+void d_mpi_cmd_send(void* msg, int source, int tag);
 
 void m_mpi_cmd_send(void *msg, int source, int tag);
 void m_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
