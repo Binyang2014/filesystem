@@ -14,6 +14,7 @@ int argc;char ** argv;
 {
 	MPI_Init(&argc, &argv);
 	int rank, size;
+	data_server_t* dataserver;
 
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -24,6 +25,8 @@ int argc;char ** argv;
 	} else if (rank == 1) {
 		puts("========client start========");
 		//sleep(3);
+		dataserver = alloc_dataserver(MIDDLE, 1);
+		dataserver_run(dataserver);
 		client_init();
 	}
 
