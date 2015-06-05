@@ -11,6 +11,7 @@
 #include <math.h>
 #include "master_data_servers.h"
 #include "../tool/message.h"
+#include "../tool/errinfo.h"
 
 /*===============private functions===============*/
 //static double load_situation(master_data_server *);
@@ -24,12 +25,13 @@
 
 static int heart_blood(data_servers *servers, int server_id, data_server_status status, time_t time){
 	if(servers == NULL || server_id > servers->servers_count){
+		err_ret("MASTER_DATA_SERVERS.C: ERROR server is null or server id is illegal %d %d", server_id, servers->servers_count);
 		return -1;
 	}
 
 	(servers->server_list + server_id)->last_update = time;
 	(servers->server_list + server_id)->status = status;
-	err_ret("heart blood from machine %d", server_id);
+	//err_ret("heart blood from machine %d", server_id);
 	return 0;
 }
 
@@ -52,16 +54,23 @@ static void block_dup(void *dest, void *source){
 basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_size, int block_size){
 	int block_num = ceil((double)file_size / block_size);
 	basic_queue_t *queue = alloc_basic_queue(sizeof(block_location), block_num);
+	if(block_num == 0){
+		return queue;
+	}
+
 	queue_set_dup_method(queue, block_dup);
 	block_location tmp;
 	int seq = 0;
 	int count = 0;
-	int server_index = 0;
+	int server_index = 1;
 	int j;
 	master_data_server *ptr;
-	for(server_index = 0; server_index != servers->servers_count; server_index++){
+	for(; server_index != servers->servers_count; server_index++){
+
 		ptr = servers->server_list + server_index;
-		if(/*TODO ptr->status != AVAILABLE || */ptr->free_block == 0){
+		if(ptr->status != SERVER_AVAILABLE || ptr->free_block == 0){
+			//if(server_index < 10)
+			//printf("index = %d ptr->status != SERVER_AVAILABLE = %d %d\n", server_index, ptr->status != SERVER_AVAILABLE , ptr->free_block);
 			continue;
 		}
 
@@ -80,9 +89,14 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 			tmp.server_id = server_index;
 			queue->basic_queue_op->push(queue, &tmp);
 		}
+
+		if(block_num == 0){
+			break;
+		}
 	}
 
 	if(block_num == 0){
+		//printf("sasjalfmlamcoa0912e1jmn");
 		return queue;
 	}
 	else{

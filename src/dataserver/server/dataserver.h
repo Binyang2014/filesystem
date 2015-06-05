@@ -70,5 +70,5 @@ int get_current_imformation(data_server_t* server_imf); //返回目前数据节�
 void destory_datasrever();
 
 //this is the ultimate goal!
-void dataserver_run(data_server_t* dateserver);
+void *dataserver_run(void *arg);
 #endif

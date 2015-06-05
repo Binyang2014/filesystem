@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <mpi.h>
+#include <pthread.h>
 #include "dataserver.h"
 #include "dataserver_buff.h"
 #include "dataserver_handler.h"
@@ -24,6 +25,7 @@
 //many kinds of locks
 
 static data_server_t* data_server;
+static void* heart_beat(void* args);
 
 int get_current_imformation(data_server_t * server_imf)
 {
@@ -63,6 +65,7 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 		err_quit("error in init_dataserver function");
 
 	//get_current_imformation(data_server);
+	data_server->machine_id = dev_num;
 	//init buffer
 	set_data_server_buff(data_server, THREAD_POOL_SIZE);
 	//init msg_cmd_buffer
@@ -236,27 +239,34 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 	return NULL;
 }
 
-void dataserver_run(data_server_t* dateserver)
+void *dataserver_run(void *arg)
 {
-	time_t last_time, cur_time;
+	data_server_t* dateserver = (data_server_t*)arg;
 	char* msg;
+	pthread_t tid;
 
 	msg = (char*)malloc(sizeof(char) * MAX_CMD_MSG_LEN);
-	last_time = time(NULL);
 	dateserver->thread_pool->tp_ops->start(dateserver->thread_pool, dateserver->event_handler);
+	pthread_create(&tid, NULL, heart_beat, msg);
 	for(;;)
 	{
 		m_cmd_receive();
-		cur_time = time(NULL);
-		if(cur_time - last_time >= HEART_FREQ)
-		{
-			d_server_heart_blood_t* heart_beat_msg;
-			heart_beat_msg = (d_server_heart_blood_t*)msg;
-			heart_beat_msg->operation_code = D_M_HEART_BLOOD_CODE;
-			heart_beat_msg->id = data_server->machine_id;
-			//send heart beat to master
-			d_mpi_cmd_send(&heart_beat_msg, 0, MPI_ANY_TAG);
-			last_time = cur_time;
-		}
 	}
+	return 0;
+}
+
+void* heart_beat(void* msg)
+{
+	for(;;)
+	{
+		d_server_heart_blood_t* heart_beat_msg;
+		heart_beat_msg = (d_server_heart_blood_t*)msg;
+		heart_beat_msg->operation_code = D_M_HEART_BLOOD_CODE;
+		heart_beat_msg->id = data_server->machine_id;
+		//send heart beat to master
+		d_mpi_cmd_send(heart_beat_msg, 0, 0);
+		//printf("heart beat coming\n");
+		sleep(1);
+	}
+	return NULL;
 }

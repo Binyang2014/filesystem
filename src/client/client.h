@@ -10,7 +10,7 @@
 #define SRC_MAIN_CLIENT_H_
 
 /*===============api declaration================*/
-int  client_init();
+void *client_init(void *arg);
 int  client_destroy();
 
 //提供给本地程序的服务接口

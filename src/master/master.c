@@ -69,7 +69,7 @@ static int answer_client_create_file(common_msg_t *request){
 		err_ret("answer_client_create_file: name space create file failed, status = %d", status);
 		return status;
 	}
-	basic_queue_t *queue = master_data_servers->opera->file_allocate_machine(master_data_servers, file_request->file_size, BLOCK_SIZE);
+	basic_queue_t *queue = master_data_servers->opera->file_allocate_machine(master_data_servers, file_request->file_size, MAX_COUNT_DATA);
 	malloc_result = (queue == NULL ? 0 : 1);
 //	//TODO if communicate error
 	MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
@@ -85,8 +85,8 @@ static int answer_client_create_file(common_msg_t *request){
 		return NO_ENOUGH_SPACE;
 	}
 	int ans_message_size = ceil((double)queue->current_size / LOCATION_MAX_BLOCK);
-	int i;
-	for(i = 1; i <= ans_message_size; i++){
+	int i = 1;
+	for(; i <= ans_message_size; i++){
 		if(i != ans_message_size){
 			ans->is_tail = 0;
 			ans->block_num = LOCATION_MAX_BLOCK;
@@ -98,6 +98,7 @@ static int answer_client_create_file(common_msg_t *request){
 		//ans->generated_id
 		ans->operation_code = CREATE_FILE_ANS_CODE;
 		memcpy(ans->block_global_num, queue->elements + (i - 1) * LOCATION_MAX_BLOCK * queue->element_size, ans->block_num * queue->element_size);
+		//printf("-------ans_size=====%d\n", ans->block_num);
 		MPI_Send(ans, sizeof(ans_client_create_file), MPI_CHAR, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 	}
 	free(ans);
@@ -107,7 +108,8 @@ static int answer_client_create_file(common_msg_t *request){
 static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
 	d_server_heart_blood_t *cmd = (d_server_heart_blood_t *)msg->rest;
 	//int server_id, data_server_status status, time_t time
-	return master_data_servers->opera->heart_blood(servers, cmd->id - 1,  SERVER_AVAILABLE, time);
+	//err_ret("HEART_BLOOD.C: heart_blood listening request");
+	return servers->opera->heart_blood(servers, cmd->id - 1,  SERVER_AVAILABLE, time);
 }
 
 /**
@@ -115,15 +117,15 @@ static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
  *	receive message and put message into the message queue
  */
 static void* master_server(void *arg) {
-	MPI_Status status;
+	mpi_status_t status;
 	common_msg_t *m = master_msg_buff + MASTER_MSG_RECV_BUFF;
 	char *c = master_cmd_buff + MASTER_CMD_RECV_BUFF;
 	while (1) {
-		err_ret("master.c: master_server listening request");
+		//err_ret("master.c: master_server listening request");
 		m_mpi_cmd_recv(c, &status);
-		set_common_msg(m, status.MPI_SOURCE, c);
+		set_common_msg(m, status.source, c);
 		syn_queue_push(message_queue, syn_message_queue, m);
-		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+		//err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	}
 	return 0;
 }
@@ -162,7 +164,7 @@ int master_init(){
 	master_cmd_buff = (char *)malloc(MAX_CMD_MSG_LEN * 4);
 	master_msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t) * 4);
 	master_threads = (pthread_t *)malloc(sizeof(pthread_t) * 4);
-	master_data_servers = data_servers_create(1024, 0.75, 10);
+	master_data_servers = data_servers_create(1024, 0.75, 1500);
 	syn_message_queue = alloc_queue_syn();
 
 	//TODO check this

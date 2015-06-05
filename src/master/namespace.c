@@ -162,7 +162,7 @@ static file_dir_node* find_file_node(const namespace *this, const char *name) {
 
 	char dir_name[file_name_size];
 	parse_path(dir_name, name, strlen(name));
-	int dir_hash = bkdr_hash(dir_name, this->parent_hash_length);
+	//int dir_hash = bkdr_hash(dir_name, this->parent_hash_length);
 	int chi_hash = bkdr_hash(name, this->child_hash_length);
 	//file_dir_node *par_dirs = this->parent_dirs[dir_hash];
 
@@ -336,7 +336,7 @@ int namespace_create_dir(namespace *this, char *path) {
 
 	//目录 文件 路径的hash映射
 	int path_hash_code = bkdr_hash(path, this->parent_hash_length);
-	int dir_hash_code = bkdr_hash(parent_dir, this->parent_hash_length);
+	//int dir_hash_code = bkdr_hash(parent_dir, this->parent_hash_length);
 	//int file_hash_code = bkdr_hash(child_dir, this->child_hash_length);
 
 	//file_dir_node *tmp_node = this->parent_dirs[path_hash_code]; //遍历指针

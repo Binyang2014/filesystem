@@ -84,7 +84,7 @@ void list_release(list_t *list)
     len = list->len;
     while(len--) {
         next = current->next;
-        if (list->free) list->free(current->value);
+        if (list->free) list->free(current->value);//TODO else? free(current->value)
         free(current);
         current = next;
     }
