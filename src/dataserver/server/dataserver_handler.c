@@ -149,19 +149,19 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 	d_mpi_cmd_send(msg_buff, source, tag);
 	memset(msg_buff, 0, MAX_CMD_MSG_LEN);
 	//waiting for message
-	d_mpi_acc_recv(msg_buff, source, tag, &status);
+//	d_mpi_acc_recv(msg_buff, source, tag, &status);
 
 #ifdef DATASERVER_COMM_DEBUG
-	printf("accept message in write handler\n");
-	printf_msg_status(&status);
+//	printf("accept message in write handler\n");
+//	printf_msg_status(&status);
 #endif
 
-	if(*(unsigned short*)msg_buff != MSG_ACC)
-	{
-		err_msg("The client do not ready to send message now");
-		//send error message to client
-		return -1;
-	}
+//	if(*(unsigned short*)msg_buff != MSG_ACC)
+//	{
+//		err_msg("The client do not ready to send message now");
+//		//send error message to client
+//		return -1;
+//	}
 
 	msg_blocks = file_info->count / MAX_DATA_CONTENT_LEN;
 	msg_rest = file_info->count % MAX_DATA_CONTENT_LEN;

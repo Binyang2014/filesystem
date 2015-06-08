@@ -72,7 +72,7 @@ int main(int argc, char* argv[])
 		c_mpi_acc_recv(&(msg.operation_code), 0, 13, &mpi_status);
 		init_acc_struct(&acc_msg);
 		init_data_structure(&data_msg);
-		MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
+//		MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
 		MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);
 		sleep(1);
 
