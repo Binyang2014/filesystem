@@ -151,7 +151,7 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 	}
 	puts("FINIST SEND DATA");
 
-	void destroy_basic_queue(block_queue);
+	destroy_basic_queue(block_queue);
 	fclose(fp);
 }
 
@@ -169,7 +169,7 @@ static int client_create_file_op(char *file_path, char *file_name)
 		return -1;
 	}
 
-	int result;
+	//int result;
 	int master_malloc_result;
 
 	MPI_Status status;
@@ -200,7 +200,7 @@ static int client_create_file_op(char *file_path, char *file_name)
 			MPI_Recv(create_file_buff, sizeof(ans_client_create_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
 			ans = (ans_client_create_file *)create_file_buff;
 			list->list_ops->list_add_node_tail(list, alloc_create_file_buff(create_file_buff, sizeof(ans_client_create_file)));
-			int i;
+			//int i;
 			//for(i = 0; i != ans->block_num; i++)
 			//{
 			//	printf(" server_id == %d\n", ans->block_num);
@@ -224,6 +224,33 @@ static int client_create_file_op(char *file_path, char *file_name)
 }
 
 static int client_read_file_op(char *file_path, char *file_name){
+	client_read_file *c_r_f = (client_read_file *)malloc(sizeof(client_read_file));
+	strcpy(c_r_f->file_name, file_name);
+	c_r_f->file_size = 0;
+
+	MPI_Send(c_r_f, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+
+	int location_exists;
+	MPI_Status status;
+	MPI_Recv(&location_exists, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+	if(!location_exists){
+		err_ret("FILE NOT EXISTS");
+		return 0;
+	}else{
+		ans_client_read_file *ans;
+		list_t *list = list_create();
+		list->free = free;
+		do{
+			MPI_Recv(create_file_buff, sizeof(ans_client_read_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+			ans = (ans_client_read_file *)create_file_buff;
+			list->list_ops->list_add_node_tail(list, alloc_create_file_buff(create_file_buff, sizeof(ans_client_read_file)));
+		//	int i;
+			//for(i = 0; i != ans->block_num; i++)
+			//{
+			//	printf(" server_id == %d\n", ans->block_num);
+			//}
+		}while(!ans->is_tail);
+	}
 	return 0;
 }
 
@@ -247,7 +274,7 @@ void *client_init(void *arg) {
 	//client_create_file_op("/home/ron/test/read.in", "/readin");
 	err_ret("end create file");
 
-	client_
+	//client_
 	return 0;
 }
 
