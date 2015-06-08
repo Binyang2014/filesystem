@@ -10,6 +10,7 @@
 #include <time.h>
 #include <mpi.h>
 #include <pthread.h>
+#include <unistd.h>
 #include "dataserver.h"
 #include "dataserver_buff.h"
 #include "dataserver_handler.h"
@@ -264,7 +265,7 @@ void* heart_beat(void* msg)
 		heart_beat_msg->operation_code = D_M_HEART_BLOOD_CODE;
 		heart_beat_msg->id = data_server->machine_id;
 		//send heart beat to master
-		d_mpi_cmd_send(heart_beat_msg, 0, 0);
+		//d_mpi_cmd_send(heart_beat_msg, 0, 0);
 		//printf("heart beat coming\n");
 		sleep(1);
 	}
