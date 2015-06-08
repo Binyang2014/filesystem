@@ -59,17 +59,17 @@ static void set_common_msg(common_msg_t *msg, int source, char *message){
 	memcpy(msg->rest, message, MAX_CMD_MSG_LEN);
 }
 
-static int answer_client_create_file(common_msg_t *request){
+static int answer_client_create_file(namespace *space, common_msg_t *request){
 	client_create_file *file_request = (client_create_file *)(request->rest);
 	//TODO the first is not going to provide any fault tolerance, but the name space modify should be temporary whenever is not confirmed
-	int status = namespace_create_file(master_namespace , file_request->file_name);
+	int status = namespace_create_file(space , file_request->file_name);
 	int malloc_result = 0;
 	if(status != OPERATE_SECCESS){
 		MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 		err_ret("answer_client_create_file: name space create file failed, status = %d", status);
 		return status;
 	}
-	basic_queue_t *queue = master_data_servers->opera->file_allocate_machine(master_data_servers, file_request->file_size, MAX_COUNT_DATA);
+	basic_queue_t *queue = master_data_servers->opera->file_allocate_machine(master_data_servers, file_request->file_size, master_data_servers->server_block_size);
 	malloc_result = (queue == NULL ? 0 : 1);
 //	//TODO if communicate error
 	MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
@@ -79,6 +79,7 @@ static int answer_client_create_file(common_msg_t *request){
 		return NO_ENOUGH_SPACE;
 	}
 
+	set_file_location(space, queue, file_request->file_name);
 	ans_client_create_file *ans = (ans_client_create_file *)malloc(sizeof(ans_client_create_file));
 	if(ans == NULL){
 		err_ret("master.c answer_client_create_file: allocate space fail for answer client create file buff");
@@ -103,6 +104,31 @@ static int answer_client_create_file(common_msg_t *request){
 	}
 	free(ans);
 	return 0;
+}
+
+static int answer_client_read_file(namespace *space, common_msg_t *request){
+	client_read_file *file_request = (client_read_file *)(request->rest);
+	basic_queue_t *queue = get_file_location(space, file_request->file_name);
+
+	ans_client_read_file *ans = (ans_client_read_file *)malloc(sizeof(ans_client_read_file));
+	int ans_message_size = ceil((double)queue->current_size / LOCATION_MAX_BLOCK);
+	int i = 1;
+	for(; i <= ans_message_size; i++){
+		if(i != ans_message_size){
+			ans->is_tail = 0;
+			ans->block_num = LOCATION_MAX_BLOCK;
+		}else{
+			ans->is_tail = 1;
+			ans->block_num = queue->current_size - (i - 1) * LOCATION_MAX_BLOCK;
+		}
+
+		ans->operation_code = CREATE_FILE_ANS_CODE;
+		memcpy(ans->block_global_num, queue->elements + (i - 1) * LOCATION_MAX_BLOCK * queue->element_size, ans->block_num * queue->element_size);
+		//printf("-------ans_size=====%d\n", ans->block_num);
+		MPI_Send(ans, MAX_CMD_MSG_LEN, MPI_CHAR, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+	}
+
+	free(ans);
 }
 
 static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
@@ -142,7 +168,10 @@ static void* request_handler(void *arg) {
 			switch(operation_code)
 			{
 				case CREATE_FILE_CODE:
-					answer_client_create_file(cmd);
+					answer_client_create_file(master_namespace, cmd);
+					continue;
+				case READ_FILE_CODE:
+					answer_client_read_file(master_namespace, cmd);
 					continue;
 				case D_M_HEART_BLOOD_CODE:
 					heart_blood(master_data_servers, cmd, time(NULL));
@@ -164,7 +193,7 @@ int master_init(){
 	master_cmd_buff = (char *)malloc(MAX_CMD_MSG_LEN * 4);
 	master_msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t) * 4);
 	master_threads = (pthread_t *)malloc(sizeof(pthread_t) * 4);
-	master_data_servers = data_servers_create(1024, 0.75, 1500);
+	master_data_servers = data_servers_create(1024, 0.75, BLOCK_SIZE, 256);
 	syn_message_queue = alloc_queue_syn();
 
 	//TODO check this

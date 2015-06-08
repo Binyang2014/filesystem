@@ -29,7 +29,8 @@ typedef struct master_data_server{
 
 typedef struct data_servers{
 	unsigned int servers_count;
-	unsigned int server_block_size;
+	unsigned int server_block_size;		//block size
+	unsigned int server_block_num;		//block num
 	unsigned long global_id;
 	double load_factor;
 	master_data_server *server_list;
@@ -41,7 +42,7 @@ typedef struct data_server_opera{
 	basic_queue_t *(*file_allocate_machine)(data_servers *servers, unsigned long file_size, int block_size);
 }data_server_opera;
 
-data_servers *data_servers_create(unsigned int server_count, double load_factor, unsigned int server_block_size);
+data_servers *data_servers_create(unsigned int server_count, double load_factor, unsigned int server_block_size, unsigned int server_block_num);
 int data_servers_destroy();
 
 #endif /* SRC_MAIN_DATA_SERVERS_H_ */

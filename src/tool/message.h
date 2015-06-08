@@ -34,10 +34,11 @@
  * operation code
  */
 #define CREATE_FILE_CODE 3001
-#define CREATE_FILE_ANS_CODE 3002
-#define D_M_HEART_BLOOD_CODE 3003
-#define C_D_WRITE_BLOCK_CODE 3004
-#define C_D_READ_BLOCK_CODE 3005
+#define READ_FILE_CODE 3002
+#define CREATE_FILE_ANS_CODE 3003
+#define D_M_HEART_BLOOD_CODE 3004
+#define C_D_WRITE_BLOCK_CODE 3005
+#define C_D_READ_BLOCK_CODE 3006
 
 /**
  * master answer code
@@ -67,8 +68,15 @@ typedef struct client_create_file{
 	char file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
 }client_create_file;
 
+typedef struct client_read_file{
+	unsigned short operation_code;
+	unsigned long file_size;
+	char file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
+}client_read_file;
+
 typedef struct block_location{
 	unsigned int server_id;
+	unsigned int write_len;
 	unsigned long global_id;
 	unsigned long block_seq;
 }block_location;
@@ -83,6 +91,17 @@ typedef struct ans_client_create_file{
 	unsigned long generated_id;
 	block_location block_global_num[LOCATION_MAX_BLOCK];
 }ans_client_create_file;
+
+/**
+ * master answer of client create file
+ */
+typedef struct ans_client_read_file{
+	unsigned short operation_code;
+	unsigned char is_tail;
+	unsigned int block_num;
+	unsigned long generated_id;
+	block_location block_global_num[LOCATION_MAX_BLOCK];
+}ans_client_read_file;
 
 /*
  * data server send heart blood to master

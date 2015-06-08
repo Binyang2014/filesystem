@@ -31,9 +31,12 @@ int argc;char ** argv;
 		dataserver = alloc_dataserver(MIDDLE, rank);
 		pthread_create(&p_server, NULL, dataserver_run, (void *)dataserver);
 		sleep(3);
-		pthread_create(&p_client, NULL, client_init, NULL);
+		if(rank == 1){
+			pthread_create(&p_client, NULL, client_init, NULL);
+			pthread_join(p_client, NULL);
+		}
 		pthread_join(p_server, NULL);
-		pthread_join(p_client, NULL);
+
 	}
 	MPI_Finalize();
 	return 0;

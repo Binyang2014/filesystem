@@ -194,6 +194,14 @@ void *get_queue_element(basic_queue_t* this, int index){
 	return this->elements + index * this->element_size;
 }
 
+void set_queue_element(basic_queue_t* this, int index, void *arg){
+	if(this == NULL || arg == NULL){
+		return;
+	}
+
+	this->dup(this->elements + index * this->element_size, arg);
+}
+
 void destroy_basic_queue(basic_queue_t* this)
 {
 	int i;
@@ -213,5 +221,11 @@ void destroy_basic_queue(basic_queue_t* this)
 	free(this->elements);
 	free(this->basic_queue_op);
 	free(this);
+}
+
+void basic_queue_reset(basic_queue_t* this){
+	this->current_size = 0;
+	this->tail_pos = 0;
+	this->head_pos = 0;
 }
 

@@ -395,6 +395,21 @@ int set_file_location(const namespace *namespace, basic_queue_t *file_location, 
 	return OPERATE_SECCESS;
 }
 
+basic_queue_t *get_file_location(const namespace *namespace, char *name){
+	path_pre_handle(name);
+	int status = path_verify(name);
+	if(status != OPERATE_SECCESS){
+		return status;
+	}
+
+	file_dir_node *node = find_file_node(namespace, name);
+	if(node == NULL){
+		return FILE_NOT_EXISTS;
+	}
+
+	return node->location;
+}
+
 /**
  * since the name space is implemented by full path name, a dir name modify should cause it's children's
  * name modify, it may cost much right now and it will be implemented next

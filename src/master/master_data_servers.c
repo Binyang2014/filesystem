@@ -52,7 +52,8 @@ static void block_dup(void *dest, void *source){
  * allocate storage space for the file according to the file_size
  */
 basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_size, int block_size){
-	int block_num = ceil((double)file_size / block_size);
+	int tmp_block_num = ceil((double)file_size / block_size);
+	int block_num = tmp_block_num;
 	basic_queue_t *queue = alloc_basic_queue(sizeof(block_location), block_num);
 	if(block_num == 0){
 		return queue;
@@ -87,10 +88,13 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 			tmp.block_seq = seq++;
 			tmp.global_id = servers->global_id++;
 			tmp.server_id = server_index;
+			tmp.write_len = block_size;
 			queue->basic_queue_op->push(queue, &tmp);
 		}
 
 		if(block_num == 0){
+
+			((block_location *)(queue->elements + (queue->current_size - 1) * queue->element_size))->write_len = file_size - (tmp_block_num - 1) * block_size;
 			break;
 		}
 	}
@@ -114,7 +118,7 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 	}
 }
 
-data_servers *data_servers_create(unsigned int server_count, double load_factor, unsigned int server_block_size){
+data_servers *data_servers_create(unsigned int server_count, double load_factor, unsigned int server_block_size, unsigned int server_block_num){
 	data_servers *servers = (data_servers *)malloc(sizeof(data_servers));
 	if(servers == NULL){
 		return NULL;
@@ -129,7 +133,7 @@ data_servers *data_servers_create(unsigned int server_count, double load_factor,
 	int i;
 	//initialize each data server machine
 	for(i = 0; i != server_count; i++){
-		init_data_server(servers->server_list + i, i, server_block_size);
+		init_data_server(servers->server_list + i, i, server_block_num);
 	}
 
 	servers->opera = (data_server_opera *)malloc(sizeof(data_server_opera));
@@ -145,6 +149,7 @@ data_servers *data_servers_create(unsigned int server_count, double load_factor,
 	servers->opera->file_allocate_machine = file_allocate_machine;
 	servers->servers_count = server_count;
 	servers->server_block_size = server_block_size;
+	servers->server_block_num = server_block_num;
 	return servers;
 }
 

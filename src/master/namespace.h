@@ -33,6 +33,7 @@ namespace *create_namespace(int parent_hash_length, int child_hash_length);
 int namespace_create_file(namespace *this, char* name);
 int namespace_create_dir(namespace *this, char* name);
 int set_file_location(const namespace *namespace, basic_queue_t *location, char *name);
+basic_queue_t *get_file_location(const namespace *namespace, char *name);
 int namespace_rename_file(namespace *this, char* old_name, char *new_name);
 int namespace_rename_dir(namespace *this, char* old_name, char *new_name);
 int namespace_del_file(namespace *this, char* name);
