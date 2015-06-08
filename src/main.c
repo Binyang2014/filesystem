@@ -24,7 +24,7 @@ int argc;char ** argv;
 
 	if (rank == 0) {
 		puts("========master start========");
-		master_init();
+		master_init(size - 1);
 	} else {
 		puts("========client start========");
 		//sleep(3);

@@ -60,6 +60,7 @@ static void set_common_msg(common_msg_t *msg, int source, char *message){
 }
 
 static int answer_client_create_file(namespace *space, common_msg_t *request){
+	puts("basic_queue_t *queue ");
 	client_create_file *file_request = (client_create_file *)(request->rest);
 	//TODO the first is not going to provide any fault tolerance, but the name space modify should be temporary whenever is not confirmed
 	int status = namespace_create_file(space , file_request->file_name);
@@ -69,6 +70,7 @@ static int answer_client_create_file(namespace *space, common_msg_t *request){
 		err_ret("answer_client_create_file: name space create file failed, status = %d", status);
 		return status;
 	}
+
 	basic_queue_t *queue = master_data_servers->opera->file_allocate_machine(master_data_servers, file_request->file_size, master_data_servers->server_block_size);
 	malloc_result = (queue == NULL ? 0 : 1);
 //	//TODO if communicate error
@@ -143,6 +145,7 @@ static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
  *	receive message and put message into the message queue
  */
 static void* master_server(void *arg) {
+	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	mpi_status_t status;
 	common_msg_t *m = master_msg_buff + MASTER_MSG_RECV_BUFF;
 	char *c = master_cmd_buff + MASTER_CMD_RECV_BUFF;
@@ -151,12 +154,13 @@ static void* master_server(void *arg) {
 		m_mpi_cmd_recv(c, &status);
 		set_common_msg(m, status.source, c);
 		syn_queue_push(message_queue, syn_message_queue, m);
-		//err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	}
 	return 0;
 }
 
 static void* request_handler(void *arg) {
+	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	//int status;
 	common_msg_t *cmd = master_msg_buff + MASTER_MSG_TO_RUN;
 	while (1) {
@@ -186,14 +190,15 @@ static void* request_handler(void *arg) {
 
 /*====================API Implementation====================*/
 //TODO when shutdown the application, it must release all the memory resource
-int master_init(){
+int master_init(int server_count){
+//	err_ret("master.c: master_server put message current_size = %d", 12);
 	/*allocate necessary memory*/
 	master_namespace = create_namespace(1024, 32);
 	message_queue = alloc_basic_queue(sizeof(common_msg_t), -1);
 	master_cmd_buff = (char *)malloc(MAX_CMD_MSG_LEN * 4);
 	master_msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t) * 4);
 	master_threads = (pthread_t *)malloc(sizeof(pthread_t) * 4);
-	master_data_servers = data_servers_create(1024, 0.75, BLOCK_SIZE, 1 << 16);
+	master_data_servers = data_servers_create(server_count, 0.75, BLOCK_SIZE, 1 << 16);
 	syn_message_queue = alloc_queue_syn();
 
 	//TODO check this

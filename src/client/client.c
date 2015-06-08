@@ -79,6 +79,7 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 		//int block_send_size;
 		for(k = 0; k < ans->block_num;){
 			cur_machine_id = (ans->block_global_num + k) ->server_id;
+			printf("server_id = %d\n", k);
 			writer.write_len = 0;
 			printf("*****send_size = %d*****\n", block_queue->current_size);
 			while(k < ans->block_num && cur_machine_id == (ans->block_global_num + k)->server_id && block_queue->current_size + block_send_size <= MAX_COUNT_CID_W){
@@ -106,7 +107,7 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 				//printf("*****block_id = %d*****\n", writer.chunks_id_arr[t]);
 			}
 			printf("*****send_size = %d*****\n", block_queue->current_size);
-			//printf("%d %d %d", writer.);
+			printf("cur_machine_id = %d", cur_machine_id);
 			MPI_Send(&writer, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, D_MSG_CMD_TAG, MPI_COMM_WORLD);
 			//while(1);
 			//printf("*****send_size = %d*****\n", block_queue->current_size);
@@ -149,11 +150,11 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 				printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
 			}
 			fflush(stdout);
-			while(1);
 			puts("1 FINIST SEND DATA");
+			while(1);
 			write_offset += writer.write_len;
 			basic_queue_reset(block_queue);
-			puts("2 FINIST SEND DATA");
+			return;
 		}
 	}
 

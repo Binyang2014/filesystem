@@ -10,7 +10,7 @@
 
 /* master initialize
  */
-int master_init();
+int master_init(int server_count);
 int master_destroy();
 
 /**

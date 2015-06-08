@@ -58,7 +58,6 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 	if(block_num == 0){
 		return queue;
 	}
-
 	queue_set_dup_method(queue, block_dup);
 	block_location tmp;
 	int seq = 0;
@@ -66,12 +65,9 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 	int server_index = 1;
 	int j;
 	master_data_server *ptr;
-	for(; server_index != servers->servers_count; server_index++){
-
-		ptr = servers->server_list + server_index;
+	for(; server_index <= servers->servers_count; server_index++){
+		ptr = servers->server_list + server_index - 1;
 		if(ptr->status != SERVER_AVAILABLE || ptr->free_block == 0){
-			//if(server_index < 10)
-			//printf("index = %d ptr->status != SERVER_AVAILABLE = %d %d\n", server_index, ptr->status != SERVER_AVAILABLE , ptr->free_block);
 			continue;
 		}
 
@@ -93,7 +89,6 @@ basic_queue_t *file_allocate_machine(data_servers *servers, unsigned long file_s
 		}
 
 		if(block_num == 0){
-
 			((block_location *)(queue->elements + (queue->current_size - 1) * queue->element_size))->write_len = file_size - (tmp_block_num - 1) * block_size;
 			break;
 		}
