@@ -41,7 +41,7 @@ static char *create_file_buff;
 /*====================private declarations====================*/
 static void send_data(char *file_name, unsigned long file_size, list_t *list);
 static int client_create_file_op(char *file_path, char *file_name);
-static int client_read_file_op(char *file_path, char *file_name);
+//static int client_read_file_op(char *file_path, char *file_name);
 
 /*====================private functions====================*/
 static void send_data(char *file_name, unsigned long file_size, list_t *list)
@@ -61,7 +61,7 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 	msg_w_ctod_t writer;
 	writer.operation_code = 0x01;
 	writer.offset = 0;
-	writer.write_len = 16;
+	writer.write_len = 0;
 	writer.unique_tag = 13;
 
 	msg_acc_candd_t acc_msg;
@@ -82,27 +82,22 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 		//int block_send_size;
 		for(k = 0; k < ans->block_num;){
 			cur_machine_id = (ans->block_global_num + k) ->server_id;
+			writer.write_len = 0;
 			//printf("*****send_size = %d %d %d*****\n", block_queue->current_size, block_send_size, MAX_COUNT_CID_W);
-			while(1){
-				//only in one machine or this ans
-				if(k < ans->block_num && cur_machine_id == (ans->block_global_num + k)->server_id && block_queue->current_size + block_send_size <= MAX_COUNT_CID_W){
-					//printf("*****send_size = %d %d %d write_len= %d*****\n", block_queue->current_size, block_send_size, MAX_COUNT_CID_W, (ans->block_global_num + k)->write_len);
-					send_block.offset = 0;
-					while(send_block.offset < (ans->block_global_num + k)->write_len){
-						send_block.global_id = (ans->block_global_num + k)->global_id;
-						if(send_block.offset + MAX_COUNT_DATA < (ans->block_global_num + k)->write_len){
-							send_block.write_len = MAX_COUNT_DATA;
-							send_block.offset += MAX_COUNT_DATA;
-						}else{
-							send_block.write_len = (ans->block_global_num + k)->write_len - send_block.offset;
-							send_block.offset = (ans->block_global_num + k)->write_len;
-						}
-
-						block_queue->basic_queue_op->push(block_queue, &send_block);
+			while(k < ans->block_num && cur_machine_id == (ans->block_global_num + k)->server_id && block_queue->current_size + block_send_size <= MAX_COUNT_CID_W){
+				//printf("*****send_size = %d %d %d write_len= %d*****\n", block_queue->current_size, block_send_size, MAX_COUNT_CID_W, (ans->block_global_num + k)->write_len);
+				send_block.offset = 0;
+				while(send_block.offset < (ans->block_global_num + k)->write_len){
+					send_block.global_id = (ans->block_global_num + k)->global_id;
+					if(send_block.offset + MAX_COUNT_DATA < (ans->block_global_num + k)->write_len){
+						send_block.write_len = MAX_COUNT_DATA;
+						send_block.offset += MAX_COUNT_DATA;
+					}else{
+						send_block.write_len = (ans->block_global_num + k)->write_len - send_block.offset;
+						send_block.offset = (ans->block_global_num + k)->write_len;
 					}
-					k++;
-				}else{
-					break;
+					writer.write_len += send_block.write_len;
+					block_queue->basic_queue_op->push(block_queue, &send_block);
 				}
 			}
 
@@ -153,6 +148,10 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 
 	destroy_basic_queue(block_queue);
 	fclose(fp);
+}
+
+static void create_local_file(char *file_path, list_t *list){
+
 }
 
 static inline ans_client_create_file *alloc_create_file_buff(char *buff, int length){
@@ -223,36 +222,36 @@ static int client_create_file_op(char *file_path, char *file_name)
 	return 0;
 }
 
-static int client_read_file_op(char *file_path, char *file_name){
-	client_read_file *c_r_f = (client_read_file *)malloc(sizeof(client_read_file));
-	strcpy(c_r_f->file_name, file_name);
-	c_r_f->file_size = 0;
-
-	MPI_Send(c_r_f, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
-
-	int location_exists;
-	MPI_Status status;
-	MPI_Recv(&location_exists, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
-	if(!location_exists){
-		err_ret("FILE NOT EXISTS");
-		return 0;
-	}else{
-		ans_client_read_file *ans;
-		list_t *list = list_create();
-		list->free = free;
-		do{
-			MPI_Recv(create_file_buff, sizeof(ans_client_read_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
-			ans = (ans_client_read_file *)create_file_buff;
-			list->list_ops->list_add_node_tail(list, alloc_create_file_buff(create_file_buff, sizeof(ans_client_read_file)));
-		//	int i;
-			//for(i = 0; i != ans->block_num; i++)
-			//{
-			//	printf(" server_id == %d\n", ans->block_num);
-			//}
-		}while(!ans->is_tail);
-	}
-	return 0;
-}
+//static int client_read_file_op(char *file_path, char *file_name){
+//	client_read_file *c_r_f = (client_read_file *)malloc(sizeof(client_read_file));
+//	strcpy(c_r_f->file_name, file_name);
+//	c_r_f->file_size = 0;
+//
+//	MPI_Send(c_r_f, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+//
+//	int location_exists;
+//	MPI_Status status;
+//	MPI_Recv(&location_exists, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+//	if(!location_exists){
+//		err_ret("FILE NOT EXISTS");
+//		return 0;
+//	}else{
+//		ans_client_read_file *ans;
+//		list_t *list = list_create();
+//		list->free = free;
+//		do{
+//			MPI_Recv(create_file_buff, sizeof(ans_client_read_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+//			ans = (ans_client_read_file *)create_file_buff;
+//			list->list_ops->list_add_node_tail(list, alloc_create_file_buff(create_file_buff, sizeof(ans_client_read_file)));
+//		//	int i;
+//			//for(i = 0; i != ans->block_num; i++)
+//			//{
+//			//	printf(" server_id == %d\n", ans->block_num);
+//			//}
+//		}while(!ans->is_tail);
+//	}
+//	return 0;
+//}
 
 void *client_init(void *arg) {
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);

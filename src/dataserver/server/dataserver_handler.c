@@ -143,6 +143,11 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 	off_t offset;
 	mpi_status_t status;
 
+
+	((msg_acc_candd_t* )msg_buff)->operation_code = MSG_ACC;
+	((msg_acc_candd_t* )msg_buff)->status = 0;
+	d_mpi_cmd_send(msg_buff, source, tag);
+	memset(msg_buff, 0, MAX_CMD_MSG_LEN);
 	//waiting for message
 	d_mpi_acc_recv(msg_buff, source, tag, &status);
 

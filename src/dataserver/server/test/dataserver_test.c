@@ -47,11 +47,13 @@ int main(int argc, char* argv[])
 	int id, p, provided;
 	int i;
 	data_server_t* dataserver;
+	common_msg_t msg;
 	msg_w_ctod_t w_msg;
 	msg_acc_candd_t acc_msg;
 	msg_data_t data_msg;
 	msg_r_ctod_t r_msg;
 	MPI_Status status;
+	mpi_status_t mpi_status;
 
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 	MPI_Comm_rank(MPI_COMM_WORLD, &id);
@@ -67,6 +69,7 @@ int main(int argc, char* argv[])
 		init_w_struct(&w_msg);
 		printf("sending message to data server\n");
 		MPI_Send(&w_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, D_MSG_CMD_TAG, MPI_COMM_WORLD);
+		c_mpi_acc_recv(&(msg.operation_code), 0, 13, &mpi_status);
 		init_acc_struct(&acc_msg);
 		init_data_structure(&data_msg);
 		MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, 0, 13, MPI_COMM_WORLD);

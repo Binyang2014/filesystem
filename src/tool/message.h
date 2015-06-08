@@ -271,6 +271,7 @@ void m_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
 
 void c_mpi_cmd_send(void *msg, mpi_status_t* status_t);
 void c_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
+void c_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 
 void common_msg_dup(void *dest, void *source);
 #endif
