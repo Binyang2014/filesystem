@@ -15,7 +15,7 @@
 
 #define F_ARR_SIZE (1 << 8)
 #define BUFF_NODE_SIZE (1 << 8)
-#define THREAD_POOL_SIZE 8
+#define THREAD_POOL_SIZE 1
 #define HEART_FREQ 3
 //many kinds of locks
 

@@ -146,6 +146,7 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 
 	((msg_acc_candd_t* )msg_buff)->operation_code = MSG_ACC;
 	((msg_acc_candd_t* )msg_buff)->status = 0;
+	printf("source is %d, tag is %d\n", source, tag);
 	d_mpi_cmd_send(msg_buff, source, tag);
 	memset(msg_buff, 0, MAX_CMD_MSG_LEN);
 	//waiting for message
@@ -167,6 +168,7 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 	msg_rest = file_info->count % MAX_DATA_CONTENT_LEN;
 	offset = file_info->offset;
 	msg_blocks = msg_blocks + (msg_rest ? 1 : 0);
+
 
 #ifdef DATASERVER_COMM_DEBUG
 	printf("will receive message from client\n");
@@ -296,6 +298,7 @@ void d_write_handler(event_handler_t* event_handle)
 	data_server_t* this;
 	rw_handle_buff_t handle_buff;
 
+	//while(1);
 	//allocate file_info this structure do not need buffer
 	handle_buff.file_info = (msg_for_rw_t*)malloc(sizeof(msg_for_rw_t));
 	resolve_rw_handler_buffer(event_handle, &handle_buff);

@@ -64,10 +64,7 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 	writer.write_len = 0;
 	writer.unique_tag = 13;
 
-	msg_acc_candd_t acc_msg;
-	acc_msg.operation_code = MSG_ACC;
-	acc_msg.status = 0;
-
+	msg_acc_candd_t *acc_msg;
 	msg_data_t data_msg;
 
 	MPI_Status status;
@@ -99,18 +96,23 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 					writer.write_len += send_block.write_len;
 					block_queue->basic_queue_op->push(block_queue, &send_block);
 				}
+				k++;
 			}
 
 			writer.chunks_count = block_queue->current_size;
 			int t;
 			for(t = 0; t != block_queue->current_size; t++){
 				writer.chunks_id_arr[t] = ((send_data_block_t *)get_queue_element(block_queue, t))->global_id;
+				//printf("*****block_id = %d*****\n", writer.chunks_id_arr[t]);
 			}
-
-			MPI_Send(&writer, sizeof(msg_w_ctod_t), MPI_CHAR, cur_machine_id, D_MSG_CMD_TAG, MPI_COMM_WORLD);
-//			MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD)
-			MPI_Recv(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
+			printf("*****send_size = %d*****\n", block_queue->current_size);
+			MPI_Send(&writer, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, D_MSG_CMD_TAG, MPI_COMM_WORLD);
+			//while(1);
 			//printf("*****send_size = %d*****\n", block_queue->current_size);
+//			MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD)
+			MPI_Recv(receive_buf, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
+			acc_msg = receive_buf;
+			printf("*****send_size = %d*****\n", block_queue->current_size);
 			for(j = 0; j < writer.chunks_count; j++){
 
 				if (write_offset + MAX_COUNT_DATA < file_size){
@@ -127,10 +129,10 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 					data_msg.tail = 0;
 				}
 
-				int ind;
-				for(ind = 0; ind < read_size; ind++){
-					putchar(file_buf[ind]);
-				}
+//				int ind;
+//				for(ind = 0; ind < read_size; ind++){
+//					putchar(file_buf[ind]);
+//				}
 //				printf("*****send_size = %d block_num = %d*****\n", writer.chunks_count, block_num);
 
 				block_queue->basic_queue_op->pop(block_queue, &send_block);
@@ -138,6 +140,11 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 				data_msg.seqno = send_block.global_id;
 				data_msg.len = send_block.write_len;
 				memcpy(data_msg.data, file_buf, MAX_COUNT_DATA);
+
+//				int index;
+//				char *h = data_msg.data;
+//				for(index = 0; index != data_msg.len; index++)
+//					putchar(h[index]);
 				MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD);
 			}
 
@@ -267,9 +274,9 @@ void *client_init(void *arg) {
 	}
 
 	//puts("********************hehehehe********************");
-	client_create_file_op("/home/ron/test/read.in", "/readin");
+	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
 	//puts("hehehehe");
-	//client_create_file_op("/home/ron/test/read.in", "/readin");
+	client_create_file_op("/home/ron/test/read.in", "/readin");
 	//client_create_file_op("/home/ron/test/read.in", "/readin");
 	err_ret("end create file");
 
