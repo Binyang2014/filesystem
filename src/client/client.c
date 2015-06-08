@@ -47,7 +47,7 @@ static int client_create_file_op(char *file_path, char *file_name);
 static void send_data(char *file_name, unsigned long file_size, list_t *list)
 {
 	FILE *fp = fopen(file_name, "r");
-	int block_send_size = ceil((double) BLOCK_SIZE / MAX_COUNT_DATA);
+	int block_send_size = ceil((double) BLOCK_SIZE / MAX_DATA_CONTENT_LEN);
 
 	int j = 0, k = 0, read_size;
 	unsigned long write_offset = 0;
@@ -80,18 +80,18 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 		for(k = 0; k < ans->block_num;){
 			cur_machine_id = (ans->block_global_num + k) ->server_id;
 			writer.write_len = 0;
-			//printf("*****send_size = %d %d %d*****\n", block_queue->current_size, block_send_size, MAX_COUNT_CID_W);
+			printf("*****send_size = %d*****\n", block_queue->current_size);
 			while(k < ans->block_num && cur_machine_id == (ans->block_global_num + k)->server_id && block_queue->current_size + block_send_size <= MAX_COUNT_CID_W){
-				//printf("*****send_size = %d %d %d write_len= %d*****\n", block_queue->current_size, block_send_size, MAX_COUNT_CID_W, (ans->block_global_num + k)->write_len);
+				//printf("*****send_size = %d*****\n", block_queue->current_size);
 				send_block.offset = 0;
 				while(send_block.offset < (ans->block_global_num + k)->write_len){
 					send_block.global_id = (ans->block_global_num + k)->global_id;
-					if(send_block.offset + MAX_COUNT_DATA < (ans->block_global_num + k)->write_len){
-						send_block.write_len = MAX_COUNT_DATA;
-						send_block.offset += MAX_COUNT_DATA;
+					if(send_block.offset + MAX_DATA_CONTENT_LEN < (ans->block_global_num + k)->write_len){
+						send_block.write_len = MAX_DATA_CONTENT_LEN;
+						send_block.offset += MAX_DATA_CONTENT_LEN;
 					}else{
 						send_block.write_len = (ans->block_global_num + k)->write_len - send_block.offset;
-						send_block.offset = (ans->block_global_num + k)->write_len;
+						send_block.offset =  (ans->block_global_num + k)->write_len;
 					}
 					writer.write_len += send_block.write_len;
 					block_queue->basic_queue_op->push(block_queue, &send_block);
@@ -106,52 +106,57 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 				//printf("*****block_id = %d*****\n", writer.chunks_id_arr[t]);
 			}
 			printf("*****send_size = %d*****\n", block_queue->current_size);
+			//printf("%d %d %d", writer.);
 			MPI_Send(&writer, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, D_MSG_CMD_TAG, MPI_COMM_WORLD);
 			//while(1);
 			//printf("*****send_size = %d*****\n", block_queue->current_size);
 //			MPI_Send(&acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD)
 			MPI_Recv(receive_buf, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
 			acc_msg = receive_buf;
-			printf("*****send_size = %d*****\n", block_queue->current_size);
+			//printf("*****send_size = %d*****\n", block_queue->current_size);
+			int tmp_write_offset = write_offset;
 			for(j = 0; j < writer.chunks_count; j++){
 
-				if (write_offset + MAX_COUNT_DATA < file_size){
-					read_size = fread(file_buf, sizeof(char), MAX_COUNT_DATA, fp);
-					fseek(fp, MAX_COUNT_DATA, write_offset);
-					write_offset += MAX_COUNT_DATA;
+				if (tmp_write_offset + MAX_DATA_CONTENT_LEN < file_size){
+					read_size = fread(file_buf, sizeof(char), MAX_DATA_CONTENT_LEN, fp);
+					fseek(fp, MAX_DATA_CONTENT_LEN, tmp_write_offset);
+					tmp_write_offset += MAX_DATA_CONTENT_LEN;
 				} else{
-					read_size = fread(file_buf, sizeof(char), file_size - write_offset, fp);
-					write_offset = file_size;
+					read_size = fread(file_buf, sizeof(char), file_size - tmp_write_offset, fp);
+					tmp_write_offset = file_size;
 				}
 				if(j == writer.chunks_count - 1){
 					data_msg.tail = 1;
+					printf("last message %d\n", data_msg.len);
 				}else{
 					data_msg.tail = 0;
 				}
-
-//				int ind;
-//				for(ind = 0; ind < read_size; ind++){
-//					putchar(file_buf[ind]);
-//				}
-//				printf("*****send_size = %d block_num = %d*****\n", writer.chunks_count, block_num);
 
 				block_queue->basic_queue_op->pop(block_queue, &send_block);
 				data_msg.offset = send_block.offset;
 				data_msg.seqno = send_block.global_id;
 				data_msg.len = send_block.write_len;
-				memcpy(data_msg.data, file_buf, MAX_COUNT_DATA);
+				memcpy(data_msg.data, file_buf, MAX_DATA_CONTENT_LEN);
 
+			//	puts("&&&&start put content");
 //				int index;
 //				char *h = data_msg.data;
 //				for(index = 0; index != data_msg.len; index++)
 //					putchar(h[index]);
+		//		puts("&&&&end put content");
+				printf("Start Send %d/%d Data\n", j + 1, writer.chunks_count);
 				MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD);
+				printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
 			}
-
+			fflush(stdout);
+			while(1);
+			puts("1 FINIST SEND DATA");
+			write_offset += writer.write_len;
 			basic_queue_reset(block_queue);
+			puts("2 FINIST SEND DATA");
 		}
 	}
-	puts("FINIST SEND DATA");
+
 
 	destroy_basic_queue(block_queue);
 	fclose(fp);
@@ -263,7 +268,7 @@ static int client_create_file_op(char *file_path, char *file_name)
 void *client_init(void *arg) {
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);
-	file_buf = (char *)malloc(MAX_COUNT_DATA);
+	file_buf = (char *)malloc(MAX_CMD_MSG_LEN);
 	create_file_buff = (char *)malloc(sizeof(ans_client_create_file));
 	message_queue = alloc_basic_queue(sizeof(common_msg_t), -1);
 	message_queue->dup = common_msg_dup;

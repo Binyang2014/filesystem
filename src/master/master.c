@@ -193,7 +193,7 @@ int master_init(){
 	master_cmd_buff = (char *)malloc(MAX_CMD_MSG_LEN * 4);
 	master_msg_buff = (common_msg_t *)malloc(sizeof(common_msg_t) * 4);
 	master_threads = (pthread_t *)malloc(sizeof(pthread_t) * 4);
-	master_data_servers = data_servers_create(1024, 0.75, BLOCK_SIZE, 256);
+	master_data_servers = data_servers_create(1024, 0.75, BLOCK_SIZE, 1 << 16);
 	syn_message_queue = alloc_queue_syn();
 
 	//TODO check this
