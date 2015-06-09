@@ -173,14 +173,14 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 }
 
 static void create_local_file(char *file_path, list_t *list){
-	//TODO this is a dangerous op, because it will overwrite the old file
+	//TODO this is a dangerous operation, because it will overwrite the old file
 #if defined(CLIENT_DEBUG)
 	err_ret("Create file %s", file_path);
 #endif
 
 	FILE *fp = fopen(file_path, "w+");
 	fclose(fp);
-	fp = fopen(file_path, "at");
+	fp = fopen(file_path, "a");
 
 	int block_send_size = ceil((double) BLOCK_SIZE / MAX_DATA_CONTENT_LEN);
 
@@ -240,6 +240,7 @@ static void create_local_file(char *file_path, list_t *list){
 
 			for(i = 0; i != block_queue->current_size; i++){
 				reader->chunks_id_arr[i] = ((recv_data_block_t *)get_queue_element(block_queue, i))->global_id;
+				err_ret("global_id = %d", reader->chunks_id_arr[i]);
 			}
 
 #if defined(CLIENT_DEBUG)
@@ -254,23 +255,23 @@ static void create_local_file(char *file_path, list_t *list){
 #endif
 			for(i = 0; i != block_queue->current_size; i++){
 				MPI_Recv(data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
-				fwrite(data_msg, sizeof(char), data_msg->len, fp);
+				fwrite(data_msg->data, sizeof(char), data_msg->len, fp);
+				//err_ret("data_msg->len = %d", data_msg->len);
 
 #if defined(CLIENT_DEBUG)
-//				int index;
-//				char *c = data_msg->data;
-//				for(index = 0; index != data_msg->len; index++){
-//					putchar(c[index]);
-//				}
+	int index;
+	char *c = data_msg->data;
+	for(index = 0; index != data_msg->len; index++){
+		putchar(c[index]);
+	}
 #endif
 
 			}
-
+			while(1);
 			basic_queue_reset(block_queue);
 		}
-
+		reader->offset += reader->read_len;
 		node = list->list_ops->list_next(iter);
-		while(1);
 	}
 
 	free(reader);
