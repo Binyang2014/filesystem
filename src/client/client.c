@@ -148,13 +148,13 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 //				int index;
 //				for(index = 0; index != data_msg.len; index++)
 //					putchar(((char *)data_msg.data)[index]);
-			//	printf("Start Send %d/%d Data\n", j + 1, writer.chunks_count);
+//				printf("Start Send %d/%d Data\n", j + 1, writer.chunks_count);
 #endif
 
 				MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD);
 
 #if defined(CLIENT_DEBUG)
-			//	printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
+				printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
 #endif
 			}
 
@@ -267,7 +267,7 @@ static void create_local_file(char *file_path, list_t *list){
 #endif
 
 			}
-			while(1);
+			//while(1);
 			basic_queue_reset(block_queue);
 		}
 		reader->offset += reader->read_len;
@@ -398,8 +398,8 @@ void *client_init(void *arg) {
 	//puts("********************hehehehe********************");
 	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
 	//client_create_file_op("/home/ron/test/read.bak", "/readin");
-	client_create_file_op("/home/ron/test/read.in", "/readin");
-	client_read_file_op("/home/ron/test/read.out", "/readin");
+	client_create_file_op("/home/binyang/Test/read.in", "/readin");
+	client_read_file_op("/home/binyang/Test/read.out", "/readin");
 
 	//puts("hehehehe");
 	//client_create_file_op("/home/binyang/Test/test", "/readin");

@@ -15,9 +15,8 @@
 
 #define F_ARR_SIZE (1 << 12)
 #define BUFF_NODE_SIZE (1 << 8)
-#define THREAD_POOL_SIZE 2
+#define THREAD_POOL_SIZE 1
 #define HEART_FREQ 3
-#define MAX_BUFFNODE_PER_THREAD 5
 //many kinds of locks
 
 struct data_server_operations

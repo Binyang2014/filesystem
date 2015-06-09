@@ -214,7 +214,7 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	queue_set_dup_method(data_server->f_arr_buff, f_arr_dup);
 
 	if((list_node_arr = (list_node_t* )malloc(sizeof(list_node_t) * init_length *
-			MAX_BUFFNODE_PER_THREAD)) == NULL)
+			BUFF_NODE_SIZE)) == NULL)
 		err_sys("error when allocate buffer");
 	if((msg_data_arr = (msg_data_t* )malloc(sizeof(msg_data_t) * init_length)) == NULL)
 		err_sys("error when allocate buffer");
