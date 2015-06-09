@@ -118,16 +118,16 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 }
 
 //handle the request from client about writing to a file
-static int write_to_vfs(dataserver_file_t *file, char* buff, off_t offset,
-		msg_data_t* msg_buff)
+static int write_to_vfs(dataserver_file_t *file, msg_data_t* buff, off_t offset)
 {
 	int ans, len;
-	len = msg_buff->len;
+	char* data_buff;
+	len = buff->len;
+	data_buff = (char*)buff->data;
 
 	//if we need seq number to keep message in order??
-	memcpy(buff, ((msg_data_t *)msg_buff)->data, len);
 	//write to file system
-	if((ans = vfs_write(file, buff, len, offset)) == -1)
+	if((ans = vfs_write(file, data_buff, len, offset)) == -1)
 	{
 		err_msg("Something wrong when read from data server");
 		return -1;
@@ -136,39 +136,26 @@ static int write_to_vfs(dataserver_file_t *file, char* buff, off_t offset,
 }
 
 //write message handler
-static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff,
+static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, void* buff,
 		void* msg_buff)
 {
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
 	mpi_status_t status;
-
+#ifdef DATASERVER_COMM_DEBUG
+	int flag;
+#endif
 
 	((msg_acc_candd_t* )msg_buff)->operation_code = MSG_ACC;
 	((msg_acc_candd_t* )msg_buff)->status = 0;
 	printf("source is %d, tag is %d\n", source, tag);
 	d_mpi_cmd_send(msg_buff, source, tag);
-	memset(msg_buff, 0, MAX_CMD_MSG_LEN);
-	//waiting for message
-//	d_mpi_acc_recv(msg_buff, source, tag, &status);
-
-#ifdef DATASERVER_COMM_DEBUG
-//	printf("accept message in write handler\n");
-//	printf_msg_status(&status);
-#endif
-
-//	if(*(unsigned short*)msg_buff != MSG_ACC)
-//	{
-//		err_msg("The client do not ready to send message now");
-//		//send error message to client
-//		return -1;
-//	}
+	//memset(msg_buff, 0, MAX_CMD_MSG_LEN);
 
 	msg_blocks = file_info->count / MAX_DATA_CONTENT_LEN;
 	msg_rest = file_info->count % MAX_DATA_CONTENT_LEN;
 	offset = file_info->offset;
 	msg_blocks = msg_blocks + (msg_rest ? 1 : 0);
-
 
 #ifdef DATASERVER_COMM_DEBUG
 	printf("will receive message from client\n");
@@ -178,9 +165,9 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 	{
 		//received message from client
 		//if we need seq number to keep message in order??
-		d_mpi_data_recv(msg_buff, source, tag, &status);
+		d_mpi_data_recv(buff, source, tag, &status);
 
-		if((temp_ans = write_to_vfs(file_info->file, buff, offset, msg_buff)) == -1)
+		if((temp_ans = write_to_vfs(file_info->file, buff, offset)) == -1)
 			return -1;
 
 		offset = offset + temp_ans;
@@ -286,8 +273,8 @@ void d_read_handler(event_handler_t* event_handle)
 		//release_rw_handler_buffer(event_handle, &handle_buff);
 	}
 	//free(file_info)
-	free(handle_buff.file_info);
 	release_rw_handler_buffer(event_handle);
+	free(handle_buff.file_info);
 	printf("It's OK here\n");
 }
 
@@ -298,7 +285,6 @@ void d_write_handler(event_handler_t* event_handle)
 	data_server_t* this;
 	rw_handle_buff_t handle_buff;
 
-	//while(1);
 	//allocate file_info this structure do not need buffer
 	handle_buff.file_info = (msg_for_rw_t*)malloc(sizeof(msg_for_rw_t));
 	resolve_rw_handler_buffer(event_handle, &handle_buff);
@@ -322,7 +308,6 @@ void d_write_handler(event_handler_t* event_handle)
 		//do somthing here
 		//release_rw_handler_buffer(event_handle, &handle_buff);
 	}
-	//free(file_info)
-	free(handle_buff.file_info);
 	release_rw_handler_buffer(event_handle);
+	free(handle_buff.file_info);
 }

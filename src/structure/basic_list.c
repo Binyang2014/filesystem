@@ -259,7 +259,7 @@ static list_iter_t *list_get_iterator(list_t *list, int direction)
 
     list_iter_t *iter;
 
-    if ((iter = malloc(sizeof(*iter))) == NULL) return NULL;
+    if ((iter = malloc(sizeof(list_iter_t))) == NULL) return NULL;
     if (direction == AL_START_HEAD)
         iter->next = list->head;
     else

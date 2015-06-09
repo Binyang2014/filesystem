@@ -1,4 +1,4 @@
 make clean
 make
 ./run.sh
-mpirun -np 3 ./filesystem
+mpirun -np 6 ./filesystem

@@ -149,7 +149,6 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 				MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD);
 				printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
 			}
-			fflush(stdout);
 			puts("1 FINIST SEND DATA");
 			while(1);
 			write_offset += writer.write_len;
@@ -282,7 +281,7 @@ void *client_init(void *arg) {
 	//puts("********************hehehehe********************");
 	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
 	//puts("hehehehe");
-	client_create_file_op("/home/ron/test/read.in", "/readin");
+	client_create_file_op("/home/binyang/Test/test", "/readin");
 	//client_create_file_op("/home/ron/test/read.in", "/readin");
 	err_ret("end create file");
 
