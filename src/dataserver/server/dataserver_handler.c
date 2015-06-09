@@ -139,6 +139,7 @@ static int write_to_vfs(dataserver_file_t *file, char* buff, off_t offset,
 static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* buff,
 		void* msg_buff)
 {
+	printf("source is %d, tag is %d\n", source, tag);
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
 	mpi_status_t status;
@@ -146,7 +147,7 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, char* b
 
 	((msg_acc_candd_t* )msg_buff)->operation_code = MSG_ACC;
 	((msg_acc_candd_t* )msg_buff)->status = 0;
-	printf("source is %d, tag is %d\n", source, tag);
+
 	d_mpi_cmd_send(msg_buff, source, tag);
 	memset(msg_buff, 0, MAX_CMD_MSG_LEN);
 	//waiting for message

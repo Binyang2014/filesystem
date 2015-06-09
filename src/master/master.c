@@ -60,7 +60,7 @@ static void set_common_msg(common_msg_t *msg, int source, char *message){
 }
 
 static int answer_client_create_file(namespace *space, common_msg_t *request){
-	puts("basic_queue_t *queue ");
+//	puts("basic_queue_t *queue ");
 	client_create_file *file_request = (client_create_file *)(request->rest);
 	//TODO the first is not going to provide any fault tolerance, but the name space modify should be temporary whenever is not confirmed
 	int status = namespace_create_file(space , file_request->file_name);
@@ -145,7 +145,7 @@ static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
  *	receive message and put message into the message queue
  */
 static void* master_server(void *arg) {
-	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+//	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	mpi_status_t status;
 	common_msg_t *m = master_msg_buff + MASTER_MSG_RECV_BUFF;
 	char *c = master_cmd_buff + MASTER_CMD_RECV_BUFF;
@@ -154,7 +154,7 @@ static void* master_server(void *arg) {
 		m_mpi_cmd_recv(c, &status);
 		set_common_msg(m, status.source, c);
 		syn_queue_push(message_queue, syn_message_queue, m);
-		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+	//	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
 	}
 	return 0;
 }
