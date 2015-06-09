@@ -47,7 +47,7 @@
 #define DEBUG 1
 //#define VFS_RW_DEBUG 1
 #define DATASERVER_COMM_DEBUG 1
-//#define THREAD_POOL_DEBUG 1
+#define THREAD_POOL_DEBUG 1
 #define DATASERVER_BUFF_DEBUG 1
 
 //define optional size of file system

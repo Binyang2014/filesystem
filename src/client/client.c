@@ -157,9 +157,11 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 			//	printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
 #endif
 			}
+
 #if defined(CLIENT_DEBUG)
 				err_ret("End Send Data, total data %d\n", writer.write_len);
 #endif
+
 			write_offset += writer.write_len;
 			basic_queue_reset(block_queue);
 		}
@@ -354,9 +356,15 @@ void *client_init(void *arg) {
 
 	//puts("********************hehehehe********************");
 	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
+<<<<<<< HEAD
 	//client_create_file_op("/home/ron/test/read.bak", "/readin");
 	client_create_file_op("/home/ron/test/read.in", "/readin");
 	//client_read_file_op("/home/ron/test/read.out", "/readin");
+=======
+	//puts("hehehehe");
+	client_create_file_op("/home/binyang/Test/test", "/readin");
+	//client_create_file_op("/home/ron/test/read.in", "/readin");
+>>>>>>> origin/develop
 	err_ret("end create file");
 
 	//client_

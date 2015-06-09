@@ -13,7 +13,7 @@
 
 //need to be init, I will do it later
 static list_node_t* list_node_arr;
-static msg_data_t* msg_dasta_arr;
+static msg_data_t* msg_data_arr;
 static common_msg_t* common_msg_arr;
 static dataserver_file_t* file_arr;
 static void* reply_message_arr;
@@ -213,9 +213,10 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	queue_set_dup_method(data_server->reply_message_buff, reply_msg_dup);
 	queue_set_dup_method(data_server->f_arr_buff, f_arr_dup);
 
-	if((list_node_arr = (list_node_t* )malloc(sizeof(list_node_t) * init_length)) == NULL)
+	if((list_node_arr = (list_node_t* )malloc(sizeof(list_node_t) * init_length *
+			MAX_BUFFNODE_PER_THREAD)) == NULL)
 		err_sys("error when allocate buffer");
-	if((msg_dasta_arr = (msg_data_t* )malloc(sizeof(msg_data_t) * init_length)) == NULL)
+	if((msg_data_arr = (msg_data_t* )malloc(sizeof(msg_data_t) * init_length)) == NULL)
 		err_sys("error when allocate buffer");
 	if((common_msg_arr = (common_msg_t* )malloc(sizeof(common_msg_t) * init_length)) == NULL)
 		err_sys("error when allocate buffer");
@@ -242,7 +243,7 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	//initial data server buffer by set value
 	for(i = 0; i < init_length; i++)
 	{
-		ptr_temp = &msg_dasta_arr[i];
+		ptr_temp = &msg_data_arr[i];
 		data_server->m_data_buff->basic_queue_op->push(data_server->m_data_buff,
 				&ptr_temp);
 

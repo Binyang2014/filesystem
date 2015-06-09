@@ -404,6 +404,7 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 	}
 
 	//read rest of data
+	nbytes_temp = 0;
 	if( last_nbytes && (nbytes_temp = read_n_bytes(this, buffer + nbytes_read,
 			last_nbytes, cur_offset)) == -1)
 		return -1;
@@ -521,6 +522,7 @@ int vfs_write(dataserver_file_t* this, char* buffer, size_t count, off_t offset)
 			return -1;
 		ALL_ADD_THIRD(cur_offset, nbytes_write, nbytes_temp);
 	}
+	nbytes_temp = 0;
 
 	//write rest of data
 	if(last_nbytes && (nbytes_temp = write_n_bytes(this, buffer + nbytes_write,
