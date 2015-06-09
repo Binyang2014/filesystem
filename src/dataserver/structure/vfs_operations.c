@@ -404,6 +404,7 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 	}
 
 	//read rest of data
+	nbytes_temp = 0;
 	if( last_nbytes && (nbytes_temp = read_n_bytes(this, buffer + nbytes_read,
 			last_nbytes, cur_offset)) == -1)
 		return -1;

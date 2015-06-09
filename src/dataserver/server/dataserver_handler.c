@@ -15,27 +15,28 @@
 #include "../../tool/threadpool.h"
 
 /*=========================INTERNEL FUNCITION EVOKED BY HANDLER================================*/
-static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
-		off_t offset, int seqno, int tail, msg_data_t* msg_buff)
+static int read_from_vfs(dataserver_file_t *file, msg_data_t* buff, size_t count,
+		off_t offset, int seqno, int tail)
 {
 	int ans;
+	char* data_buff = (char*)buff->data;
 
 	//read a block from vfs
-	if((ans = vfs_read(file, buff, count, offset)) == -1)
+	if((ans = vfs_read(file, data_buff, count, offset)) == -1)
 	{
 		err_msg("Something wrong when read from data server");
 		return -1;
 	}
 
-	memcpy(msg_buff->data, buff, MAX_DATA_CONTENT_LEN);
-	msg_buff->len = count;
-	msg_buff->seqno = seqno;
-	msg_buff->offset = offset + ans;//I don't know if this operation is right
+
+	buff->len = count;
+	buff->seqno = seqno;
+	buff->offset = offset + ans;//I don't know if this operation is right
 
 	//read to the end of the file unexpectedly
 	if(ans < count)
-		msg_buff->tail = 1;
-	msg_buff->tail = tail;
+		buff->tail = 1;
+	buff->tail = tail;
 	return ans;
 }
 
@@ -43,7 +44,7 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
  * handle the request from client about reading from a file
  * buff and msg_buff should be allocated properly outside
  */
- static int m_read_handler(int source, int tag, msg_for_rw_t* file_info, char* buff,
+ static int m_read_handler(int source, int tag, msg_for_rw_t* file_info, void* buff,
 		 void* msg_buff)
 {
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
@@ -76,14 +77,14 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 	for(i = 0; i < msg_blocks - 1; i++)
 	{
 		if( (temp_ans = read_from_vfs(file_info->file, buff, MAX_DATA_CONTENT_LEN,
-				offset, i, 0, msg_buff)) == -1 )
+				offset, i, 0)) == -1 )
 		{
 			//here thread should send error message to client
 			return -1;
 		}
 
 		//send message to client
-		d_mpi_data_send(msg_buff, source, tag);
+		d_mpi_data_send(buff, source, tag);
 
 		//already read at the end of the file
 		if(temp_ans == 0)
@@ -97,16 +98,16 @@ static int read_from_vfs(dataserver_file_t *file, char* buff, size_t count,
 	if(msg_rest == 0)
 	{
 		if( (temp_ans = read_from_vfs(file_info->file, buff, MAX_DATA_CONTENT_LEN,
-						offset, i, 1, msg_buff)) == -1 )
+						offset, i, 1)) == -1 )
 			return -1;
 	}
 	else
 	{	if( (temp_ans = read_from_vfs(file_info->file, buff, msg_rest,
-						offset, i, 1, msg_buff)) == -1 )
+						offset, i, 1)) == -1 )
 			return -1;
 	}
 
-	d_mpi_data_send(msg_buff, source, tag);
+	d_mpi_data_send(buff, source, tag);
 	ans = ans + temp_ans;
 
 #ifdef DATASERVER_COMM_DEBUG
@@ -142,9 +143,6 @@ static int m_write_handler(int source, int tag, msg_for_rw_t* file_info, void* b
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
 	mpi_status_t status;
-#ifdef DATASERVER_COMM_DEBUG
-	int flag;
-#endif
 
 	((msg_acc_candd_t* )msg_buff)->operation_code = MSG_ACC;
 	((msg_acc_candd_t* )msg_buff)->status = 0;
