@@ -399,12 +399,12 @@ basic_queue_t *get_file_location(const namespace *namespace, char *name){
 	path_pre_handle(name);
 	int status = path_verify(name);
 	if(status != OPERATE_SECCESS){
-		return status;
+		return NULL;
 	}
 
 	file_dir_node *node = find_file_node(namespace, name);
 	if(node == NULL){
-		return FILE_NOT_EXISTS;
+		return NULL;
 	}
 
 	return node->location;

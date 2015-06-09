@@ -22,6 +22,8 @@
 #include "../tool/errinfo.h"
 #include "../global.h"
 
+#define MASTER_DEBUG 1;
+
 /*====================Private Prototypes====================*/
 static namespace *master_namespace;
 static basic_queue_t *message_queue;
@@ -110,10 +112,18 @@ static int answer_client_create_file(namespace *space, common_msg_t *request){
 
 static int answer_client_read_file(namespace *space, common_msg_t *request){
 	client_read_file *file_request = (client_read_file *)(request->rest);
+
 	basic_queue_t *queue = get_file_location(space, file_request->file_name);
+	int result = queue == NULL ? 0 : 1;
+	MPI_Send(&result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+	if(result == 0){
+		return -1;
+	}
 
 	ans_client_read_file *ans = (ans_client_read_file *)malloc(sizeof(ans_client_read_file));
+	ans->operation_code = CREATE_FILE_ANS_CODE;
 	int ans_message_size = ceil((double)queue->current_size / LOCATION_MAX_BLOCK);
+
 	int i = 1;
 	for(; i <= ans_message_size; i++){
 		if(i != ans_message_size){
@@ -124,13 +134,21 @@ static int answer_client_read_file(namespace *space, common_msg_t *request){
 			ans->block_num = queue->current_size - (i - 1) * LOCATION_MAX_BLOCK;
 		}
 
-		ans->operation_code = CREATE_FILE_ANS_CODE;
 		memcpy(ans->block_global_num, queue->elements + (i - 1) * LOCATION_MAX_BLOCK * queue->element_size, ans->block_num * queue->element_size);
-		//printf("-------ans_size=====%d\n", ans->block_num);
+
+#if defined(MASTER_DEBUG)
+		printf("-------ans_size=====%d\n", ans->block_num);
+#endif
+
 		MPI_Send(ans, MAX_CMD_MSG_LEN, MPI_CHAR, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 	}
 
+#if defined(MASTER_DEBUG)
+	err_ret("master.c: send location info finished block_nums = %d", queue->current_size);
+#endif
+
 	free(ans);
+	return 0;
 }
 
 static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){

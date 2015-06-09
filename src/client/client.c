@@ -141,13 +141,13 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 				block_queue->basic_queue_op->pop(block_queue, &send_block);
 				data_msg.offset = send_block.offset;
 				data_msg.seqno = send_block.global_id;
-				//data_msg.len = ((send_data_block_t *)get_queue_element(block_queue, j))->write_len;
+				data_msg.len = ((send_data_block_t *)get_queue_element(block_queue, j))->write_len;
 				memcpy(data_msg.data, file_buf, MAX_DATA_CONTENT_LEN);
 
 #if defined(CLIENT_DEBUG)
-				int index;
-				for(index = 0; index != data_msg.len; index++)
-					putchar(((char *)data_msg.data)[index]);
+//				int index;
+//				for(index = 0; index != data_msg.len; index++)
+//					putchar(((char *)data_msg.data)[index]);
 			//	printf("Start Send %d/%d Data\n", j + 1, writer.chunks_count);
 #endif
 
@@ -174,6 +174,10 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 
 static void create_local_file(char *file_path, list_t *list){
 	//TODO this is a dangerous op, because it will overwrite the old file
+#if defined(CLIENT_DEBUG)
+	err_ret("Create file %s", file_path);
+#endif
+
 	FILE *fp = fopen(file_path, "w+");
 	fclose(fp);
 	fp = fopen(file_path, "at");
@@ -188,15 +192,27 @@ static void create_local_file(char *file_path, list_t *list){
 	msg_data_t *data_msg = (msg_data_t *)malloc(sizeof(msg_data_t));
 	recv_data_block_t *read_block = (recv_data_block_t *)malloc(sizeof(recv_data_block_t));
 	basic_queue_t *block_queue = (basic_queue_t *)alloc_basic_queue(sizeof(send_data_block_t), MAX_COUNT_CID_W);
+
+	msg_acc_candd_t *acc_msg = (msg_acc_candd_t *)malloc(sizeof(msg_acc_candd_t));
+	acc_msg->operation_code = MSG_ACC;
+	acc_msg->status = 0;
+
 	MPI_Status status;
 
 	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
-	ans_client_read_file *ans = list->list_ops->list_next(iter)->value;
+	list_node_t *node = list->list_ops->list_next(iter);
+	ans_client_read_file *ans;
 
 	int cur_machine_id;
 	int k, i;
 	int this_block_size;
-	while(ans != NULL){
+
+#if defined(CLIENT_DEBUG)
+	err_ret("Client.c: start read file %s from data server", file_path);
+#endif
+
+	while(node != NULL){
+		ans = node->value;
 		reader->read_len = 0;
 
 		for(k = 0; k < ans->block_num; ){
@@ -226,22 +242,42 @@ static void create_local_file(char *file_path, list_t *list){
 				reader->chunks_id_arr[i] = ((recv_data_block_t *)get_queue_element(block_queue, i))->global_id;
 			}
 
-			MPI_Send(reader, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, 1, MPI_COMM_WORLD);
+#if defined(CLIENT_DEBUG)
+	err_ret("Client.c: start send read cmd and acc to data server");
+#endif
+			MPI_Send(reader, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, D_MSG_CMD_TAG, MPI_COMM_WORLD);
+			MPI_Send(acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD);
 
+#if defined(CLIENT_DEBUG)
+	err_ret("Client.c: end send read cmd and acc to data server");
+	err_ret("size = %d", block_queue->current_size);
+#endif
 			for(i = 0; i != block_queue->current_size; i++){
-				MPI_Recv(data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, master_rank, 1, MPI_COMM_WORLD, &status);
+				MPI_Recv(data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
 				fwrite(data_msg, sizeof(char), data_msg->len, fp);
+
+#if defined(CLIENT_DEBUG)
+//				int index;
+//				char *c = data_msg->data;
+//				for(index = 0; index != data_msg->len; index++){
+//					putchar(c[index]);
+//				}
+#endif
+
 			}
 
 			basic_queue_reset(block_queue);
 		}
+
+		node = list->list_ops->list_next(iter);
+		while(1);
 	}
 
 	free(reader);
 	free(data_msg);
 	free(read_block);
-	//free();
 	list->list_ops->list_release_iterator(iter);
+	list_release(list);
 	fclose(fp);
 }
 
@@ -311,7 +347,7 @@ static int client_create_file_op(char *file_path, char *file_name){
 static int client_read_file_op(char *file_path, char *file_name){
 	client_read_file *c_r_f = (client_read_file *)malloc(sizeof(client_read_file));
 	strcpy(c_r_f->file_name, file_name);
-	c_r_f->file_size = 0;
+	c_r_f->operation_code = READ_FILE_CODE;
 
 	/*send read file cmd to master*/
 	MPI_Send(c_r_f, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
@@ -320,6 +356,10 @@ static int client_read_file_op(char *file_path, char *file_name){
 	MPI_Status status;
 	/*receive file location exists result*/
 	MPI_Recv(&location_exists, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+	if(location_exists == 0){
+		err_ret("client.c: read file %s fail, file not exists", file_name);
+		return -1;
+	}
 
 	/*file location information from master*/
 	list_t *list = list_create();
@@ -356,15 +396,14 @@ void *client_init(void *arg) {
 
 	//puts("********************hehehehe********************");
 	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
-<<<<<<< HEAD
 	//client_create_file_op("/home/ron/test/read.bak", "/readin");
 	client_create_file_op("/home/ron/test/read.in", "/readin");
-	//client_read_file_op("/home/ron/test/read.out", "/readin");
-=======
+	client_read_file_op("/home/ron/test/read.out", "/readin");
+
 	//puts("hehehehe");
-	client_create_file_op("/home/binyang/Test/test", "/readin");
+	//client_create_file_op("/home/binyang/Test/test", "/readin");
 	//client_create_file_op("/home/ron/test/read.in", "/readin");
->>>>>>> origin/develop
+
 	err_ret("end create file");
 
 	//client_
