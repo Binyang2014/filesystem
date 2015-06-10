@@ -243,7 +243,7 @@ static void release_rw_handler_buffer(event_handler_t* event_handle)
 
 void d_read_handler(event_handler_t* event_handle)
 {
-	int source, tag;
+	int source, tag, i;
 	rw_handle_buff_t handle_buff;
 	msg_r_ctod_t* read_msg;
 	data_server_t* this;
@@ -261,6 +261,9 @@ void d_read_handler(event_handler_t* event_handle)
 
 	handle_buff.file_info->offset = read_msg->offset;
 	handle_buff.file_info->count = read_msg->read_len;
+	handle_buff.f_arr_buff->hash_table_size = read_msg->chunks_count;
+	for(i = 0; i < read_msg->chunks_count; i++)
+		handle_buff.f_arr_buff->chunks_arr[i] = read_msg->chunks_id_arr[i];
 	handle_buff.file_info->file = init_vfs_file(this->d_super_block, handle_buff.file_info->file,
 			handle_buff.f_arr_buff, VFS_READ);
 
@@ -279,7 +282,7 @@ void d_read_handler(event_handler_t* event_handle)
 
 void d_write_handler(event_handler_t* event_handle)
 {
-	int source, tag;
+	int source, tag, i;
 	msg_w_ctod_t* write_msg;
 	data_server_t* this;
 	rw_handle_buff_t handle_buff;
@@ -298,6 +301,9 @@ void d_write_handler(event_handler_t* event_handle)
 
 	handle_buff.file_info->offset = write_msg->offset;
 	handle_buff.file_info->count = write_msg->write_len;
+	handle_buff.f_arr_buff->hash_table_size = write_msg->chunks_count;
+	for(i = 0; i < write_msg->chunks_count; i++)
+		handle_buff.f_arr_buff->chunks_arr[i] = write_msg->chunks_id_arr[i];
 	handle_buff.file_info->file = init_vfs_file(this->d_super_block, handle_buff.file_info->file,
 			handle_buff.f_arr_buff, VFS_WRITE);
 

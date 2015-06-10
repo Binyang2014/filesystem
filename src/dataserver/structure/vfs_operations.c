@@ -346,6 +346,11 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 	unsigned int block_num;
 	off_t offset_in_group;
 
+#ifdef VFS_RW_DEBUG
+	char* alloced_block;
+	unsigned long long chunk_num;
+#endif
+
 	blocks_arr = this->f_blocks_arr;
 	block_num = blocks_arr[offset / BLOCK_SIZE];
 	offset_in_group = offset % BLOCK_SIZE;
@@ -356,6 +361,15 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 		return -1;
 	}
 	memcpy(buffer, find_a_block(this->super_block, block_num) + offset_in_group, nbytes);
+
+#ifdef VFS_RW_DEBUG
+	printf("--------------VFS_RW_DEBUG READ PART------------------\n");
+	alloced_block = find_a_block(this->super_block, block_num);
+	printf("The address of alloced block is %p\n", alloced_block);
+	chunk_num = this->f_chunks_arr[offset / BLOCK_SIZE];
+	printf("The block number is %d, and the chunk number is %lld\n", block_num, chunk_num);
+#endif
+
 	return nbytes;
 }
 
@@ -436,6 +450,8 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 #ifdef VFS_RW_DEBUG
 		if( !__bm_block_set(this->super_block->s_block, block_num))
 			err_quit("You use a block but not set the bitmap");
+		else
+			printf("You will rewrite a block\n");
 #endif
 
 		this->f_blocks_arr[offset / BLOCK_SIZE] = block_num;//this statement may be not useful
@@ -467,12 +483,14 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 	this->f_blocks_arr[offset / BLOCK_SIZE] = block_num;//this statement may be not useful
 
 #ifdef VFS_RW_DEBUG
+	printf("--------------VFS_RW_DEBUG WRITE PART-----------------\n");
 	if(__bm_block_set(this->super_block->s_block, block_num))
 		printf("The bitmap already set!!\n");
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
-	printf("the buffer is %s\n", buffer);
-	printf("The block contains %s\n", alloced_block + offset_in_group);
+	printf("The block number is %d, and the chunk number is %lld\n", block_num, chunk_num);
+	//printf("the buffer is %s\n", buffer);
+	//printf("The block contains %s\n", alloced_block + offset_in_group);
 #endif
 
 	return nbytes;
