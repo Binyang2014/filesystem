@@ -74,6 +74,10 @@ typedef struct client_read_file{
 	char file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
 }client_read_file;
 
+typedef struct answer_confirm{
+	int result;
+}answer_confirm_t;
+
 typedef struct block_location{
 	unsigned int server_id;
 	unsigned int write_len;

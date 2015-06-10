@@ -61,27 +61,40 @@ static void set_common_msg(common_msg_t *msg, int source, char *message){
 	memcpy(msg->rest, message, MAX_CMD_MSG_LEN);
 }
 
+#define ANSWER_CLIENT_CREATE_FILE 1
 static int answer_client_create_file(namespace *space, common_msg_t *request){
-//	puts("basic_queue_t *queue ");
+
+#if defined(ANSWER_CLIENT_CREATE_FILE)
+	err_ret("master.c: start create file");
+#endif
+
 	client_create_file *file_request = (client_create_file *)(request->rest);
-	//TODO the first is not going to provide any fault tolerance, but the name space modify should be temporary whenever is not confirmed
+	answer_confirm_t *ans_con = (answer_confirm_t *)malloc(sizeof(answer_confirm_t));
+
+	//TODO the first version is not going to provide any fault tolerance, but the name space modify should be temporary whenever is not confirmed
 	int status = namespace_create_file(space , file_request->file_name);
-	int malloc_result = 0;
-	//TODO MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+	//MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 	if(status != OPERATE_SECCESS){
 		err_ret("answer_client_create_file: name space create file failed, status = %d", status);
 		return status;
 	}
 
+#if defined(ANSWER_CLIENT_CREATE_FILE)
+	err_ret("answer_client_create_file: name space create file success, status = %d", status);
+#endif
+
 	basic_queue_t *queue = master_data_servers->opera->file_allocate_machine(master_data_servers, file_request->file_size, master_data_servers->server_block_size);
-	malloc_result = (queue == NULL ? 0 : 1);
-//	//TODO if communicate error
-	MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
-	if(malloc_result == 0){
+	ans_con->result = (queue == NULL ? 0 : 1);
+	MPI_Send(ans_con, sizeof(answer_confirm_t), MPI_CHAR, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
+	if(ans_con->result == 0){
 		//TODO cancel the modify to name space
 		err_ret("master.c answer_client_create_file: allocate space fail for new file");
 		return NO_ENOUGH_SPACE;
 	}
+
+#if defined(ANSWER_CLIENT_CREATE_FILE)
+	err_ret("master.c answer_client_create_file: allocate space success for new file");
+#endif
 
 	set_file_location(space, queue, file_request->file_name);
 	ans_client_create_file *ans = (ans_client_create_file *)malloc(sizeof(ans_client_create_file));
@@ -89,6 +102,11 @@ static int answer_client_create_file(namespace *space, common_msg_t *request){
 		err_ret("master.c answer_client_create_file: allocate space fail for answer client create file buff");
 		return NO_ENOUGH_SPACE;
 	}
+
+#if defined(ANSWER_CLIENT_CREATE_FILE)
+	err_ret("master.c answer_client_create_file: allocate space success for answer client create file buff");
+#endif
+
 	int ans_message_size = ceil((double)queue->current_size / LOCATION_MAX_BLOCK);
 	int i = 1;
 	for(; i <= ans_message_size; i++){
@@ -107,6 +125,12 @@ static int answer_client_create_file(namespace *space, common_msg_t *request){
 		MPI_Send(ans, sizeof(ans_client_create_file), MPI_CHAR, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 	}
 	free(ans);
+
+#if defined(ANSWER_CLIENT_CREATE_FILE)
+	err_ret("master.c: end create file");
+#endif
+
+	free(ans_con);
 	return 0;
 }
 
@@ -137,7 +161,7 @@ static int answer_client_read_file(namespace *space, common_msg_t *request){
 		memcpy(ans->block_global_num, queue->elements + (i - 1) * LOCATION_MAX_BLOCK * queue->element_size, ans->block_num * queue->element_size);
 
 #if defined(MASTER_DEBUG)
-		printf("-------ans_size=====%d\n", ans->block_num);
+		err_ret("-------ans_size=====%d\n", ans->block_num);
 #endif
 
 		MPI_Send(ans, MAX_CMD_MSG_LEN, MPI_CHAR, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
@@ -163,22 +187,23 @@ static int heart_blood(data_servers *servers, common_msg_t *msg, time_t time){
  *	receive message and put message into the message queue
  */
 static void* master_server(void *arg) {
-//	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+	err_ret("========master_server start and process id is %d========", getpid());
 	mpi_status_t status;
 	common_msg_t *m = master_msg_buff + MASTER_MSG_RECV_BUFF;
 	char *c = master_cmd_buff + MASTER_CMD_RECV_BUFF;
 	while (1) {
-		//err_ret("master.c: master_server listening request");
 		m_mpi_cmd_recv(c, &status);
 		set_common_msg(m, status.source, c);
 		syn_queue_push(message_queue, syn_message_queue, m);
-	//	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+#if defined(MASTER_DEBUG)
+		err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+#endif
 	}
 	return 0;
 }
 
 static void* request_handler(void *arg) {
-	err_ret("master.c: master_server put message current_size = %d", message_queue->current_size);
+	err_ret("========request handler start and process id is %d========", getpid());
 	//int status;
 	common_msg_t *cmd = master_msg_buff + MASTER_MSG_TO_RUN;
 	while (1) {
@@ -211,6 +236,7 @@ static void* request_handler(void *arg) {
 int master_init(int server_count){
 //	err_ret("master.c: master_server put message current_size = %d", 12);
 	/*allocate necessary memory*/
+	err_ret("========master start and process id is %d========", getpid());
 	master_namespace = create_namespace(1024, 32);
 	message_queue = alloc_basic_queue(sizeof(common_msg_t), -1);
 	master_cmd_buff = (char *)malloc(MAX_CMD_MSG_LEN * 4);

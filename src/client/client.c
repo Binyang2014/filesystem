@@ -22,7 +22,7 @@
 #include "../tool/errinfo.h"
 #include "../structure/basic_list.h"
 
-#define CLIENT_DEBUG 1
+//#define CLIENT_DEBUG 1
 //TODO temporary definition
 int master_rank = 0;
 
@@ -66,7 +66,6 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 	ans_client_create_file *ans;
 
 	basic_queue_t *block_queue = (basic_queue_t *)alloc_basic_queue(sizeof(send_data_block_t), MAX_COUNT_CID_W);
-
 	send_data_block_t send_block;
 
 	msg_w_ctod_t writer;
@@ -242,7 +241,7 @@ static void create_local_file(char *file_path, list_t *list){
 			for(i = 0; i != block_queue->current_size; i++){
 				reader->chunks_id_arr[i] = ((recv_data_block_t *)get_queue_element(block_queue, i))->global_id;
 #if defined(CLIENT_DEBUG)
-				err_ret("global_id = %d", reader->chunks_id_arr[i]);
+//				err_ret("global_id = %d", reader->chunks_id_arr[i]);
 #endif
 			}
 			reader->chunks_count = block_queue->current_size;
@@ -260,21 +259,23 @@ static void create_local_file(char *file_path, list_t *list){
 			for(i = 0; i != block_queue->current_size; i++){
 				MPI_Recv(data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
 				fwrite(data_msg->data, sizeof(char), data_msg->len, fp);
-				err_ret("data_msg->len = %d", data_msg->len);
+				//err_ret("data_msg->len = %d", data_msg->len);
 
 #if defined(CLIENT_DEBUG)
-//	int index;
-//	char *c = data_msg->data;
-//	for(index = 0; index != data_msg->len; index++){
-//		putchar(c[index]);
-//	}
+	int index;
+	char *c = data_msg->data;
+	for(index = 0; index != data_msg->len; index++){
+		putchar(c[index]);
+	}
 #endif
 
 			}
-			//TODO while(1);
 			basic_queue_reset(block_queue);
 		}
-		reader->offset += reader->read_len;
+		reader->offset = (reader->read_len + reader->offset) % BLOCK_SIZE;
+#if defined(CLIENT_DEBUG)
+		err_ret("reader->offset = %d reader->length = %d", reader->offset, reader->read_len);
+#endif
 		node = list->list_ops->list_next(iter);
 	}
 
@@ -282,7 +283,6 @@ static void create_local_file(char *file_path, list_t *list){
 	free(data_msg);
 	free(read_block);
 	list->list_ops->list_release_iterator(iter);
-	list_release(list);
 	fclose(fp);
 }
 
@@ -299,8 +299,7 @@ static int client_create_file_op(char *file_path, char *file_name){
 	}
 
 	//int result;
-	int master_malloc_result;
-
+	answer_confirm_t *ans_con = (answer_confirm_t *)malloc(sizeof(answer_confirm_t));
 	MPI_Status status;
 
 	client_create_file message;
@@ -312,40 +311,39 @@ static int client_create_file_op(char *file_path, char *file_name){
 	//TODO not stable
 	MPI_Send(send_buf, MAX_CMD_MSG_LEN, MPI_CHAR, master_rank, CLIENT_INSTRCTION_MESSAGE_TAG, MPI_COMM_WORLD);
 	err_ret("client.c: client_create_file_op waiting for allocate answer");
-	MPI_Recv(&master_malloc_result, 1, MPI_INT, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
-	if(master_malloc_result == 0){
+	MPI_Recv(ans_con, sizeof(answer_confirm_t), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+	//err_ret("client.c: client_create_file_op waiting for allocate answer");
+	if(ans_con->result == 0){
 		err_ret("client.c: client_create_file_op master allocate new file space failed");
 		return -1;
 	}
+
 	ans_client_create_file *ans;
-	err_ret("client.c: client_create_file_op waiting for allocate location");
-	if(master_malloc_result == 1)
+	err_ret("client.c: client_create_file_op allocate location success ");
+	list_t *list = list_create();
+	list->free = free;
+	do
 	{
-		err_ret("client.c: client_create_file_op allocate location success ");
-		list_t *list = list_create();
-		list->free = free;
-		do
-		{
-			MPI_Recv(create_file_buff, sizeof(ans_client_create_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
-			ans = (ans_client_create_file *)create_file_buff;
-			list->list_ops->list_add_node_tail(list, alloc_create_file_buff(create_file_buff, sizeof(ans_client_create_file)));
-		}while(!ans->is_tail);
+		MPI_Recv(create_file_buff, sizeof(ans_client_create_file), MPI_CHAR, master_rank, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD, &status);
+		ans = (ans_client_create_file *)create_file_buff;
+		list->list_ops->list_add_node_tail(list, alloc_create_file_buff(create_file_buff, sizeof(ans_client_create_file)));
+	}while(!ans->is_tail);
 
 #if defined(CLIENT_DEBUG)
-		list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
-		list_node_t *node = (list_node_t *)(list->list_ops->list_next(iter));
-		while(node != NULL){
-			ans = (ans_client_create_file *)node->value;
-			err_ret(" block_num == %d list size = %d", ans->block_num, list->len);
-			node = (ans_client_create_file *)(list->list_ops->list_next(iter));
-		}
-		list->list_ops->list_release_iterator(iter);
+	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
+	list_node_t *node = (list_node_t *)(list->list_ops->list_next(iter));
+	while(node != NULL){
+		ans = (ans_client_create_file *)node->value;
+		err_ret(" block_num == %d list size = %d", ans->block_num, list->len);
+		node = (ans_client_create_file *)(list->list_ops->list_next(iter));
+	}
+	list->list_ops->list_release_iterator(iter);
 #endif
 
-		send_data(file_path, file_length, list);
-		list_release(list);
-	}
+	send_data(file_path, file_length, list);
+	list_release(list);
 	err_ret("client.c: client_create_file_op end without error");
+	free(ans_con);
 	return 0;
 }
 
@@ -387,6 +385,7 @@ static int client_read_file_op(char *file_path, char *file_name){
 }
 
 void *client_init(void *arg) {
+	err_ret("========client start and process id is %d========", getpid());
 	send_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	receive_buf = (char*) malloc(MAX_CMD_MSG_LEN);
 	file_buf = (char *)malloc(MAX_CMD_MSG_LEN);

@@ -23,14 +23,13 @@ int argc;char ** argv;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 	if (rank == 0) {
-		puts("========master start========");
 		master_init(size - 1);
 	} else {
-		puts("========client start========");
+
 		//sleep(3);
 		dataserver = alloc_dataserver(MIDDLE, rank);
 		pthread_create(&p_server, NULL, dataserver_run, (void *)dataserver);
-		sleep(3);
+		sleep(1);
 		if(rank == 1){
 			pthread_create(&p_client, NULL, client_init, NULL);
 			pthread_join(p_client, NULL);

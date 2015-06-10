@@ -242,6 +242,7 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 
 void *dataserver_run(void *arg)
 {
+	err_ret("========dataserver run start and process id is %d========", getpid());
 	data_server_t* dateserver = (data_server_t*)arg;
 	char* msg;
 	pthread_t tid;
