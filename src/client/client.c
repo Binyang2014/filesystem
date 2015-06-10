@@ -240,7 +240,9 @@ static void create_local_file(char *file_path, list_t *list){
 
 			for(i = 0; i != block_queue->current_size; i++){
 				reader->chunks_id_arr[i] = ((recv_data_block_t *)get_queue_element(block_queue, i))->global_id;
-				err_ret("global_id = %d", reader->chunks_id_arr[i]);
+#if defined(CLIENT_DEBUG)
+				//err_ret("global_id = %d", reader->chunks_id_arr[i]);
+#endif
 			}
 
 #if defined(CLIENT_DEBUG)
@@ -256,14 +258,14 @@ static void create_local_file(char *file_path, list_t *list){
 			for(i = 0; i != block_queue->current_size; i++){
 				MPI_Recv(data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
 				fwrite(data_msg->data, sizeof(char), data_msg->len, fp);
-				//err_ret("data_msg->len = %d", data_msg->len);
+				err_ret("data_msg->len = %d", data_msg->len);
 
 #if defined(CLIENT_DEBUG)
-	int index;
-	char *c = data_msg->data;
-	for(index = 0; index != data_msg->len; index++){
-		putchar(c[index]);
-	}
+//	int index;
+//	char *c = data_msg->data;
+//	for(index = 0; index != data_msg->len; index++){
+//		putchar(c[index]);
+//	}
 #endif
 
 			}
@@ -396,10 +398,10 @@ void *client_init(void *arg) {
 	}
 
 	//puts("********************hehehehe********************");
-	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
+	client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
 	//client_create_file_op("/home/ron/test/read.bak", "/readin");
-	client_create_file_op("/home/ron/test/read.in", "/readin");
-	//client_read_file_op("/home/ron/test/read.out", "/readin");
+	//client_create_file_op("/home/ron/test/read.in", "/readin");
+	client_read_file_op("/home/ron/test/read.out", "/readin");
 
 
 //	client_create_file_op("/home/binyang/Test/read.in", "/readin");

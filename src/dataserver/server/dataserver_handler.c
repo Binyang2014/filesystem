@@ -265,8 +265,7 @@ void d_read_handler(event_handler_t* event_handle)
 			handle_buff.f_arr_buff, VFS_READ);
 
 
-	if(m_read_handler(source, tag, handle_buff.file_info, handle_buff.data_buffer,
-			handle_buff.msg_buffer) == -1)
+	if(m_read_handler(source, tag, handle_buff.file_info, handle_buff.data_buffer, handle_buff.msg_buffer) == -1)
 	{
 		//do something like sending error message to client
 		//release_rw_handler_buffer(event_handle, &handle_buff);
