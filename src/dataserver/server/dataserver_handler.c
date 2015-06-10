@@ -260,7 +260,6 @@ void d_read_handler(event_handler_t* event_handle)
 	tag = read_msg->unique_tag;
 
 	handle_buff.file_info->offset = read_msg->offset;
-	printf("The offset is %d\n", read_msg->offset);
 	handle_buff.file_info->count = read_msg->read_len;
 	handle_buff.f_arr_buff->hash_table_size = read_msg->chunks_count;
 	for(i = 0; i < read_msg->chunks_count; i++)
