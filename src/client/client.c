@@ -242,9 +242,10 @@ static void create_local_file(char *file_path, list_t *list){
 			for(i = 0; i != block_queue->current_size; i++){
 				reader->chunks_id_arr[i] = ((recv_data_block_t *)get_queue_element(block_queue, i))->global_id;
 #if defined(CLIENT_DEBUG)
-				//err_ret("global_id = %d", reader->chunks_id_arr[i]);
+				err_ret("global_id = %d", reader->chunks_id_arr[i]);
 #endif
 			}
+			reader->chunks_count = block_queue->current_size;
 
 #if defined(CLIENT_DEBUG)
 	err_ret("Client.c: start send read cmd and acc to data server");
@@ -399,9 +400,9 @@ void *client_init(void *arg) {
 	}
 
 	//puts("********************hehehehe********************");
-	client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
-	//client_create_file_op("/home/ron/test/read.bak", "/readin");
-	//client_create_file_op("/home/ron/test/read.in", "/readin");
+	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
+//	client_create_file_op("/home/ron/test/read.bak", "/readin");
+	client_create_file_op("/home/ron/test/read.in", "/readin");
 	client_read_file_op("/home/ron/test/read.out", "/readin");
 
 
