@@ -221,7 +221,7 @@ static void create_local_file(char *file_path, list_t *list){
 			reader->read_len = 0;
 			while(k < ans->block_num && cur_machine_id == (ans->block_global_num + k)->server_id && block_queue->current_size + block_send_size <= MAX_COUNT_CID_W){
 
-				read_block->offset = 0 - MAX_DATA_CONTENT_LEN;
+				//read_block->offset = 0 - MAX_DATA_CONTENT_LEN;
 				read_block->global_id =  (ans->block_global_num + k)->global_id;
 				this_block_size = ceil((double) (ans->block_global_num + k)->write_len / MAX_DATA_CONTENT_LEN);
 				reader->read_len += (ans->block_global_num + k)->write_len;
@@ -241,8 +241,9 @@ static void create_local_file(char *file_path, list_t *list){
 
 			for(i = 0; i != block_queue->current_size; i++){
 				reader->chunks_id_arr[i] = ((recv_data_block_t *)get_queue_element(block_queue, i))->global_id;
+
 #if defined(CLIENT_DEBUG)
-				err_ret("global_id = %d", reader->chunks_id_arr[i]);
+				//err_ret("global_id = %d", reader->chunks_id_arr[i]);
 #endif
 			}
 			reader->chunks_count = block_queue->current_size;
@@ -250,17 +251,18 @@ static void create_local_file(char *file_path, list_t *list){
 #if defined(CLIENT_DEBUG)
 	err_ret("Client.c: start send read cmd and acc to data server");
 #endif
+			reader->offset = 0;
 			MPI_Send(reader, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, D_MSG_CMD_TAG, MPI_COMM_WORLD);
 			MPI_Send(acc_msg, MAX_CMD_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD);
 
 #if defined(CLIENT_DEBUG)
-	err_ret("Client.c: end send read cmd and acc to data server");
-	err_ret("size = %d", block_queue->current_size);
+	//err_ret("Client.c: end send read cmd and acc to data server");
+	//err_ret("size = %d", block_queue->current_size);
 #endif
 			for(i = 0; i != block_queue->current_size; i++){
 				MPI_Recv(data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD, &status);
 				fwrite(data_msg->data, sizeof(char), data_msg->len, fp);
-				err_ret("data_msg->len = %d", data_msg->len);
+				//err_ret("data_msg->len = %d", data_msg->len);
 
 #if defined(CLIENT_DEBUG)
 //	int index;
@@ -401,13 +403,14 @@ void *client_init(void *arg) {
 
 	//puts("********************hehehehe********************");
 	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
+
 //	client_create_file_op("/home/ron/test/read.bak", "/readin");
-	client_create_file_op("/home/ron/test/read.in", "/readin");
-	client_read_file_op("/home/ron/test/read.out", "/readin");
+//	client_create_file_op("/home/ron/test/read.in", "/readin");
+//	client_read_file_op("/home/ron/test/read.out", "/readin");
 
 
-//	client_create_file_op("/home/binyang/Test/read.in", "/readin");
-//	client_read_file_op("/home/binyang/Test/read.out", "/readin");
+	client_create_file_op("/home/binyang/Test/read.in", "/readin");
+	client_read_file_op("/home/binyang/Test/read.out", "/readin");
 	//client_create_file_op("/home/binyang/Test/test", "/readin");
 	//client_create_file_op("/home/ron/test/read.in", "/readin");
 

@@ -260,6 +260,7 @@ void d_read_handler(event_handler_t* event_handle)
 	tag = read_msg->unique_tag;
 
 	handle_buff.file_info->offset = read_msg->offset;
+	printf("The offset is %d\n", read_msg->offset);
 	handle_buff.file_info->count = read_msg->read_len;
 	handle_buff.f_arr_buff->hash_table_size = read_msg->chunks_count;
 	for(i = 0; i < read_msg->chunks_count; i++)
@@ -273,7 +274,6 @@ void d_read_handler(event_handler_t* event_handle)
 		//do something like sending error message to client
 		//release_rw_handler_buffer(event_handle, &handle_buff);
 	}
-	//free(file_info)
 	release_rw_handler_buffer(event_handle);
 	free(handle_buff.file_info);
 	printf("It's OK here\n");
