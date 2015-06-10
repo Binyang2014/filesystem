@@ -154,7 +154,7 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 				MPI_Send(&data_msg, MAX_DATA_MSG_LEN, MPI_CHAR, cur_machine_id, 13, MPI_COMM_WORLD);
 
 #if defined(CLIENT_DEBUG)
-				printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
+				//printf("End Send %d/%d Data\n", j + 1, writer.chunks_count);
 #endif
 			}
 
@@ -170,6 +170,7 @@ static void send_data(char *file_name, unsigned long file_size, list_t *list)
 	list->list_ops->list_release_iterator(iter);
 	destroy_basic_queue(block_queue);
 	fclose(fp);
+	//TODO --
 }
 
 static void create_local_file(char *file_path, list_t *list){
@@ -269,7 +270,7 @@ static void create_local_file(char *file_path, list_t *list){
 #endif
 
 			}
-			//while(1);
+			//TODO while(1);
 			basic_queue_reset(block_queue);
 		}
 		reader->offset += reader->read_len;
