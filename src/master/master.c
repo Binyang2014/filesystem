@@ -67,8 +67,8 @@ static int answer_client_create_file(namespace *space, common_msg_t *request){
 	//TODO the first is not going to provide any fault tolerance, but the name space modify should be temporary whenever is not confirmed
 	int status = namespace_create_file(space , file_request->file_name);
 	int malloc_result = 0;
+	//TODO MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 	if(status != OPERATE_SECCESS){
-		MPI_Send(&malloc_result, 1, MPI_INT, request->source, CLIENT_INSTRUCTION_ANS_MESSAGE_TAG, MPI_COMM_WORLD);
 		err_ret("answer_client_create_file: name space create file failed, status = %d", status);
 		return status;
 	}

@@ -399,10 +399,12 @@ void *client_init(void *arg) {
 	//puts("********************hehehehe********************");
 	//client_create_file_op("/home/ron/test/readfile.cvs", "/readin");
 	//client_create_file_op("/home/ron/test/read.bak", "/readin");
-	client_create_file_op("/home/binyang/Test/read.in", "/readin");
-	client_read_file_op("/home/binyang/Test/read.out", "/readin");
+	client_create_file_op("/home/ron/test/read.in", "/readin");
+	//client_read_file_op("/home/ron/test/read.out", "/readin");
 
-	//puts("hehehehe");
+
+//	client_create_file_op("/home/binyang/Test/read.in", "/readin");
+//	client_read_file_op("/home/binyang/Test/read.out", "/readin");
 	//client_create_file_op("/home/binyang/Test/test", "/readin");
 	//client_create_file_op("/home/ron/test/read.in", "/readin");
 
