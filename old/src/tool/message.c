@@ -33,7 +33,7 @@ void d_mpi_cmd_recv(void* msg, mpi_status_t* status_t)
 	MPI_Status status;
 	MPI_Recv(msg, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, D_MSG_CMD_TAG, MPI_COMM_WORLD, &status);
 	status_t->error_num = status.MPI_ERROR;
-	status_t->size = status.count;
+	//status_t->size = status.count;
 	status_t->source = status.MPI_SOURCE;
 	status_t->tag = status.MPI_TAG;
 }

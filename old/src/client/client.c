@@ -331,16 +331,20 @@ static int client_create_file_op(char *file_path, char *file_name){
 		list->list_ops->list_add_node_tail(list, alloc_create_file_buff(create_file_buff, sizeof(ans_client_create_file)));
 	}while(!ans->is_tail);
 
-#if defined(CLIENT_DEBUG)
+//#if defined(CLIENT_DEBUG)
 	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	list_node_t *node = (list_node_t *)(list->list_ops->list_next(iter));
 	while(node != NULL){
 		ans = (ans_client_create_file *)node->value;
 		err_ret(" block_num == %d list size = %d", ans->block_num, list->len);
+		int m = 0;
+		do{
+			printf("block id = %d, server id = %d, global id = %d\n", ans->block_global_num[m].block_seq, ans->block_global_num[m].server_id, ans->block_global_num[m].global_id);
+		}while(m++ < ans->block_num);
 		node = (ans_client_create_file *)(list->list_ops->list_next(iter));
 	}
 	list->list_ops->list_release_iterator(iter);
-#endif
+//#endif
 
 	send_data(file_path, file_length, list);
 	list_release(list);
