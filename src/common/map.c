@@ -109,6 +109,7 @@ static int put(map_t *this, const sds key, const void *value) {
 		pair_t *pair = (pair_t *)zmalloc(sizeof(pair_t));
 		pair->key = this->key_dup(key);
 		pair->value = this->value_dup(value);
+		//printf("%d\n", *(pair->value));
 
 		l->list_ops->list_add_node_tail(l, (void *)pair);
 		this->current_size++;
@@ -166,6 +167,7 @@ map_t *create_map(size_t size) {
 	this->size = size;
 	this->op->put = put;
 	this->op->get = get;
+	this->op->del = del;
 	this->op->contains = contains;
 	this->op->get_size = get_size;
 
@@ -184,7 +186,8 @@ void destroy_map(map_t *this) {
 	zfree(this);
 }
 
-#if 1
+//UNIT TEST
+#if 0
 void *pair_dup(void *pair){
 	pair_t *p = zmalloc(sizeof(pair_t));
 	p->key = sds_dup(((pair_t *)pair)->key);
@@ -216,21 +219,28 @@ int main() {
 	map_t *map = create_map(10);
 	set_map_value_dup(map, v_dup);
 	set_map_value_free(map, v_free);
-	set_list_pair_dup(map, pair_dup);
-	set_list_pair_free(map, pair_free);
+	set_map_list_pair_dup(map, pair_dup);
+	set_map_list_pair_free(map, pair_free);
 
+	//put
 	sds s = sds_new("1234");
 	int v = 1234;
 	map->op->put(map, s, &v);
 	int *t = map->op->get(map, s);
 	printf("the value we get = %d\n", *t);
+
+	//modify
 	v = 2345;
 	map->op->put(map, s, &v);
-	map->op->del(map, s);
-	//t = map->op->get(map, s);
+	t = map->op->get(map, s);
+	printf("the value we get = %d\n", *t);
 
-	//printf("the value we get = %d\n", *t);
+	//delete
+	map->op->del(map, s);
+	t = map->op->get(map, s);
+	printf("the value we get = %d\n", t);
 	destroy_map(map);
+
 	return 0;
 }
 #endif

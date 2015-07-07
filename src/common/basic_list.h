@@ -57,8 +57,10 @@ struct list_operations
 {
 	struct list* (*list_add_node_head)(struct list *list, void *value);
 	struct list* (*list_add_exist_node_head)(struct list *list, struct node *node);
+	struct list* (*list_extract_node_to_head)(struct list *list, struct node *node);
 	struct list* (*list_add_node_tail)(struct list *list, void *value);
 	struct list* (*list_add_exist_node_tail)(struct list *list, struct node *node);
+	struct list* (*list_extract_node_to_tail)(struct list *list, struct node *node);
 	struct list* (*list_insert_node)(struct list *list, struct node *old_node,
 			void *value, int after);
 	void (*list_del_node)(struct list *list, struct node *node);

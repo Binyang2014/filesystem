@@ -12,8 +12,10 @@
 static void init_list_ops(list_op_t* list_ops);
 static list_t *list_add_node_head(list_t *list, void *value);
 static list_t *list_add_exist_node_head(list_t *list, list_node_t *node);
+static list_t *list_extract_node_to_head(list_t *list, list_node_t *node);
 static list_t *list_add_node_tail(list_t *list, void *value);
 static list_t *list_add_exist_node_tail(list_t *list, list_node_t *node);
+static list_t *list_extract_node_to_tail(list_t *list, list_node_t *node);
 static list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after);
 static void list_del_node(list_t *list, list_node_t *node);
 static list_iter_t *list_get_iterator(list_t *list, int direction);
@@ -31,8 +33,10 @@ static void init_list_ops(list_op_t* list_ops)
 {
 	list_ops->list_add_node_head = list_add_node_head;
 	list_ops->list_add_exist_node_tail = list_add_exist_node_head;
+	list_ops->list_extract_node_to_head = list_extract_node_to_head;
 	list_ops->list_add_node_tail = list_add_node_tail;
 	list_ops->list_add_exist_node_tail = list_add_exist_node_tail;
+	list_ops->list_extract_node_to_tail = list_extract_node_to_tail;
 	list_ops->list_del_node = list_del_node;
 	list_ops->list_dup = list_dup;
 	list_ops->list_get_iterator = list_get_iterator;
@@ -136,6 +140,29 @@ static list_t *list_add_node_head(list_t *list, void *value)
     return list;
 }
 
+/*
+ * extract a node from the node and add to head
+ * TODO check this
+ */
+struct list* list_extract_node_to_head(struct list *list, struct node *node) {
+	if(node == NULL || list->head == node) {
+		return list;
+	}
+
+	if(node->prev) {
+		node->prev->next = node->next;
+		node->next = list->head;
+	}
+
+	if(node->next) {
+		node->next->prev = node->prev;
+		node->prev = NULL;
+	}
+
+	list->head = node;
+	return list;
+}
+
 /* Add a new node to the list, to head, not allocate node structure in
  * the list.
  */
@@ -196,6 +223,26 @@ static list_t *list_add_exist_node_tail(list_t *list, list_node_t *node)
     }
     list->len++;
     return list;
+}
+
+struct list* list_extract_node_to_tail(struct list *list, struct node *node) {
+
+	if(node == NULL || node == list->tail) {
+		return list;
+	}
+
+	if(node->prev) {
+		node->prev->next = node->next;
+		node->next = NULL;
+	}
+
+	if(node->next) {
+		node->next->prev = node->prev;
+		node->prev = list->tail;
+	}
+
+	list->tail = node;
+	return list;
 }
 
 static list_t *list_insert_node(list_t *list, list_node_t *old_node, void *value, int after)

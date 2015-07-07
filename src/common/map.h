@@ -41,18 +41,17 @@ struct map_op{
 };
 
 typedef struct pair pair_t;
-
 typedef struct map_op map_op_t;
 
 #define set_map_value_dup(m, p) ((m)->value_dup) = p
 #define set_map_value_free(m, p) ((m)->value_free) = p
-#define set_list_pair_dup(m, p)	\
+#define set_map_list_pair_dup(m, p)	\
 		int _i = 0;	\
 		for(_i = 0; _i < ((m)->size); _i++) { \
 			(*((m)->list + _i))->dup = p; \
 		} \
 
-#define set_list_pair_free(m, p) \
+#define set_map_list_pair_free(m, p) \
 		int _j = 0;	\
 		for(_j = 0; _j < ((m)->size); _j++) { \
 			(*((m)->list + _j))->free = p; \

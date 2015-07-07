@@ -130,7 +130,7 @@ void *zmalloc(size_t size) {
 #else
     *((size_t*)ptr) = size;
     update_zmalloc_stat_alloc(size + PREFIX_SIZE);
-    return (char*)ptr + PREFIX_SIZE;
+    return (void *)((char*)ptr + PREFIX_SIZE);
 #endif
 }
 
