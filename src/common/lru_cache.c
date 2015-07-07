@@ -63,24 +63,20 @@ static void put(lru_cache_t *this, sds key, void *value) {
 
 	pair_t *p = zmalloc(sizeof(pair_t));
 	p->key = sds_dup(key);
-	p->value = this->value_dup(value);
+	p->value = this->value_dup ? this->value_dup(value) : value;
 
 	if(v == NULL) {
 		if(this->max_size == this->list->len) {
 			//if full, delete list head,
 			this->map->op->del(this->map, ((pair_t *)(this->list->head->value))->key);
-			//printf("key = %s\n", ((pair_t *)this->list->head->value)->key);
 			this->list->list_ops->list_del_node(this->list, this->list->head);
 		}
 		this->list->list_ops->list_add_node_tail(this->list, p);
 	}else {
 		//delete old key-value in list
-		//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 		this->list->free((*node)->value);
 		(*node)->value = p;
-		//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 		this->list->list_ops->list_extract_node_to_tail(this->list, *node);
-		//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 	}
 
 	//add the new node to the list and add new list node address to the map(key, new address)
@@ -101,9 +97,8 @@ static void *get(lru_cache_t *this, sds key) {
 		list_node_t **node = v;
 
 		this->list->list_ops->list_extract_node_to_tail(this->list, *node);
-		//printf("get %d\n", node);
-		//printf("get %d %d %d %d\n", node, this->list->head, this->list->tail, *(int *)((pair_t *)this->list->tail->value)->value);
-		return this->value_dup(((pair_t *)(*node)->value)->value);
+		void *value = ((pair_t *)(*node)->value)->value;
+		return this->value_dup ? this->value_dup(value) : value;
 	}
 }
 
@@ -132,11 +127,7 @@ lru_cache_t *create_lru_cache(size_t size, void *(*value_dup)(const void *value)
 	lru_cache_t *this = zmalloc(sizeof(lru_cache_t));
 	this->op = zmalloc(sizeof(lru_cache_op_t));
 
-	this->map = create_map(size * LOAD_MODE);
-	set_map_value_dup(this->map, map_v_dup);
-	set_map_value_free(this->map, zfree);
-	set_map_list_pair_dup(this->map, lru_cache_pair_dup);
-	set_map_list_pair_free(this->map, lru_cache_pair_free);
+	this->map = create_map(size * LOAD_MODE, map_v_dup, zfree, lru_cache_pair_dup, lru_cache_pair_free);
 
 	this->max_size = size;
 	this->list = list_create();
@@ -160,7 +151,8 @@ void destroy_lru_cache(lru_cache_t *this) {
 	zfree(this);
 }
 
-#if 1
+//#define CACHE_TEST 1
+#if defined(GLOBAL_TEST) || defined(CACHE_TEST)
 #include <stdio.h>
 void v_free(void *v) {
 	zfree(v);

@@ -70,17 +70,6 @@ static uint32_t map_gen_hash_function(const sds key, size_t size) {
     return (uint32_t)h % size;
 }
 
-/**
- * dup function for the list which resolve hash conflict
- */
-static void *list_pair_dup(void *pair){
-	pair_t *p = (pair_t *)(zmalloc(sizeof(pair_t)));
-	p->key = ((pair_t *)pair)->key;
-	p->value = ((pair_t *)pair)->value;
-
-	return (void *)p;
-}
-
 static pair_t *find(map_t *this, const sds key){
 	uint32_t h = map_gen_hash_function(key, this->size);
 
@@ -99,7 +88,7 @@ static pair_t *find(map_t *this, const sds key){
 	return NULL;
 }
 
-static int put(map_t *this, const sds key, const void *value) {
+static int put(map_t *this, const sds key, void *value) {
 	pair_t *node = find(this, key);
 
 	if(node == NULL) {
@@ -108,15 +97,18 @@ static int put(map_t *this, const sds key, const void *value) {
 
 		pair_t *pair = (pair_t *)zmalloc(sizeof(pair_t));
 		pair->key = this->key_dup(key);
-		pair->value = this->value_dup(value);
-		//printf("%d\n", *(pair->value));
+		pair->value = this->value_dup ? this->value_dup(value) : value;
 
 		l->list_ops->list_add_node_tail(l, (void *)pair);
 		this->current_size++;
 		return 1;
 	}else {
-		this->value_free(node->value);
-		node->value = this->value_dup(value);
+		if(this->value_free) {
+			this->value_free(node->value);
+		}else {
+			zfree(node->value);
+		}
+		node->value = this->value_dup ? this->value_dup(value) : value;
 		return 0;
 	}
 }
@@ -124,7 +116,7 @@ static int put(map_t *this, const sds key, const void *value) {
 static void *get(map_t *this, const sds key) {
 	pair_t *node = find(this, key);
 
-	return node == NULL ? NULL : this->value_dup(node->value);
+	return node == NULL ? NULL : (this->value_dup ? this->value_dup(node->value) : node->value);
 }
 
 static int contains(map_t *this, sds key) {
@@ -151,7 +143,8 @@ void del(map_t *this, sds key){
 	}
 }
 
-map_t *create_map(size_t size) {
+map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
+		void *(*list_dup)(void *ptr), void (*list_free)(void *ptr)) {
 	int i;
 
 	map_t *this = (map_t *)(zmalloc(sizeof(map_t)));
@@ -160,7 +153,8 @@ map_t *create_map(size_t size) {
 
 	for(i = 0; i < size; i++) {
 		*(this->list + i) = list_create();
-		(*(this->list + i))->dup = list_pair_dup;
+		(*(this->list + i))->dup = list_dup;
+		(*(this->list + i))->free = list_free;
 	}
 
 	this->current_size = 0;
@@ -173,6 +167,8 @@ map_t *create_map(size_t size) {
 
 	this->key_dup = sds_dup;
 	this->key_free = sds_free;
+	this->value_dup = value_dup;
+	this->value_free = value_free;
 
 	return this;
 }
@@ -187,7 +183,8 @@ void destroy_map(map_t *this) {
 }
 
 //UNIT TEST
-#if 1
+//#define MAP_TEST 1
+#if  defined(GLOBAL_TEST) || defined(MAP_TEST)
 void *pair_dup(void *pair){
 	pair_t *p = zmalloc(sizeof(pair_t));
 	p->key = sds_dup(((pair_t *)pair)->key);
@@ -196,12 +193,14 @@ void *pair_dup(void *pair){
 	p->value = t;
 	return (void *)p;
 }
+
 void pair_free(void *pair){
 	pair_t *p = pair;
 	sds_free(p->key);
 	zfree(p->value);
 	zfree(p);
 }
+
 void v_free(void *v) {
 	int *t = v;
 	zfree(t);
@@ -211,12 +210,10 @@ void *v_dup(const void *v){
 	*t = *((int *)v);
 	return (void *)t;
 }
+
 int main() {
-	map_t *map = create_map(10);
-	set_map_value_dup(map, v_dup);
-	set_map_value_free(map, v_free);
-	set_map_list_pair_dup(map, pair_dup);
-	set_map_list_pair_free(map, pair_free);
+	//if v_dup or v_free is NULL, it will be shallow copy, make your copy function right
+	map_t *map = create_map(10, v_dup, v_free, pair_dup, pair_free);
 
 	//put
 	sds s = sds_new("1234");
