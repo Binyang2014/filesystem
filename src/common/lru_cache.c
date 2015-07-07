@@ -69,19 +69,22 @@ static void put(lru_cache_t *this, sds key, void *value) {
 		if(this->max_size == this->list->len) {
 			//if full, delete list head,
 			this->map->op->del(this->map, ((pair_t *)(this->list->head->value))->key);
+			//printf("key = %s\n", ((pair_t *)this->list->head->value)->key);
 			this->list->list_ops->list_del_node(this->list, this->list->head);
 		}
 		this->list->list_ops->list_add_node_tail(this->list, p);
 	}else {
 		//delete old key-value in list
+		//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 		this->list->free((*node)->value);
 		(*node)->value = p;
+		//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 		this->list->list_ops->list_extract_node_to_tail(this->list, *node);
+		//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 	}
 
 	//add the new node to the list and add new list node address to the map(key, new address)
 	this->map->op->put(this->map, key, &(this->list->tail));
-
 	assert(this->list->len == this->map->current_size);
 }
 
@@ -96,6 +99,7 @@ static void *get(lru_cache_t *this, sds key) {
 		return NULL;
 	}else {
 		list_node_t **node = v;
+
 		this->list->list_ops->list_extract_node_to_tail(this->list, *node);
 		//printf("get %d\n", node);
 		//printf("get %d %d %d %d\n", node, this->list->head, this->list->tail, *(int *)((pair_t *)this->list->tail->value)->value);
@@ -156,7 +160,7 @@ void destroy_lru_cache(lru_cache_t *this) {
 	zfree(this);
 }
 
-#if 0
+#if 1
 
 void v_free(void *v) {
 	zfree(v);
@@ -190,36 +194,54 @@ int main(){
 	int num = 1234;
 	this->op->put(this, s, &num);
 	int *t = this->op->get(this, s);
-	printf("%d\n", *t);
+	printf("s = %d size = %d\n", *t, this->op->get_size(this));
 
 	sds s2 = sds_new("2345");
 	num = 2345;
 	this->op->put(this, s2, &num);
 	t = this->op->get(this, s2);
-	printf("%d\n", *t);
+	printf("s2 = %d size = %d\n", *t, this->op->get_size(this));
 
 	sds s3 = sds_new("3456");
 	num = 3456;
 	this->op->put(this, s3, &num);
 	t = this->op->get(this, s3);
-	printf("%d\n", *t);
+	printf("s3 = %d size = %d\n", *t, this->op->get_size(this));
 
 	sds s4 = sds_new("4567");
 	num = 4567;
 	this->op->put(this, s4, &num);
 	t = this->op->get(this, s4);
-	printf("%d\n", *t);
-
+	printf("s4 = %d size = %d\n", *t, this->op->get_size(this));
+	//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 	sds s5 = sds_new("5678");
 	num = 5678;
 	this->op->put(this, s5, &num);
 	t = this->op->get(this, s5);
-	printf("%d\n", *t);
+	printf("s5 = %d size = %d\n", *t, this->op->get_size(this));
 
 	num = 1111;
-	this->op->put(this, s5, &num);
+	this->op->put(this, s, &num);
+	t = this->op->get(this, s);
+	printf("s = %d size = %d\n", *t, this->op->get_size(this));
+
+	num = 1222;
+	sds s6 = sds_new("6666");
+	this->op->put(this, s6, &num);
+	t = this->op->get(this, s6);
+	printf("s6 = %d size = %d\n", *t, this->op->get_size(this));
+
+	t = this->op->get(this, s2);
+	printf("s = %d size = %d\n", t, this->op->get_size(this));
+
+	this->op->del(this, s5);
 	t = this->op->get(this, s5);
-	printf("%d size = %d\n", *t, this->op->get_size(this));
+	printf("%d size = %d\n", t, this->op->get_size(this));
+
+	num = 2222;
+	this->op->put(this, s2, &num);
+	t = this->op->get(this, s2);
+	printf("s2 = %d size = %d\n", *t, this->op->get_size(this));
 	return 0;
 
 }
