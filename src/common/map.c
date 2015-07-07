@@ -5,6 +5,7 @@
  *      Author: ron
  */
 
+#include <stdio.h>
 #include "map.h"
 #include "zmalloc.h"
 
@@ -186,7 +187,7 @@ void destroy_map(map_t *this) {
 }
 
 //UNIT TEST
-#if 0
+#if 1
 void *pair_dup(void *pair){
 	pair_t *p = zmalloc(sizeof(pair_t));
 	p->key = sds_dup(((pair_t *)pair)->key);
@@ -195,25 +196,21 @@ void *pair_dup(void *pair){
 	p->value = t;
 	return (void *)p;
 }
-
 void pair_free(void *pair){
 	pair_t *p = pair;
 	sds_free(p->key);
 	zfree(p->value);
 	zfree(p);
 }
-
 void v_free(void *v) {
 	int *t = v;
 	zfree(t);
 }
-
-void *v_dup(void *v){
+void *v_dup(const void *v){
 	int *t = zmalloc(sizeof(int));
 	*t = *((int *)v);
 	return (void *)t;
 }
-
 int main() {
 	map_t *map = create_map(10);
 	set_map_value_dup(map, v_dup);
@@ -237,9 +234,13 @@ int main() {
 	//delete
 	map->op->del(map, s);
 	t = map->op->get(map, s);
-	printf("the value we get = %d\n", t);
-	destroy_map(map);
+	if(t == NULL) {
+		puts("NONE");
+	}else {
+		printf("the value we get = %d\n", *t);
+	}
 
+	destroy_map(map);
 	return 0;
 }
 #endif
