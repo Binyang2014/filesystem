@@ -27,8 +27,8 @@ typedef struct map{
 	sds (*key_dup)(const sds key);
 	void *(*value_dup)(const void *value);
 	void (*key_free)(sds key);
-	void *(*value_free)(void *value);
-    void *(*list_dup)(void *ptr);
+	void (*value_free)(void *value);
+    void *(*list_dup)(const void *ptr);
     void (*list_free)(void *ptr);
 }map_t;
 

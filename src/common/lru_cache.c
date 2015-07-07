@@ -34,7 +34,7 @@ static cache_node_t *destroy_cache_node(lru_cache_t *this, cache_node_t *node) {
 }
 */
 
-static void *map_v_dup(void *v) {
+static void *map_v_dup(const void *v) {
 	void **ptr = zmalloc(sizeof(void *));
 	*ptr = *(void **)v;
 	return ptr;
@@ -125,8 +125,8 @@ static size_t get_size(lru_cache_t *cache) {
 /**
  * map put list node address
  */
-lru_cache_t *create_lru_cache(size_t size, void *(*value_dup)(const void *value), void *(*value_free)(sds value),
-		void *(*pair_dup)(const void *value), void (*pair_free)(void *value)) {
+lru_cache_t *create_lru_cache(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
+		void *(*pair_dup)(void *value), void (*pair_free)(void *value)) {
 	assert(size > 0);
 
 	lru_cache_t *this = zmalloc(sizeof(lru_cache_t));
@@ -161,18 +161,18 @@ void destroy_lru_cache(lru_cache_t *this) {
 }
 
 #if 1
-
+#include <stdio.h>
 void v_free(void *v) {
 	zfree(v);
 }
 
-void *v_dup(void *v){
+void *v_dup(const void *v){
 	int *t = zmalloc(sizeof(int));
 	*t = *((int *)v);
 	return (void *)t;
 }
 
-static void *list_pair_dup(const void *value){
+static void *list_pair_dup(void *value){
 	pair_t *p = zmalloc(sizeof(pair_t));
 	p->key = sds_dup(((pair_t *)value)->key);
 	//this is your value dup function, must be specify
@@ -181,67 +181,76 @@ static void *list_pair_dup(const void *value){
 	return p;
 }
 
-static list_pair_free(void *value){
+static void list_pair_free(void *value){
 	pair_t *p = value;
 	sds_free(p->key);
 	zfree(p->value);
 }
 
 int main(){
-	lru_cache_t *this = create_lru_cache(5, v_dup, v_free, list_pair_dup, list_pair_free);
+	size_t size = 5;
+	lru_cache_t *this = create_lru_cache(size, v_dup, v_free, list_pair_dup, list_pair_free);
 
 	sds s = sds_new("1234");
 	int num = 1234;
 	this->op->put(this, s, &num);
 	int *t = this->op->get(this, s);
-	printf("s = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s = %d size = %zu\n", *t, this->op->get_size(this));
 
 	sds s2 = sds_new("2345");
 	num = 2345;
 	this->op->put(this, s2, &num);
 	t = this->op->get(this, s2);
-	printf("s2 = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s2 = %d size = %zu\n", *t, this->op->get_size(this));
 
 	sds s3 = sds_new("3456");
 	num = 3456;
 	this->op->put(this, s3, &num);
 	t = this->op->get(this, s3);
-	printf("s3 = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s3 = %d size = %zu\n", *t, this->op->get_size(this));
 
 	sds s4 = sds_new("4567");
 	num = 4567;
 	this->op->put(this, s4, &num);
 	t = this->op->get(this, s4);
-	printf("s4 = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s4 = %d size = %zu\n", *t, this->op->get_size(this));
 	//printf("list head =  %d tail = %d\n", this->list->head, this->list->tail);
 	sds s5 = sds_new("5678");
 	num = 5678;
 	this->op->put(this, s5, &num);
 	t = this->op->get(this, s5);
-	printf("s5 = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s5 = %d size = %zu\n", *t, this->op->get_size(this));
 
 	num = 1111;
 	this->op->put(this, s, &num);
 	t = this->op->get(this, s);
-	printf("s = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s = %d size = %zu\n", *t, this->op->get_size(this));
 
 	num = 1222;
 	sds s6 = sds_new("6666");
 	this->op->put(this, s6, &num);
 	t = this->op->get(this, s6);
-	printf("s6 = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s6 = %d size = %zu\n", *t, this->op->get_size(this));
 
 	t = this->op->get(this, s2);
-	printf("s = %d size = %d\n", t, this->op->get_size(this));
+	if(t == 0) {
+		puts("NONE S2");
+	}else {
+		printf("s = %d size = %zu\n", *t, this->op->get_size(this));
+	}
 
 	this->op->del(this, s5);
 	t = this->op->get(this, s5);
-	printf("%d size = %d\n", t, this->op->get_size(this));
+	if(t == 0) {
+		puts("NONE S5");
+	}else {
+		printf("%d size = %zu\n", *t, this->op->get_size(this));
+	}
 
 	num = 2222;
 	this->op->put(this, s2, &num);
 	t = this->op->get(this, s2);
-	printf("s2 = %d size = %d\n", *t, this->op->get_size(this));
+	printf("s2 = %d size = %zu\n", *t, this->op->get_size(this));
 	return 0;
 
 }

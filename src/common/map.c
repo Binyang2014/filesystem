@@ -6,6 +6,7 @@
  */
 
 #include "map.h"
+#include "zmalloc.h"
 
 /* Copy from redis
  * MurmurHash2, by Austin Appleby
@@ -72,9 +73,7 @@ static uint32_t map_gen_hash_function(const sds key, size_t size) {
  * dup function for the list which resolve hash conflict
  */
 static void *list_pair_dup(void *pair){
-	pair_t *p;
-
-	p = (pair_t *)zmalloc(sizeof(*p));
+	pair_t *p = (pair_t *)(zmalloc(sizeof(pair_t)));
 	p->key = ((pair_t *)pair)->key;
 	p->value = ((pair_t *)pair)->value;
 
