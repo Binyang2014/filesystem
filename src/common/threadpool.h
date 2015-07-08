@@ -12,10 +12,9 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include "message.h"
-#include "syn_tool.h"
-#include "../global.h"
-#include "../structure/basic_list.h"
-#include "../structure/basic_queue.h"
+#include "basic_list.h"
+#include "basic_queue.h"
+#include "syn_queue.h"
 
 #define THREAD_POOL_UNINIT 0
 #define THREAD_POOL_INIT 1
@@ -104,8 +103,8 @@ typedef void* (*resolve_handler_t)(event_handler_t*, void* args);
 /*===============================thread pool=======================================*/
 
 //there are promote, deactive, reactive and start functions
-thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t*);
-void distroy_thread_pool(thread_pool_t*);
+thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t *);
+void distroy_thread_pool(thread_pool_t *);
 
 /*===============================event handler=====================================*/
 

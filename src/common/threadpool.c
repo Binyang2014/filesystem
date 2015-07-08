@@ -8,8 +8,8 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "threadpool.h"
-#include "syn_tool.h"
 #include "errinfo.h"
+#include "syn_queue.h"
 
 static void* thread_do(void* arg);
 
