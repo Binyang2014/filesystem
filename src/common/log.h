@@ -24,21 +24,21 @@
 
 typedef enum log_level
 {
-    LOG_TRACE = 0,
-    LOG_DEBUG = 1,
-    LOG_INFO = 2,
-    LOG_WARN = 3,
-    LOG_ERR = 4,
-    LOG_OFF = 5,
+	LOG_TRACE = 0,
+	LOG_DEBUG = 1,
+	LOG_INFO = 2,
+	LOG_WARN = 3,
+	LOG_ERR = 4,
+	LOG_OFF = 5,
 }log_level_t;
 
 struct logger
 {
-    pthread_mutex_t log_write_mutex;
-    FILE* fp;
-    log_level_t level;
-    char full_log_path[LOG_MAX_PATH + 50];
-    char log_to_stdout;
+	pthread_mutex_t log_write_mutex;
+	FILE* fp;
+	log_level_t level;
+	char full_log_path[LOG_MAX_PATH + 50];//path is a abs path
+	char log_to_stdout;
 };
 
 typedef struct logger logger_t;
