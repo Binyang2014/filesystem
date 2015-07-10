@@ -34,6 +34,7 @@ struct map_op {
 	int (*put)(map_t *map, const sds key, void *value);
 	void *(*get)(map_t *map, sds key);
 	int (*contains)(map_t *map, sds key);
+	int (*modify_key)(map_t *map, sds old_key, sds new_key);
 	size_t (*get_size)(map_t *map);
 	void (*del)(map_t *map, sds key);
 };

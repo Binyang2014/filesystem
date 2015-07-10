@@ -123,6 +123,27 @@ static int contains(map_t *this, sds key) {
 	return find(this, key) != NULL;
 }
 
+static int modify_key(map_t *this, sds old_key, sds new_key) {
+	uint32_t h = map_gen_hash_function(old_key, this->size);
+
+	list_t *l = *(this->list + h);
+	list_iter_t *iter = l->list_ops->list_get_iterator(l, AL_START_HEAD);
+	list_node_t *node = l->list_ops->list_next(iter);
+	while(node) {
+		if(sds_cmp(((pair_t *)node->value)->key, old_key) == 0) {
+			l->list_ops->list_remove_node(l, node);
+			sds_free(((pair_t *)node->value)->key);
+			put(this, new_key, node->value);
+			zfree(node);
+			this->current_size--;
+			return 0;
+		}
+		node = l->list_ops->list_next(iter);
+	}
+
+	return -1;
+}
+
 static size_t get_size(map_t *this) {
 	return this->current_size;
 }
@@ -162,6 +183,7 @@ map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*val
 	this->op->put = put;
 	this->op->get = get;
 	this->op->del = del;
+	this->op->modify_key = modify_key;
 	this->op->contains = contains;
 	this->op->get_size = get_size;
 

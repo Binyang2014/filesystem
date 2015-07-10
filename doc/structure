@@ -1,0 +1,14 @@
+1. master file_node
+   file_id
+   file_name
+   file_size
+   file_type { 0:temporary, 1:persistent }
+   file_location
+   file_last_block_location
+   file_persistence_offset
+   is_unable //maybe in persistent || append || delete
+   
+2. machine register to master
+   machine_mpi_id
+   machine_name?ip?
+   machine_

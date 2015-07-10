@@ -10,6 +10,7 @@
 
 /*===================== Prototypes ==========================*/
 static void init_list_ops(list_op_t* list_ops);
+static void list_remove_node(struct list *list, struct node *node);
 static list_t *list_add_node_head(list_t *list, void *value);
 static list_t *list_add_exist_node_head(list_t *list, list_node_t *node);
 static list_t *list_extract_node_to_head(list_t *list, list_node_t *node);
@@ -31,6 +32,7 @@ static void list_rotate(list_t *list);
 
 static void init_list_ops(list_op_t* list_ops)
 {
+	list_ops->list_remove_node = list_remove_node;
 	list_ops->list_add_node_head = list_add_node_head;
 	list_ops->list_add_exist_node_tail = list_add_exist_node_head;
 	list_ops->list_extract_node_to_head = list_extract_node_to_head;
@@ -112,6 +114,34 @@ void list_release_without_node(list_t *list)
     }
     free(list->list_ops);
     free(list);
+}
+
+/*
+ * This won't free the node removed from the list
+ */
+static void list_remove_node(struct list *list, struct node *node) {
+	if(list == NULL || node == NULL) {
+		return;
+	}
+
+	if(node == list->head) {
+		list->head = list->head->next;
+		node->next = NULL;
+		list->head->prev = NULL;
+		return;
+	}
+
+	if(node == list->tail) {
+		list->tail = list->tail->prev;
+		list->tail->next = NULL;
+		node->prev = NULL;
+		return;
+	}
+
+	node->prev->next = node->next;
+	node->next->prev = node->prev;
+	node->next = NULL;
+	node->prev = NULL;
 }
 
 /* Add a new node to the list, to head, containing the specified 'value'

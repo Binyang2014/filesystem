@@ -55,6 +55,7 @@ struct list_iter
 
 struct list_operations
 {
+	void (*list_remove_node)(struct list *list, struct node *node);
 	struct list* (*list_add_node_head)(struct list *list, void *value);
 	struct list* (*list_add_exist_node_head)(struct list *list, struct node *node);
 	struct list* (*list_extract_node_to_head)(struct list *list, struct node *node);
