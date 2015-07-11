@@ -92,6 +92,7 @@ static void __write_log(log_level_t level, char* msg)
 		int off;
 		struct timeval tv;
 		pid_t pid = getpid();
+		pthread_t tid = pthread_self();
 
 		gettimeofday(&tv, NULL);
 		off = strftime(buf, sizeof(buf), "%d %b %H:%M:%S.", localtime(&tv.tv_sec));
@@ -100,7 +101,7 @@ static void __write_log(log_level_t level, char* msg)
 		if(LOG_THREAD_SAFE)
 		{
 			pthread_mutex_lock(&global_logger.log_write_mutex);
-			fprintf(fp, "%d %s %s %s\n", (int)pid, buf, level_name[level], msg);
+			fprintf(fp, "%d %u %s %s %s\n", (int)pid, (unsigned int)tid, buf, level_name[level], msg);
 			pthread_mutex_unlock(&global_logger.log_write_mutex);
 		}
 		else
