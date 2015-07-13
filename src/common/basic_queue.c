@@ -228,3 +228,9 @@ void basic_queue_reset(basic_queue_t* this){
 	this->head_pos = 0;
 }
 
+
+#if defined(GLOBAL_TEST) || defined(QUEUE_TEST)
+int main() {
+	return 0;
+}
+#endif
