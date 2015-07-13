@@ -7,9 +7,21 @@
 
 #ifndef SRC_MASTER_MASTER_H_
 #define SRC_MASTER_MASTER_H_
+#include <mpi.h>
+#include <pthread.h>
+#include "./common/name_space.h"
+#include "./common/communication/mpi_rpc_server.h"
+#include "./common/communication/mpi_rpc_client.h"
+
+struct master_op {
+	void (*master_start)(struct master *master);
+};
 
 struct master {
-
+	MPI_Comm comm;
+	int rank;
+	name_space_t *name_space;
+	pthread_t *thread;
 };
 
 typedef struct master master_t;
