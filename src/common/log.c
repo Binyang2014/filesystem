@@ -33,7 +33,7 @@ int log_init(const char* dir, log_level_t level)
     global_logger = (logger_t*)zmalloc(sizeof(logger_t));
     if(global_logger == NULL)
     {
-        fprintf(stderr, "molloc global logger wrong and the program can not continue\n");
+        fprintf(stderr, "malloc global logger wrong and the program can not continue\n");
         exit(1);
     }
     if(pthread_mutex_init(&global_logger->log_write_mutex, NULL) != 0)
@@ -48,7 +48,7 @@ int log_init(const char* dir, log_level_t level)
     dir_len = strlen(dir);
     if(dir_len > LOG_MAX_PATH)
     {
-        fprintf(stderr, "directoty path is too long\n");
+        fprintf(stderr, "directory path is too long\n");
         exit(1);
     }
     strcpy(global_logger->full_log_path, dir);
