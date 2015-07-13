@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include "syn_queue.h"
+#include "syn_tool.h"
 #include "zmalloc.h"
 
 /*---------------Private Declaration---------------*/
@@ -72,7 +72,7 @@ void destroy_syn_queue(syn_queue_t* syn_queue)
 	zfree(syn_queue);
 }
 
-#define SYN_QUEUE_TEST 1
+//#define SYN_QUEUE_TEST 1
 #if defined(GLOBAL_TEST) || defined(SYN_QUEUE_TEST)
 int main() {
 	return 0;

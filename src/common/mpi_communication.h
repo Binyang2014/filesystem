@@ -21,6 +21,9 @@ typedef struct mpi_status mpi_status_t;
 
 void *mpi_send_recv(void* msg, int dst, int tag);
 void *mpi_recv(void* msg, mpi_status_t status);
+void mpi_network_init();
+int read();
+int write();
 
 
 #endif /* SRC_COMMON_MPI_COMMUNICATION_H_ */
