@@ -7,9 +7,10 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
+#include "zmalloc.h"
 #include "threadpool.h"
-#include "errinfo.h"
-#include "syn_queue.h"
+#include "log.h"
+#include "syn_tool.h"
 
 static void* thread_do(void* arg);
 
@@ -20,11 +21,18 @@ static int pop_stack(thread_pool_t* this, thread_t* stack_top);
 static int promote_a_leader(thread_pool_t* this, thread_t* thread);
 static void deactive_handle(thread_pool_t* this);
 static void reactive_handle(thread_pool_t* this);
-static void start(thread_pool_t*, event_handler_set_t*);
+static void start(thread_pool_t*);
 
 static event_handler_t* alloc_event_handler(thread_pool_t*, resolve_handler_t);
 static void destory_event_handler(event_handler_t*);
 static int handle_event(thread_t* thread, event_handler_t* event_handler);
+
+//there are handler and resolve_handler functions you should concern
+//resolve function will resolve message and return handle function for this event
+//the handler will do the right things for the event
+static void destroy_event_handler_set(event_handler_set_t* event_handler_set);
+static event_handler_set_t *alloc_event_handler_set(thread_pool_t* thread_pool,
+		resolve_handler_t resolve_handler);
 
 /*================================EVENT HANDLER=======================================*/
 
@@ -38,7 +46,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 {
 	handler_t handler;
 #ifdef THREAD_POOL_DEBUG
-	printf("Now the leader thread is %d\n", thread->id);
+	log_write(LOG_DEBUG, "Now the leader thread is %d", thread->id);
 #endif
 	event_handler->thread_pool->tp_ops->deactive_handle(event_handler->thread_pool);
 	while(thread->canceled)
@@ -49,7 +57,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 	event_handler->thread_pool->tp_ops->promote_a_leader(event_handler->thread_pool, thread);
 
 #ifdef THREAD_POOL_DEBUG
-	printf("Now new leader has been selected\n");
+	log_write(LOG_DEBUG, "Now new leader has been selected");
 #endif
 	//Resolve handler for thread
 	handler = event_handler->resolve_handler(event_handler, event_handler->thread_pool->msg_queue);
@@ -58,7 +66,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 	event_handler->thread_pool->tp_ops->reactive_handle(event_handler->thread_pool);
 	event_handler->handler = handler;
 #ifdef THREAD_POOL_DEBUG
-	printf("thread %d is do handling\n", thread->id);
+	log_write(LOG_DEBUG, "thread %d is do handling", thread->id);
 #endif
 	event_handler->handler(event_handler);
 	return 0;
@@ -74,7 +82,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 static event_handler_t* alloc_event_handler(thread_pool_t* thread_pool,
 		resolve_handler_t resolve_handler)
 {
-	event_handler_t* event_handler = (event_handler_t* )malloc(sizeof(event_handler_t));
+	event_handler_t* event_handler = (event_handler_t* )zmalloc(sizeof(event_handler_t));
 	if(event_handler == NULL)
 	{
 		err_ret("allocate event handler error");
@@ -97,41 +105,42 @@ static void destory_event_handler(event_handler_t* event_handler)
 	event_handler->handler = NULL;
 	event_handler->resolve_handler = NULL;
 	event_handler->thread_pool = NULL;
-	free(event_handler);
+	zfree(event_handler);
 }
 
-event_handler_set_t *alloc_event_handler_set(thread_pool_t* thread_pool,
+//This function is used by threadpool alloc
+static event_handler_set_t *alloc_event_handler_set(thread_pool_t* thread_pool,
 		resolve_handler_t resolve_handler)
 {
 	int i, handlers_count;
 	handlers_count = thread_pool->threads_count;
-	event_handler_set_t* event_handler_set = (event_handler_set_t* )malloc
+	event_handler_set_t* event_handler_set = (event_handler_set_t* )zmalloc
 			(sizeof(event_handler_set_t));
 	if(event_handler_set == NULL)
 	{
 		err_ret("allocate event handler set error");
 		return NULL;
 	}
-	event_handler_set->evnet_handler_arr = (event_handler_t** )malloc
+	event_handler_set->event_handler_arr = (event_handler_t** )zmalloc
 			(sizeof(event_handler_t*) * handlers_count);
 	event_handler_set->event_handlers_conut = handlers_count;
 	for(i = 0; i < handlers_count; i++)
 	{
-		event_handler_set->evnet_handler_arr[i] = alloc_event_handler(thread_pool, resolve_handler);
+		event_handler_set->event_handler_arr[i] = alloc_event_handler(thread_pool, resolve_handler);
 	}
 	return event_handler_set;
 }
 
-void destroy_event_handler_set(event_handler_set_t* event_handler_set)
+static void destroy_event_handler_set(event_handler_set_t* event_handler_set)
 {
 	int i;
 	int count = event_handler_set->event_handlers_conut;
-	event_handler_t** event_handler_arr = event_handler_set->evnet_handler_arr;
+	event_handler_t** event_handler_arr = event_handler_set->event_handler_arr;
 	for(i = 0; i < count; i++)
 	{
 		destory_event_handler(event_handler_arr[i]);
 	}
-	free(event_handler_set);
+	zfree(event_handler_set);
 }
 
 /*====================================THREAD==========================================*/
@@ -146,7 +155,7 @@ static void* thread_do(void* arg)
 	thread_t* this = (thread_t* )arg;
 	int leader_id;
 #ifdef THREAD_POOL_DEBUG
-	printf("thread %d has been created!\n", this->id);
+	log_write(LOG_DEBUG, "thread %d has been created!", this->id);
 #endif
 	pthread_cleanup_push(cleanup, &(this->id));
 	pthread_mutex_lock(this->thread_pool->pool_mutex);
@@ -156,7 +165,7 @@ static void* thread_do(void* arg)
 		if(leader_id != NO_THREAD_LEADER && this->id != leader_id)
 		{
 #ifdef THREAD_POOL_DEBUG
-			printf("thread %d is going to wait signal\n", this->id);
+			log_write(LOG_DEBUG, "thread %d is going to wait signal", this->id);
 #endif
 			push_stack(this->thread_pool, this);
 			pthread_cond_wait(this->thread_pool->pool_condition + this->id,
@@ -206,7 +215,7 @@ static pthread_cond_t* alloc_thread_cond(int threads_count)
 	int i, j, err;
 
 	pthread_cond_t* pthread_cond_arr;
-	pthread_cond_arr = (pthread_cond_t* )malloc(sizeof(pthread_cond_t)* threads_count);
+	pthread_cond_arr = (pthread_cond_t* )zmalloc(sizeof(pthread_cond_t)* threads_count);
 	if(pthread_cond_arr == NULL)
 	{
 		err_ret("error when allocate thread conditions");
@@ -220,7 +229,7 @@ static pthread_cond_t* alloc_thread_cond(int threads_count)
 		{
 			for(j = 0; j < i; j++)
 				pthread_cond_destroy(&(pthread_cond_arr[j]));
-			free(pthread_cond_arr);
+			zfree(pthread_cond_arr);
 			err_ret("error when allocate thread conditions");
 			return NULL;
 		}
@@ -238,75 +247,76 @@ static void destroy_thread_cond(thread_pool_t* this)
 	{
 		pthread_cond_destroy(&pool_condition[i]);
 	}
-	free(this->pool_condition);
+	zfree(this->pool_condition);
 }
 
-thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t* msg_queue)
+thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t* msg_queue, 
+		resolve_handler_t resolve_handler)
 {
 	thread_pool_t *thread_pool;
-	thread_pool = (thread_pool_t*)malloc(sizeof(thread_pool_t));
+	thread_pool = (thread_pool_t*)zmalloc(sizeof(thread_pool_t));
 	if(thread_pool == NULL)
 	{
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
 
-	thread_pool->threads = (thread_t* )malloc(sizeof(thread_t) * threads_count);
-	thread_pool->spare_stack = (thread_t* )malloc(sizeof(thread_t) * threads_count);
+	thread_pool->threads = (thread_t* )zmalloc(sizeof(thread_t) * threads_count);
+	thread_pool->spare_stack = (thread_t* )zmalloc(sizeof(thread_t) * threads_count);
 	if(thread_pool->threads == NULL)
 	{
-		free(thread_pool);
+		zfree(thread_pool);
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
 	if(thread_pool->spare_stack == NULL)
 	{
-		free(thread_pool->threads);
-		free(thread_pool);
+		zfree(thread_pool->threads);
+		zfree(thread_pool);
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
 
-	thread_pool->tp_ops = (threadpool_op_t* )malloc(sizeof(threadpool_op_t));
+	thread_pool->tp_ops = (threadpool_op_t* )zmalloc(sizeof(threadpool_op_t));
 	if(thread_pool->tp_ops == NULL)
 	{
-		free(thread_pool->spare_stack);
-		free(thread_pool->threads);
-		free(thread_pool);
+		zfree(thread_pool->spare_stack);
+		zfree(thread_pool->threads);
+		zfree(thread_pool);
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
 
-	thread_pool->pool_mutex = (pthread_mutex_t* )malloc(sizeof(pthread_mutex_t));
+	thread_pool->pool_mutex = (pthread_mutex_t* )zmalloc(sizeof(pthread_mutex_t));
 	if(pthread_mutex_init(thread_pool->pool_mutex, NULL) != 0)
 	{
 		if(thread_pool->pool_mutex)
-			free(thread_pool->pool_mutex);
+			zfree(thread_pool->pool_mutex);
 		thread_pool->pool_mutex = NULL;
 	}
 	if(thread_pool->pool_mutex == NULL)
 	{
-		free(thread_pool->tp_ops);
-		free(thread_pool->spare_stack);
-		free(thread_pool->threads);
-		free(thread_pool);
+		zfree(thread_pool->tp_ops);
+		zfree(thread_pool->spare_stack);
+		zfree(thread_pool->threads);
+		zfree(thread_pool);
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
-	thread_pool->handle_mutex = (pthread_mutex_t* )malloc(sizeof(pthread_mutex_t));
+	thread_pool->handle_mutex = (pthread_mutex_t* )zmalloc(sizeof(pthread_mutex_t));
 	if(pthread_mutex_init(thread_pool->handle_mutex, NULL) != 0)
 	{
 		if(thread_pool->handle_mutex)
-			free(thread_pool->handle_mutex);
+			zfree(thread_pool->handle_mutex);
 		thread_pool->handle_mutex = NULL;
 	}
 	if(thread_pool->handle_mutex == NULL)
 	{
-		free(thread_pool->pool_mutex);
-		free(thread_pool->tp_ops);
-		free(thread_pool->spare_stack);
-		free(thread_pool->threads);
-		free(thread_pool);
+		zfree(thread_pool->pool_mutex);
+		zfree(thread_pool->tp_ops);
+		zfree(thread_pool->spare_stack);
+		zfree(thread_pool->threads);
+		zfree(thread_pool);
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
@@ -315,13 +325,13 @@ thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t* msg_queue)
 	if(thread_pool->pool_condition == NULL)
 	{
 		pthread_mutex_destroy(thread_pool->handle_mutex);
-		free(thread_pool->handle_mutex);
+		zfree(thread_pool->handle_mutex);
 		pthread_mutex_destroy(thread_pool->pool_mutex);
-		free(thread_pool->pool_mutex);
-		free(thread_pool->tp_ops);
-		free(thread_pool->spare_stack);
-		free(thread_pool->threads);
-		free(thread_pool);
+		zfree(thread_pool->pool_mutex);
+		zfree(thread_pool->tp_ops);
+		zfree(thread_pool->spare_stack);
+		zfree(thread_pool->threads);
+		zfree(thread_pool);
 		err_ret("error in allocate thread_pool");
 		return NULL;
 	}
@@ -332,6 +342,22 @@ thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t* msg_queue)
 	thread_pool->threads_count = threads_count;
 	thread_pool->pool_status = THREAD_POOL_UNINIT;
 	thread_pool->leader_id = NO_THREAD_LEADER;
+
+	if((thread_pool->handler_set = 
+			alloc_event_handler_set(thread_pool, resolve_handler)) == NULL)
+	{
+		destroy_thread_cond(thread_pool);
+		pthread_mutex_destroy(thread_pool->handle_mutex);
+		zfree(thread_pool->handle_mutex);
+		pthread_mutex_destroy(thread_pool->pool_mutex);
+		zfree(thread_pool->pool_mutex);
+		zfree(thread_pool->tp_ops);
+		zfree(thread_pool->spare_stack);
+		zfree(thread_pool->threads);
+		zfree(thread_pool);
+		err_ret("error in allocate thread_pool");
+		return NULL;
+	}
 
 	//initial thread pool operations
 	thread_pool->tp_ops->promote_a_leader = promote_a_leader;
@@ -350,7 +376,7 @@ static int push_stack(thread_pool_t* this, thread_t* thread)
 	spare_stack[top] = *thread;
 	this->spare_stack_top = this->spare_stack_top + 1;
 #ifdef THREAD_POOL_DEBUG
-	printf("push thread %d into spare stack\n", thread->id);
+	log_write(LOG_DEBUG, "push thread %d into spare stack", thread->id);
 #endif
 	return 0;
 }
@@ -361,13 +387,15 @@ static int pop_stack(thread_pool_t* this, thread_t* stack_top)
 	int top = this->spare_stack_top;
 	if(top == 0)
 	{
+#ifdef THREAD_POOL_DEBUG
 		err_msg("now the spare stack is empty");
+#endif
 		return -1;
 	}
 	*stack_top = spare_stack[top - 1];
 	this->spare_stack_top = this->spare_stack_top - 1;
 #ifdef THREAD_POOL_DEBUG
-	printf("pop thread %d from spare stack\n", stack_top->id);
+	log_write(LOG_DEBUG, "pop thread %d from spare stack", stack_top->id);
 #endif
 	return 0;
 }
@@ -417,12 +445,12 @@ static int promote_a_leader(thread_pool_t* this, thread_t* thread)
 	return new_leader.id;
 }
 
-static void start(thread_pool_t* this, event_handler_set_t* event_handler_set)
+static void start(thread_pool_t* this)
 {
 	int i;
-	event_handler_t** handler_set = event_handler_set->evnet_handler_arr;
+	event_handler_t** handler_set = this->handler_set->event_handler_arr;
 #ifdef THREAD_POOL_DEBUG
-	printf("Now in start function and will start thread pool soon!\n");
+	log_write(LOG_DEBUG, "Now in start function and will start thread pool soon!");
 #endif
 	if(this->pool_status == THREAD_POOL_UNINIT)
 	{
@@ -459,7 +487,7 @@ void distroy_thread_pool(thread_pool_t* thread_pool)
 		sleep(1);
 
 #ifdef THREAD_POOL_DEBUG
-	printf("The number of spare threads is %d\n", thread_pool->spare_treads_count);
+	log_write(LOG_DEBUG, "The number of spare threads is %d", thread_pool->spare_treads_count);
 #endif
 
 	//cancel threads
@@ -473,7 +501,7 @@ void distroy_thread_pool(thread_pool_t* thread_pool)
 	{
 		pop_stack(thread_pool, &thread_temp);
 #ifdef THREAD_POOL_DEBUG
-		printf("thread %d is going to be killed\n", thread_temp.id);
+		log_write(LOG_DEBUG, "thread %d is going to be killed", thread_temp.id);
 #endif
 		pthread_cond_signal(thread_pool->pool_condition + thread_temp.id);
 	}
@@ -489,11 +517,13 @@ void distroy_thread_pool(thread_pool_t* thread_pool)
 
 	destroy_thread_cond(thread_pool);
 	pthread_mutex_destroy(thread_pool->handle_mutex);
-	free(thread_pool->handle_mutex);
+	zfree(thread_pool->handle_mutex);
 	pthread_mutex_destroy(thread_pool->pool_mutex);
-	free(thread_pool->pool_mutex);
-	free(thread_pool->tp_ops);
-	free(thread_pool->spare_stack);
-	free(thread_pool->threads);
-	free(thread_pool);
+	zfree(thread_pool->pool_mutex);
+	zfree(thread_pool->tp_ops);
+	zfree(thread_pool->spare_stack);
+	zfree(thread_pool->threads);
+	zfree(thread_pool);
+	//free event handler set
+	destroy_event_handler_set(thread_pool->handler_set);
 }

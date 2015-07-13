@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include "basic_queue.h"
 
+struct syn_queue;
+
 struct syn_queue_op {
 	void (*syn_queue_push)(struct syn_queue *syn_queue, void *element);
 	void (*syn_queue_pop)(struct syn_queue *syn_queue, void *element);
