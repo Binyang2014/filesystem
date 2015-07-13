@@ -43,4 +43,8 @@ void destroy_mpi_rpc_server(mpi_rpc_server_t *server) {
 #define MPI_RPC_TEST 1
 
 #if defined(GLOBAL_TEST) || defined(MPI_RPC_TEST)
+int main() {
+
+}
+
 #endif
