@@ -34,7 +34,9 @@ void sub(event_handler_t* event_handler)
 void* resolve_handler(event_handler_t* event_handler, void* msg_queue)
 {
 	common_msg_t common_msg;
-	queue_syn->op->syn_queue_pop(queue_syn, &common_msg);
+	syn_queue_t* queue = msg_queue;
+
+	queue->op->syn_queue_pop(queue_syn, &common_msg);
 	switch(common_msg.operation_code)
 	{
 	case 1:
@@ -61,7 +63,7 @@ int main()
 
 	log_init("/home/binyang/Program/filesystem/src/common/test", LOG_DEBUG);
 	queue_syn = alloc_syn_queue(10, sizeof(common_msg_t));
-	thread_pool = alloc_thread_pool(8, queue_syn->queue, resolve_handler);
+	thread_pool = alloc_thread_pool(8, queue_syn, resolve_handler);
 
 	thread_pool->tp_ops->start(thread_pool);
 	for(i = 0; i < 30; i++)

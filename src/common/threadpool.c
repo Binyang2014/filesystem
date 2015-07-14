@@ -250,7 +250,7 @@ static void destroy_thread_cond(thread_pool_t* this)
 	zfree(this->pool_condition);
 }
 
-thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t* msg_queue, 
+thread_pool_t* alloc_thread_pool(int threads_count, void* msg_queue, 
 		resolve_handler_t resolve_handler)
 {
 	thread_pool_t *thread_pool;
