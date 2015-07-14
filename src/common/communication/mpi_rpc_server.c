@@ -5,6 +5,7 @@
  *      Author: ron
  */
 
+#include <math.h>
 #include "mpi_rpc_server.h"
 #include "../zmalloc.h"
 
@@ -19,6 +20,12 @@ static void server_start(mpi_rpc_server_t *server) {
 
 static void server_end(mpi_rpc_server_t *server) {
 	server->server_thread_cancel = 1;
+}
+
+void send_result(void **param) {
+	rpc_head_t *head = *param;
+	MPI_Send(head, sizeof(*head), MPI_CHAR, head->source, head->tag, MPI_COMM_WORLD);
+	MPI_Send(*(param + 1), head->len, MPI_CHAR, head->source, head->tag, MPI_COMM_WORLD);
 }
 
 /*--------------------API Implementation--------------------*/
@@ -42,9 +49,74 @@ void destroy_mpi_rpc_server(mpi_rpc_server_t *server) {
 
 #define MPI_RPC_TEST 1
 
-#if defined(GLOBAL_TEST) || defined(MPI_RPC_TEST)
-int main() {
 
+#if defined(GLOBAL_TEST) || defined(MPI_RPC_TEST)
+mpi_rpc_server_t *local_server;
+#include <stdio.h>
+#include <stdlib.h>
+#include "mpi_rpc_client.h"
+
+typedef struct {
+	uint16_t code;
+	int source;
+	int tag;
+	char rest[4094];
+}test_rpc_t;
+
+typedef struct {
+	int result;
+}test_result_t;
+
+void hello(void *message) {
+	puts("hello start");
+	void **result = zmalloc(sizeof(void *) * 2);
+	*result = zmalloc(sizeof(rpc_head_t));
+	((rpc_head_t *)(*result))->len = sizeof(test_result_t);
+	*(result + 1) = zmalloc(sizeof(test_result_t));
+	((test_result_t *)(*(result + 1)))->result = 1090;
+	puts("hello end");
+}
+
+void* resolve_handler(event_handler_t *event_handler, void *msg_queue) {
+	common_msg_t common_msg;
+	syn_queue_t* queue = msg_queue;
+	queue->op->syn_queue_pop(queue, &common_msg);
+	switch(common_msg.operation_code)
+	{
+		case 1:
+			event_handler->handler = hello;
+			break;
+		default:
+			event_handler->handler = NULL;
+	}
+	return event_handler->handler;
+}
+
+int main(argc, argv)
+	int argc;
+	char ** argv;
+{
+	int rank, size, provided;
+
+	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
+	MPI_Comm_size(MPI_COMM_WORLD, &size);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+	if(rank == 0) {
+		mpi_rpc_server_t *server = create_mpi_rpc_server(3, rank, resolve_handler);
+		local_server = server;
+		server->op->server_start(server);
+	}else {
+		mpi_rpc_client_t *client = create_mpi_rpc_client(MPI_COMM_WORLD, rank, 0);
+		test_rpc_t *msg = zmalloc(sizeof(test_rpc_t));
+		msg->code = 1;
+		msg->source = 1;
+		msg->tag = 1;
+		test_result_t *result = client->op->execute(client, 0, msg, 4096, 1);
+		printf("rpc test result = %d\n", result->result);
+	}
+	MPI_Finalize();
+	return 0;
 }
 
 #endif

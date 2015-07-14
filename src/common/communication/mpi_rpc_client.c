@@ -9,11 +9,15 @@
 #include "mpi_rpc_structure.h"
 
 /*---------------Private Declaration---------------*/
-static void execute(struct mpi_rpc_client *client, void *message, int message_size, int tag, void **buf, int *length, MPI_Status status) {
+static void* execute(struct mpi_rpc_client *client, void *message, int message_size, int tag) {
+	MPI_Status status;
 	MPI_Send(message, message_size, MPI_CHAR, client->target, tag, client->comm);
-	MPI_Recv(length, 1, MPI_INT, client->target, tag, client->comm, &status);
-	*buf = zmalloc(length);
-	MPI_Recv(*buf, length, MPI_CHAR, client->target, tag, client->comm, &status);
+	rpc_head_t *head = zmalloc(sizeof(rpc_head_t));
+	MPI_Recv(head, sizeof(rpc_head_t), MPI_CHAR, client->target, tag, client->comm, &status);
+	void *buf = zmalloc(head->len);
+	MPI_Recv(*buf, head->len, MPI_CHAR, client->target, tag, client->comm, &status);
+	zfree(head);
+	return buf;
 }
 
 /*---------------API Implementation----------------*/

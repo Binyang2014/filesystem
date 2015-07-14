@@ -12,15 +12,19 @@
 #include <mpi.h>
 #include "mpi_rpc_structure.h"
 #include "../sds.h"
-#include "../syn_queue.h"
+#include "../syn_tool.h"
+#include "../basic_list.h"
+#include "../../global.h"
 
 struct mpi_rpc_server_op {
 	void (*server_start)(struct mpi_rpc_server *server);
 	void (*server_end)(struct mpi_rpc_server *server);
+	void (*send_result)(void **param);
 };
 
 struct mpi_rpc_server {
 	syn_queue_t *request_queue;
+	list_t *result_list;
 	MPI_Comm comm;
 	MPI_Status status;
 	int rank;

@@ -11,7 +11,7 @@
 #include <mpi.h>
 
 struct mpi_rpc_client_op {
-	void (*execute)(struct mpi_rpc_client *client, int targert, void *message, int message_size, int tag, void *buf, uint32_t length);
+	void *(*execute)(struct mpi_rpc_client *client, int targert, void *message, int message_size, int tag);
 };
 
 struct mpi_rpc_client {
