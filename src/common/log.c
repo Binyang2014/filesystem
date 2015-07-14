@@ -147,7 +147,7 @@ void err_ret(const char *fmt, ...)
 	errno_save = errno;
 	n = strlen(msg);
 	snprintf(msg + n, MAX_LOG_MSG_LEN - n, ": %s", strerror(errno_save));
-	__write_log(LOG_INFO, msg);
+	__write_log(LOG_ERR, msg);
 	return;
 }
 
@@ -203,7 +203,7 @@ void err_msg(const char *fmt, ...)
 	va_start(ap, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, ap);
 	va_end(ap);
-	__write_log(LOG_INFO, msg);
+	__write_log(LOG_ERR, msg);
 	return;
 }
 
@@ -218,6 +218,6 @@ void err_quit(const char *fmt, ...)
 	va_start(ap, fmt);
 	vsnprintf(msg, sizeof(msg), fmt, ap);
 	va_end(ap);
-	__write_log(LOG_INFO, msg);
+	__write_log(LOG_ERR, msg);
 	exit(1);
 }

@@ -1,5 +1,5 @@
-#include "../../global.h"
-#include "basic_structure.h"
+#include "../../../global.h"
+#include "../basic_structure.h"
 #include <stdio.h>
 
 int main()

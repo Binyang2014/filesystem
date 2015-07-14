@@ -45,16 +45,6 @@ struct group_desc_block
 };
 
 //位图以byte为单位,只有在逻辑上才存在，实际中不需要
-//struct bitmap
-//{
-//	char bitmap[BLOCK_SIZE];
-//};
-
-//4 blocks used to store logs
-//struct log_block
-//{
-//	char log_blocks[4][BLOCK_SIZE];
-//};
 
 typedef struct super_block super_block_t;
 typedef struct group_desc_block group_desc_block_t;

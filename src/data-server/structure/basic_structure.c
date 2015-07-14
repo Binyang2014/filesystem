@@ -5,8 +5,9 @@
  * to complete functions
  */
 #include "basic_structure.h"
-#include "../../structure/bitmap.h"
-#include "../../tool/errinfo.h"
+#include "../../common/bitmap.h"
+#include "../../common/log.h"
+#include "../../common/zmalloc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,7 +52,7 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 		return NULL;
 	}
 
-	mem_file_system = (char *)malloc(total_size);
+	mem_file_system = (char *)zmalloc(total_size);
 	if(mem_file_system == NULL)
 	{
 		err_ret("can not allocate memory for file system");
@@ -66,7 +67,7 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 		blocks_per_group = blocks_count / groups_count;
 		if(blocks_count % groups_count)
 		{
-			free(mem_file_system);
+			zfree(mem_file_system);
 			err_msg("every group need equal blocks");
 			return NULL;
 		}
@@ -76,7 +77,7 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 
 	if(groups_count * sizeof(group_desc_block_t) > BLOCK_SIZE)//组描述块必须只有一个
 	{
-		free(mem_file_system);
+		zfree(mem_file_system);
 		err_msg("can not support this condition");
 		return NULL;
 	}
