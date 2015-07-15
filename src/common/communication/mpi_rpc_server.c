@@ -16,7 +16,7 @@
 /*--------------------Private Declaration---------------------*/
 static void server_start(mpi_rpc_server_t *server);
 static void server_end(mpi_rpc_server_t *server);
-static void send_result(void **param);
+static void send_result(void *param, int source, int tag, int len);
 
 /*--------------------Global Declaration----------------------*/
 mpi_rpc_server_t *create_mpi_rpc_server(int thread_num, int rank, void *(*resolve_handler)(event_handler_t *event_handler, void* msg_queue));
@@ -49,10 +49,14 @@ static void server_end(mpi_rpc_server_t *server) {
 	destroy_mpi_rpc_server(server);
 }
 
-static void send_result(void **param) {
-	rpc_head_t *head = *param;
+static void send_result(void *param, int source, int tag, int len) {
+	rpc_head_t *head = zmalloc(sizeof(rpc_head_t));
+	head->len = len;
+	head->source = source;
+	head->tag = tag;
 	mpi_send(head, head->source, head->tag, sizeof(*head));
-	mpi_send(*(param + 1), head->source, head->tag, head->len);
+	mpi_send(param, head->source, head->tag, head->len);
+	zfree(head);
 }
 
 /*--------------------API Implementation--------------------*/
@@ -105,17 +109,9 @@ typedef struct {
 void hello(event_handler_t *event_handler) {
 	puts("hello start");
 
-	void **result = zmalloc(sizeof(void *) * 2);
-
-	*result = zmalloc(sizeof(rpc_head_t));
-	((rpc_head_t *)(*result))->len = sizeof(test_result_t);
-	((rpc_head_t *)(*result))->source = 1;
-	((rpc_head_t *)(*result))->tag = 1;
-
-	*(result + 1) = zmalloc(sizeof(test_result_t));
-	((test_result_t *)(*(result + 1)))->result = 1090;
-	local_server->op->send_result(result);
-
+	void *result = zmalloc(sizeof(test_result_t));
+	((test_result_t *)(result))->result = 1090;
+	local_server->op->send_result(result, 1, 1, sizeof(test_result_t));
 	puts("hello end");
 }
 

@@ -10,12 +10,25 @@
 #include <mpi.h>
 #include "../../global.h"
 
+enum machine_role{
+	MASTER,
+	SUB_MASTER,
+	DATA_MASTER,
+	DATA_SERVER
+};
+
 typedef struct {
 	uint16_t code;
 	int source;
 	char ip[16];
 }register_master_t;
 
+typedef struct {
+	enum machine_role role;
+	int data_master_rank;
+	int sub_master_rank;
+	int master_rank;
+}machine_role_t;
 
 typedef struct {
 	uint16_t code;

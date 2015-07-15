@@ -28,7 +28,7 @@ struct mpi_rpc_server {
 struct mpi_rpc_server_op {
 	void (*server_start)(struct mpi_rpc_server *server);
 	void (*server_end)(struct mpi_rpc_server *server);
-	void (*send_result)(void **param);
+	void (*send_result)(void *param, int source, int tag, int len);
 };
 
 typedef struct mpi_rpc_server mpi_rpc_server_t;
