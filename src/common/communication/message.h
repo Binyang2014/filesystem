@@ -18,8 +18,9 @@ enum machine_role{
 };
 
 typedef struct {
-	uint16_t code;
+	uint16_t operation_code;
 	int source;
+	int tag;
 	char ip[16];
 }register_master_t;
 
@@ -31,18 +32,37 @@ typedef struct {
 }machine_role_t;
 
 typedef struct {
-	uint16_t code;
+	uint16_t operation_code;
+	int source;
+	int tag;
 	char name[256];
-	char rest[4096];
 }master_create_file_t;
 
 typedef struct {
+	int result_code;
+}master_create_file_ans_t;
 
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	uint64_t append_size;
 }master_append_file_t;
 
 typedef struct {
+	int result_code;
+}master_append_file_ans_t;
 
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	char name[256];
 }master_deleter_system_file_t;
+
+typedef struct {
+	int result_code;
+}master_deleter_system_file_ans_t;
 
 
 #define MAX_COUNT_CID_R ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in read message
