@@ -87,7 +87,7 @@ struct thread_pool
 	int spare_treads_count;
 
 	struct threadpool_opertions* tp_ops;
-	struct basic_queue* msg_queue;
+	void* msg_queue;
 	struct event_handler_set* handler_set;
 };
 
@@ -105,7 +105,7 @@ typedef void* (*resolve_handler_t)(event_handler_t*, void* args);
 /*===============================thread pool=======================================*/
 
 //there are promote, deactive, reactive and start functions
-thread_pool_t* alloc_thread_pool(int threads_count, basic_queue_t *, resolve_handler_t);
+thread_pool_t* alloc_thread_pool(int threads_count, void*, resolve_handler_t);
 void distroy_thread_pool(thread_pool_t *);
 
 #endif

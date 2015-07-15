@@ -6,7 +6,6 @@
  * implement of log.h
  */
 
-#include "../global.h"
 #include "log.h"
 #include <unistd.h>
 #include <sys/stat.h>
