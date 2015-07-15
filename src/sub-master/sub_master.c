@@ -8,10 +8,15 @@
 #include "sub_master.h"
 
 /*===============Private Declaration===============*/
+
+static void read_temp_file();
+//static void
+
+/*---------------------Sub-Master RPC Service------------------*/
 static void allocate_temp_file_space();
 static void create_temp_file();
 static void delete_temp_file();
-static void read_temp_file();
+
 
 /**
  * sub-master server
