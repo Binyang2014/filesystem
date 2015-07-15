@@ -8,28 +8,51 @@
 #include <math.h>
 #include "mpi_rpc_server.h"
 #include "../zmalloc.h"
+#include "../syn_tool.h"
+#include "../log.h"
 
-/*--------------------Private Implementation--------------------*/
+//#define RPC_SERVER_DEBUG 1
+
+/*--------------------Private Declaration---------------------*/
+static void server_start(mpi_rpc_server_t *server);
+static void server_end(mpi_rpc_server_t *server);
+static void send_result(void **param);
+
+/*--------------------Global Declaration----------------------*/
+mpi_rpc_server_t *create_mpi_rpc_server(int thread_num, int rank, void *(*resolve_handler)(event_handler_t *event_handler, void* msg_queue));
+void destroy_mpi_rpc_server(mpi_rpc_server_t *server);
+
+/*--------------------Private Implementation------------------*/
 static void server_start(mpi_rpc_server_t *server) {
 	server->thread_pool->tp_ops->start(server->thread_pool);
-	puts("hello ");
-//	while(!server->server_thread_cancel) {
-//		//TODO if multi client send request to this, Is there any parallel problem?
-//		MPI_Recv(server->recv_buff, MAX_CMD_MSG_LEN, MPI_CHAR, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &(server->status));
-//		puts("receive recv_buff");
-//		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
-//		puts("put message into queue");
-//	}
+
+#if defined(RPC_SERVER_DEBUG)
+	puts("RPC_SERVER && THREAD POOL START");
+#endif
+
+	//TODO multi_thread access server_thread_cancel may read error status
+	while(!server->server_thread_cancel) {
+		//TODO if multi_client send request to this, Is there any parallel problem ?
+		mpi_server_recv(server->recv_buff, MAX_CMD_MSG_LEN, &(server->status));
+
+#if defined(RPC_SERVER_DEBUG)
+		printf("%d\n" , server->status.source);
+	puts("RPC_SERVER PUT MESSAGE");
+#endif
+
+		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
+	}
 }
 
 static void server_end(mpi_rpc_server_t *server) {
 	server->server_thread_cancel = 1;
+	destroy_mpi_rpc_server(server);
 }
 
-void send_result(void **param) {
+static void send_result(void **param) {
 	rpc_head_t *head = *param;
-	MPI_Send(head, sizeof(*head), MPI_CHAR, head->source, head->tag, MPI_COMM_WORLD);
-	MPI_Send(*(param + 1), head->len, MPI_CHAR, head->source, head->tag, MPI_COMM_WORLD);
+	mpi_send(head, head->source, head->tag, sizeof(*head));
+	mpi_send(*(param + 1), head->source, head->tag, head->len);
 }
 
 /*--------------------API Implementation--------------------*/
@@ -37,10 +60,9 @@ mpi_rpc_server_t *create_mpi_rpc_server(int thread_num, int rank, void *(*resolv
 	mpi_rpc_server_t *this = zmalloc(sizeof(mpi_rpc_server_t));
 
 	this->request_queue = alloc_syn_queue(128, MAX_CMD_MSG_LEN);
-	this->comm = MPI_COMM_WORLD;
 	this->rank = rank;
 	this->server_thread_cancel = 0;
-	this->thread_pool = alloc_thread_pool(thread_num, this->request_queue->queue, resolve_handler);
+	this->thread_pool = alloc_thread_pool(thread_num, this->request_queue, resolve_handler);
 
 	this->op = zmalloc(sizeof(mpi_rpc_server_op_t));
 	this->op->server_start = server_start;
@@ -52,18 +74,22 @@ mpi_rpc_server_t *create_mpi_rpc_server(int thread_num, int rank, void *(*resolv
 }
 
 void destroy_mpi_rpc_server(mpi_rpc_server_t *server) {
-	server->op->server_end(server);
+	destroy_syn_queue(server->request_queue);
+	destroy_thread_pool(server->thread_pool);
+	zfree(server->op);
+	zfree(server->recv_buff);
+	zfree(server);
 }
 
-#define MPI_RPC_TEST 1
+/*-----------------------T	E	S	T------------------------*/
 
+//#define MPI_RPC_TEST 1
 #if defined(GLOBAL_TEST) || defined(MPI_RPC_TEST)
 mpi_rpc_server_t *local_server;
 #include <stdio.h>
 #include <stdlib.h>
 #include "mpi_rpc_client.h"
 #include "message.h"
-syn_queue_t* queue;
 
 typedef struct {
 	uint16_t code;
@@ -95,6 +121,8 @@ void hello(event_handler_t *event_handler) {
 
 void *resolve_handler(event_handler_t *event_handler, void *msg_queue) {
 	common_msg_t common_msg;
+
+	syn_queue_t *queue = msg_queue;
 	queue->op->syn_queue_pop(queue, &common_msg);
 	switch(common_msg.operation_code)
 	{
@@ -117,27 +145,24 @@ int main(argc, argv)
 	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
+	//log_init("/home/ron/test.log", LOG_OFF);
 	if(rank == 0) {
 		mpi_rpc_server_t *server = create_mpi_rpc_server(3, 0, resolve_handler);
-		puts("server 123");
 		local_server = server;
 		server->op->server_start(server);
-
-	destroy_syn_queue(queue_syn);
+		destroy_mpi_rpc_server(server);
 	}else {
-		mpi_rpc_client_t *client = create_mpi_rpc_client(MPI_COMM_WORLD, rank, 0);
+		mpi_rpc_client_t *client = create_mpi_rpc_client(rank, 0);
 		test_rpc_t *msg = zmalloc(sizeof(test_rpc_t));
 		msg->code = 1;
 		msg->source = 1;
 		msg->tag = 1;
-//		puts("client 123");
 		test_result_t *result = client->op->execute(client, msg, 4096, 1);
 		printf("rpc test result = %d\n", result->result);
+		zfree(result);
+		destroy_mpi_rpc_client(client);
 	}
-	puts("MPI_Finalize");
 	MPI_Finalize();
 	return 0;
 }
-
 #endif

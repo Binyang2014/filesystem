@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <mpi.h>
 #include <stdlib.h>
-#include "log.h"
+#include "../log.h"
 #include "mpi_communication.h"
 
 static void printf_msg_status(mpi_status_t* status)
@@ -18,9 +18,7 @@ static void printf_msg_status(mpi_status_t* status)
 	int len;
 
 	MPI_Error_string(status->error_num, s, &len);
-	log_write(LOG_DEBUG, "The information comes from MPI status The MPI source is %d, \
-			The MPI tag is %d The MPI error is %s",
-	status->source, status->tag, s);
+	//log_write(LOG_DEBUG, "The information comes from MPI status The MPI source is %d, The MPI tag is %d The MPI error is %s", status->source, status->tag, s);
 }
 
 void mpi_send(void* msg, int dst, int tag, int len)
@@ -30,13 +28,11 @@ void mpi_send(void* msg, int dst, int tag, int len)
 
 	if(dst < 0)
 	{
-		log_write(LOG_ERR, "destination is wrong when sending message");
+		//log_write(LOG_ERR, "destination is wrong when sending message");
 		return;
 	}
-	log_write(LOG_INFO, "sending message to receiver %d from sender %d the length is %d", 
-			dst, source, len);
+	//log_write(LOG_INFO, "sending message to receiver %d from sender %d the length is %d", dst, source, len);
 	MPI_Send(msg, len, MPI_CHAR, dst, tag, MPI_COMM_WORLD);
-
 }
 
 //receiving message from sender and if souce  equal to -1 it will receiving
@@ -45,20 +41,21 @@ void mpi_recv(void* msg, int source, int tag, int len, mpi_status_t* status_t)
 {
 	assert(msg != NULL);
 	int dst = get_mpi_rank();
-	
+
 	MPI_Status status;
-	if(source < -1)
+	//-2 means MPI_ANY_SOURCE
+	if(source < -2)
 	{
-		log_write(LOG_ERR, "destination is wrong when sending message");
+		//log_write(LOG_ERR, "destination is wrong when sending message");
 		return;
 	}
 	if(source == -1)
 		source = MPI_ANY_SOURCE;
 	if(tag == -1)
 		tag = MPI_ANY_TAG;
+
 	MPI_Recv(msg, len, MPI_CHAR, source, tag, MPI_COMM_WORLD, &status);
-	log_write(LOG_INFO, "received message from sender %d and the receiver is %d the length is %d", 
-			source, dst, len);
+	//log_write(LOG_INFO, "received message from sender %d and the receiver is %d the length is %d", source, dst, len);
 	if(status_t != NULL)
 	{
 		status_t->error_num = status.MPI_ERROR;
@@ -67,6 +64,10 @@ void mpi_recv(void* msg, int source, int tag, int len, mpi_status_t* status_t)
 		status_t->tag = status.MPI_TAG;
 		printf_msg_status(status_t);
 	}
+}
+
+void mpi_server_recv(void* msg, int len, mpi_status_t* status) {
+	mpi_recv(msg, MPI_ANY_SOURCE, MPI_ANY_TAG, len, status);
 }
 
 int get_mpi_size()
@@ -90,7 +91,7 @@ void mpi_init_with_thread(int* argc, char ***argv)
 	MPI_Init_thread(argc, argv, MPI_THREAD_MULTIPLE, &provided);
 	if(provided != MPI_THREAD_MULTIPLE)
 	{
-		log_write(LOG_ERR, "could not support multiple threads in mpi process");
+		//log_write(LOG_ERR, "could not support multiple threads in mpi process");
 		exit(1);
 	}
 }

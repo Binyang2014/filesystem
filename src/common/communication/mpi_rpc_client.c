@@ -7,28 +7,27 @@
 #include "mpi_rpc_client.h"
 #include "../zmalloc.h"
 #include "mpi_rpc_structure.h"
+/*--------------------Private Declaration---------------------*/
+static void* execute(mpi_rpc_client_t *client, void *message, int message_size, int tag);
 
-/*---------------Private Declaration---------------*/
+/*--------------------Global Declaration----------------------*/
+mpi_rpc_client_t *create_mpi_rpc_client(int rank, int target);
+
+/*--------------------Private Implementation------------------*/
 static void* execute(mpi_rpc_client_t *client, void *message, int message_size, int tag) {
-	MPI_Status status;
-
-	MPI_Send(message, message_size, MPI_CHAR, client->target, tag, client->comm);
-	puts("send request");
+	mpi_send(message, client->target, tag, message_size);
 	rpc_head_t *head = zmalloc(sizeof(rpc_head_t));
-	MPI_Recv(head, sizeof(rpc_head_t), MPI_CHAR, client->target, tag, client->comm, &status);
-	puts("receive head");
+	mpi_recv(head, client->target, tag, sizeof(*head), &(client->status));
 	void *buf = zmalloc(head->len);
-	MPI_Recv(buf, head->len, MPI_CHAR, client->target, tag, client->comm, &status);
-	puts("buf");
+	mpi_recv(buf, client->target, head->tag, head->len, &(client->status));
 	zfree(head);
 	return buf;
 }
 
-/*---------------API Implementation----------------*/
-mpi_rpc_client_t *create_mpi_rpc_client(MPI_Comm comm, int rank, int target) {
+/*---------------------API Implementation----------------------*/
+mpi_rpc_client_t *create_mpi_rpc_client(int rank, int target) {
 	mpi_rpc_client_t *this = zmalloc(sizeof(mpi_rpc_client_t));
 	this->op = zmalloc(sizeof(mpi_rpc_client_op_t));
-	this->comm = comm;
 	this->rank = rank;
 	this->target = target;
 
@@ -37,6 +36,7 @@ mpi_rpc_client_t *create_mpi_rpc_client(MPI_Comm comm, int rank, int target) {
 }
 
 void destroy_mpi_rpc_client(mpi_rpc_client_t *client) {
-
+	zfree(client->op);
+	zfree(client);
 }
 

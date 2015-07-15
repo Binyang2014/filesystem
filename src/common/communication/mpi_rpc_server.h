@@ -11,20 +11,17 @@
 #include <stdint.h>
 #include <mpi.h>
 #include "mpi_rpc_structure.h"
-#include "../sds.h"
-#include "../syn_tool.h"
-#include "../basic_list.h"
-#include "../../global.h"
+#include "mpi_communication.h"
 #include "../threadpool.h"
+#include "../../global.h"
 
 struct mpi_rpc_server {
-	syn_queue_t *request_queue;
-	MPI_Comm comm;
-	MPI_Status status;
+	mpi_status_t status;
 	int rank;
 	int server_thread_cancel;
 	void *recv_buff;
 	struct mpi_rpc_server_op *op;
+	syn_queue_t *request_queue;
 	thread_pool_t *thread_pool;
 };
 

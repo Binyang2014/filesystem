@@ -10,10 +10,10 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <mpi.h>
+#include "mpi_communication.h"
 
 struct mpi_rpc_client {
-	MPI_Comm comm;
-	MPI_Status status;
+	mpi_status_t status;
 	int rank;
 	int target;
 	struct mpi_rpc_client_op *op;
@@ -26,6 +26,6 @@ struct mpi_rpc_client_op {
 typedef struct mpi_rpc_client mpi_rpc_client_t;
 typedef struct mpi_rpc_client_op mpi_rpc_client_op_t;
 
-mpi_rpc_client_t *create_mpi_rpc_client(MPI_Comm comm, int rank, int target);
+mpi_rpc_client_t *create_mpi_rpc_client(int rank, int target);
 void destroy_mpi_rpc_client(mpi_rpc_client_t *client);
 #endif /* SRC_COMMON_COMMUNICATION_MPI_RPC_CLIENT_H_ */
