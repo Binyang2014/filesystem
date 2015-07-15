@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <stdint.h>
 
 static void init_mem_super_block(super_block_t * mem_super_block, int blocks_count, int blocks_per_group, int dev_num)
 {
@@ -96,8 +97,8 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 		cur_mem_pos = cur_mem_pos + sizeof(group_desc_block_t);
 	}
 	cur_mem_pos = cur_mem_pos - groups_count * sizeof(group_desc_block_t) + BLOCK_SIZE;
-	bitmap_zero((unsigned long*)cur_mem_pos, blocks_per_group);
-	bitmap_set((unsigned long*)cur_mem_pos, 0, 7);
+	bitmap_zero((uint64_t*)cur_mem_pos, blocks_per_group);
+	bitmap_set((uint64_t*)cur_mem_pos, 0, 7);
 
 	cur_mem_pos = mem_file_system;
 	for(i = 1; i < groups_count; i++)

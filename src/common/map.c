@@ -80,10 +80,12 @@ static pair_t *find(map_t *this, const sds key){
 	list_node_t *node = l->list_ops->list_next(iter);
 	while(node) {
 		if(sds_cmp(((pair_t *)node->value)->key, key) == 0) {
+			l->list_ops->list_release_iterator(iter);
 			return (pair_t *)node->value;
 		}
 		node = l->list_ops->list_next(iter);
 	}
+	l->list_ops->list_release_iterator(iter);
 
 	return NULL;
 }
@@ -136,10 +138,12 @@ static int modify_key(map_t *this, sds old_key, sds new_key) {
 			put(this, new_key, node->value);
 			zfree(node);
 			this->current_size--;
+			l->list_ops->list_release_iterator(iter);
 			return 0;
 		}
 		node = l->list_ops->list_next(iter);
 	}
+	l->list_ops->list_release_iterator(iter);
 
 	return -1;
 }
@@ -158,10 +162,12 @@ void del(map_t *this, sds key){
 		if(sds_cmp(((pair_t *)node->value)->key, key) == 0) {
 			l->list_ops->list_del_node(l, node);
 			this->current_size--;
+			l->list_ops->list_release_iterator(iter);
 			return;
 		}
 		node = l->list_ops->list_next(iter);
 	}
+	l->list_ops->list_release_iterator(iter);
 }
 
 map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
@@ -201,65 +207,6 @@ void destroy_map(map_t *this) {
 	for(i = 0; i < this->size; i++) {
 		list_release(*(this->list + i));
 	}
+	zfree(this->list);
 	zfree(this);
 }
-
-//UNIT TEST
-//#define MAP_TEST 1
-#if  defined(GLOBAL_TEST) || defined(MAP_TEST)
-void *pair_dup(void *pair){
-	pair_t *p = zmalloc(sizeof(pair_t));
-	p->key = sds_dup(((pair_t *)pair)->key);
-	int *t = zmalloc(sizeof(int));
-	*t = *((int *)((pair_t *)pair)->key);
-	p->value = t;
-	return (void *)p;
-}
-
-void pair_free(void *pair){
-	pair_t *p = pair;
-	sds_free(p->key);
-	zfree(p->value);
-	zfree(p);
-}
-
-void v_free(void *v) {
-	int *t = v;
-	zfree(t);
-}
-void *v_dup(const void *v){
-	int *t = zmalloc(sizeof(int));
-	*t = *((int *)v);
-	return (void *)t;
-}
-
-int main() {
-	//if v_dup or v_free is NULL, it will be shallow copy, make your copy function right
-	map_t *map = create_map(10, v_dup, v_free, pair_dup, pair_free);
-
-	//put
-	sds s = sds_new("1234");
-	int v = 1234;
-	map->op->put(map, s, &v);
-	int *t = map->op->get(map, s);
-	printf("the value we get = %d\n", *t);
-
-	//modify
-	v = 2345;
-	map->op->put(map, s, &v);
-	t = map->op->get(map, s);
-	printf("the value we get = %d\n", *t);
-
-	//delete
-	map->op->del(map, s);
-	t = map->op->get(map, s);
-	if(t == NULL) {
-		puts("NONE");
-	}else {
-		printf("the value we get = %d\n", *t);
-	}
-
-	destroy_map(map);
-	return 0;
-}
-#endif

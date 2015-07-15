@@ -11,7 +11,7 @@
 #define VFS_HASH_TBALE_SIZE ((1<<20) + (1<<19))//define the size of hash table
 
 //simple function used by read
-#define ALL_ADD_THIRD(c, r, t)   \
+#define ALL_ADD_THIRD(c, r, t)     \
 (                                  \
     (c) = (c) + (t),               \
     (r) = (r) + (t)                \
@@ -22,6 +22,7 @@
 
 #include <pthread.h>
 #include <sys/types.h>
+#include <stdint.h>
 #include "basic_structure.h"
 
 struct dataserver_super_block;
@@ -37,37 +38,37 @@ struct dataserver_block;
 struct vfs_hashtable
 {
 	int hash_table_size;
-	unsigned int *blocks_arr;
-	unsigned long long *chunks_arr;
+	uint32_t *blocks_arr;
+	uint64_t *chunks_arr;
 };
 
 struct super_block_operations
 {
-	unsigned int (*get_blocks_count)(struct dataserver_super_block*);
-	unsigned int (*get_free_blocks_count)(struct dataserver_super_block*);
-	unsigned int (*get_blocks_per_groups)(struct dataserver_super_block*);
+	uint32_t (*get_blocks_count)(struct dataserver_super_block*);
+	uint32_t (*get_free_blocks_count)(struct dataserver_super_block*);
+	uint32_t (*get_blocks_per_groups)(struct dataserver_super_block*);
 	float (*get_filesystem_version)(struct dataserver_super_block*);
-	unsigned int (*get_groups_conut)(struct dataserver_super_block*);
+	uint32_t (*get_groups_conut)(struct dataserver_super_block*);
 	time_t (*get_last_write_time)(struct dataserver_super_block*);
-	unsigned short (*get_superblock_status)(struct dataserver_super_block*);
-	unsigned int (*get_per_group_reserved)(struct dataserver_super_block*);
+	uint16_t (*get_superblock_status)(struct dataserver_super_block*);
+	uint32_t (*get_per_group_reserved)(struct dataserver_super_block*);
 
-	unsigned int(*find_a_block_num)(struct dataserver_super_block*, unsigned long long chunk_num);
-	unsigned int* (*find_serials_blocks)(struct dataserver_super_block*, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr);
+	uint32_t(*find_a_block_num)(struct dataserver_super_block*, uint64_t chunk_num);
+	uint32_t* (*find_serials_blocks)(struct dataserver_super_block*, int arr_size,
+			uint64_t* chunks_arr, uint32_t* blocks_arr);
 
 	//use chunks number and blocks number to contribute hash table, so it will be convenient to search
 	//these functions do use really write to blocks or read from blocks
 	int (*alloc_blocks)(struct dataserver_super_block*, int arr_size,
-				unsigned long long* chunks_arr, unsigned int* blocks_arr);
-	unsigned int* (*alloc_blocks_with_hash)(struct dataserver_super_block*, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
-	int (*free_blocks)(struct dataserver_super_block*, int arr_size, unsigned long long* chunks_arr);
-	unsigned int* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr);
+				uint64_t* chunks_arr, uint32_t* blocks_arr);
+	uint32_t* (*alloc_blocks_with_hash)(struct dataserver_super_block*, int arr_size,
+			uint64_t* chunks_arr, uint32_t* blocks_arr, uint32_t* hash_arr);
+	int (*free_blocks)(struct dataserver_super_block*, int arr_size, uint64_t* chunks_arr);
+	uint32_t* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size,
+			uint64_t* chunks_arr, uint32_t* blocks_arr);
 	//success return hash number else return -1
-	unsigned int (*alloc_a_block)(struct dataserver_super_block*, unsigned long long chunk_num, unsigned int block_num);
-	unsigned int (*free_a_block)(struct dataserver_super_block*, unsigned long long chunk_num);
+	uint32_t (*alloc_a_block)(struct dataserver_super_block*, uint64_t chunk_num, uint32_t block_num);
+	uint32_t (*free_a_block)(struct dataserver_super_block*, uint64_t chunk_num);
 
 	void (*print_sb_imf)(struct dataserver_super_block*);
 	//set chunk and block
@@ -97,7 +98,7 @@ struct dataserver_super_block
 	struct super_block_operations *s_op;
 
 	struct vfs_hashtable *s_hash_table;
-	unsigned int (*hash_function)(char* str, unsigned int size);
+	uint32_t (*hash_function)(char* str, uint32_t size);
 };
 
 /**
@@ -110,8 +111,8 @@ struct dataserver_file//I think we need a file structure to point opening files
 	struct dataserver_super_block *super_block;
 	//off_t f_cur_offset;
 	int arr_len;
-	unsigned long long *f_chunks_arr;
-	unsigned int *f_blocks_arr;
+	uint64_t *f_chunks_arr;
+	uint32_t *f_blocks_arr;
 	struct file_operations *f_op;
 };
 
@@ -122,10 +123,10 @@ typedef struct super_block_operations superblock_op_t;
 typedef struct file_operations file_op_t;
 
 //these function I want to be used inline
-inline static unsigned long* __get_bitmap_block(super_block_t* super_block, unsigned int block_num)
+inline static unsigned long* __get_bitmap_block(super_block_t* super_block, uint32_t block_num)
 {
-	unsigned int group_id = block_num / super_block->s_blocks_per_group;
-	unsigned int bitmap_block_num;
+	uint32_t group_id = block_num / super_block->s_blocks_per_group;
+	uint32_t bitmap_block_num;
 	unsigned long *bitmap;
 	group_desc_block_t *group_desc;
 
@@ -135,9 +136,9 @@ inline static unsigned long* __get_bitmap_block(super_block_t* super_block, unsi
 	bitmap = (unsigned long *)((char *)super_block + (BLOCK_SIZE * bitmap_block_num));
 	return bitmap;
 }
-inline static unsigned long* __get_bitmap_from_gid(super_block_t* super_block, unsigned int group_id)
+inline static unsigned long* __get_bitmap_from_gid(super_block_t* super_block, uint32_t group_id)
 {
-	unsigned int bitmap_block_num;
+	uint32_t bitmap_block_num;
 	unsigned long *bitmap;
 	group_desc_block_t *group_desc;
 
@@ -149,27 +150,27 @@ inline static unsigned long* __get_bitmap_from_gid(super_block_t* super_block, u
 }
 
 //following functions is implemented in file vfs_operations.c about super block
-unsigned int get_blocks_count(dataserver_sb_t* this);
-unsigned int get_free_blocks_count(dataserver_sb_t* this);
-unsigned int get_blocks_per_groups(dataserver_sb_t* this);
+uint32_t get_blocks_count(dataserver_sb_t* this);
+uint32_t get_free_blocks_count(dataserver_sb_t* this);
+uint32_t get_blocks_per_groups(dataserver_sb_t* this);
 float get_filesystem_version(dataserver_sb_t* this);
-unsigned int get_groups_conut(dataserver_sb_t* this);
+uint32_t get_groups_conut(dataserver_sb_t* this);
 time_t get_last_write_time(dataserver_sb_t* this);
-unsigned short get_superblock_status(dataserver_sb_t* this);
-unsigned int get_per_group_reserved(dataserver_sb_t* this);
+uint16_t get_superblock_status(dataserver_sb_t* this);
+uint32_t get_per_group_reserved(dataserver_sb_t* this);
 
-unsigned int find_a_block_num(dataserver_sb_t* this, unsigned long long chunk_num);
-unsigned int* find_serials_blocks(struct dataserver_super_block*, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr);
-unsigned int alloc_a_block(dataserver_sb_t* this, unsigned long long chunk_num, unsigned int block_num);
+uint32_t find_a_block_num(dataserver_sb_t* this, uint64_t chunk_num);
+uint32_t* find_serials_blocks(struct dataserver_super_block*, int arr_size,
+			uint64_t* chunks_arr, uint32_t* blocks_arr);
+uint32_t alloc_a_block(dataserver_sb_t* this, uint64_t chunk_num, uint32_t block_num);
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr);
-unsigned int* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr);
-unsigned int free_a_block(dataserver_sb_t* this, unsigned long long chunk_num);
-unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
-		unsigned long long* chunks_arr, unsigned int* blocks_arr);
-int free_blocks(dataserver_sb_t* this, int arr_size, unsigned long long* chunks_arr);
+			uint64_t* chunks_arr, uint32_t* blocks_arr);
+uint32_t* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
+			uint64_t* chunks_arr, uint32_t* blocks_arr, uint32_t* hash_arr);
+uint32_t free_a_block(dataserver_sb_t* this, uint64_t chunk_num);
+uint32_t* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
+		uint64_t* chunks_arr, uint32_t* blocks_arr);
+int free_blocks(dataserver_sb_t* this, int arr_size, uint64_t* chunks_arr);
 
 void print_sb_imf(dataserver_sb_t* this);
 

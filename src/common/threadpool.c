@@ -140,6 +140,7 @@ static void destroy_event_handler_set(event_handler_set_t* event_handler_set)
 	{
 		destory_event_handler(event_handler_arr[i]);
 	}
+	zfree(event_handler_set->event_handler_arr);
 	zfree(event_handler_set);
 }
 
@@ -523,7 +524,7 @@ void destroy_thread_pool(thread_pool_t* thread_pool)
 	zfree(thread_pool->tp_ops);
 	zfree(thread_pool->spare_stack);
 	zfree(thread_pool->threads);
-	zfree(thread_pool);
 	//free event handler set
 	destroy_event_handler_set(thread_pool->handler_set);
+	zfree(thread_pool);
 }

@@ -1,10 +1,10 @@
 TOPDIR = ../../..
 LIBDIR = $(TOPDIR)/lib
 LIB = $(LIBDIR)/libcommon.a 
-TEST_PROGRAM = log_test threadpool_test mpi_communication_test
+TEST_PROGRAM = log_test threadpool_test mpi_communication_test map_test
 
 include $(TOPDIR)/GlobalMakefile
-test_obj = log_test.o threadpool_test.o mpi_communication_test.o
+test_obj = log_test.o threadpool_test.o mpi_communication_test.o map_test.o
 
 all_test:: $(TEST_PROGRAM)
 
@@ -14,9 +14,9 @@ all_test:: $(TEST_PROGRAM)
 #err_test: err_test.o $(LIB)
 #	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -ltool -o $@
 
-#hash_test: hash_test.o $(LIB)
-#	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -ltool -o $@
-#
+map_test: map_test.o $(LIB)
+	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -o $@
+
 mpi_communication_test: mpi_communication_test.o $(LIB)
 	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -o $@
 

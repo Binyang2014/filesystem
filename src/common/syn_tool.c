@@ -69,6 +69,7 @@ void destroy_syn_queue(syn_queue_t* syn_queue)
 	zfree(syn_queue->no_full_cond);
 	zfree(syn_queue->no_empty_cond);
 	zfree(syn_queue->queue_mutex);
+	zfree(syn_queue->op);
 	zfree(syn_queue);
 }
 
