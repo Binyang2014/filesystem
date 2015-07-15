@@ -255,15 +255,6 @@ struct close_to_c
 	unsigned short fd;
 };
 
-struct mpi_status
-{
-	int source;
-	int tag;
-	int error_num;
-	int size;
-};
-
-
 //block struct
 typedef struct block{
 	unsigned long file_seq; //file split sequence
@@ -286,7 +277,6 @@ typedef struct msg_data msg_data_t;
 typedef struct read_c_to_d msg_r_ctod_t;
 typedef struct write_c_to_d msg_w_ctod_t;
 typedef struct acc_d_and_c msg_acc_candd_t;
-typedef struct mpi_status mpi_status_t;
 
 //following functions are used for debug
 void printf_msg_status(mpi_status_t* status);
