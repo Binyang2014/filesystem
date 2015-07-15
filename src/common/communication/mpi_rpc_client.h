@@ -7,12 +7,9 @@
 
 #ifndef SRC_COMMON_COMMUNICATION_MPI_RPC_CLIENT_H_
 #define SRC_COMMON_COMMUNICATION_MPI_RPC_CLIENT_H_
+#include <stddef.h>
 #include <stdint.h>
 #include <mpi.h>
-
-struct mpi_rpc_client_op {
-	void *(*execute)(struct mpi_rpc_client *client, int targert, void *message, int message_size, int tag);
-};
 
 struct mpi_rpc_client {
 	MPI_Comm comm;
@@ -20,6 +17,10 @@ struct mpi_rpc_client {
 	int rank;
 	int target;
 	struct mpi_rpc_client_op *op;
+};
+
+struct mpi_rpc_client_op {
+	void *(*execute)(struct mpi_rpc_client *client, void *message, int message_size, int tag);
 };
 
 typedef struct mpi_rpc_client mpi_rpc_client_t;

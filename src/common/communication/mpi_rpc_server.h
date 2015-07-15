@@ -15,6 +15,18 @@
 #include "../syn_tool.h"
 #include "../basic_list.h"
 #include "../../global.h"
+#include "../threadpool.h"
+
+struct mpi_rpc_server {
+	syn_queue_t *request_queue;
+	MPI_Comm comm;
+	MPI_Status status;
+	int rank;
+	int server_thread_cancel;
+	void *recv_buff;
+	struct mpi_rpc_server_op *op;
+	thread_pool_t *thread_pool;
+};
 
 struct mpi_rpc_server_op {
 	void (*server_start)(struct mpi_rpc_server *server);
@@ -22,22 +34,10 @@ struct mpi_rpc_server_op {
 	void (*send_result)(void **param);
 };
 
-struct mpi_rpc_server {
-	syn_queue_t *request_queue;
-	list_t *result_list;
-	MPI_Comm comm;
-	MPI_Status status;
-	int rank;
-	int server_thread_cancel;
-	char *recv_buff;
-	struct mpi_rpc_server_op *op;
-	thread_pool_t *thread_pool;
-};
-
 typedef struct mpi_rpc_server mpi_rpc_server_t;
 typedef struct mpi_rpc_server_op mpi_rpc_server_op_t;
 
-mpi_rpc_server_t *create_mpi_rpc_server(int thread_num, int rank, void (*resolve_handler)(thread_pool_t* thread_pool, void* msg_queue));
+mpi_rpc_server_t *create_mpi_rpc_server(int thread_num, int rank, void *(*resolve_handler)(event_handler_t *event_handler, void* msg_queue));
 void destroy_mpi_rpc_server(mpi_rpc_server_t *server);
 
 #endif /* SRC_COMMON_COMMUNICATION_MPI_RPC_SERVER_H_ */

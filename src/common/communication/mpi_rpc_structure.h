@@ -22,10 +22,6 @@ typedef struct {
 	int tag;
 }rpc_head_t;
 
-typedef struct {
-	char result[4096];
-};
-
 typedef struct pre_order pre_order_t;
 
 #endif /* SRC_COMMON_COMMUNICATION_MPI_RPC_STRUCTURE_H_ */

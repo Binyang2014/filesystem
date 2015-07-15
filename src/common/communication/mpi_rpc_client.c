@@ -9,13 +9,17 @@
 #include "mpi_rpc_structure.h"
 
 /*---------------Private Declaration---------------*/
-static void* execute(struct mpi_rpc_client *client, void *message, int message_size, int tag) {
+static void* execute(mpi_rpc_client_t *client, void *message, int message_size, int tag) {
 	MPI_Status status;
+
 	MPI_Send(message, message_size, MPI_CHAR, client->target, tag, client->comm);
+	puts("send request");
 	rpc_head_t *head = zmalloc(sizeof(rpc_head_t));
 	MPI_Recv(head, sizeof(rpc_head_t), MPI_CHAR, client->target, tag, client->comm, &status);
+	puts("receive head");
 	void *buf = zmalloc(head->len);
-	MPI_Recv(*buf, head->len, MPI_CHAR, client->target, tag, client->comm, &status);
+	MPI_Recv(buf, head->len, MPI_CHAR, client->target, tag, client->comm, &status);
+	puts("buf");
 	zfree(head);
 	return buf;
 }
@@ -29,6 +33,7 @@ mpi_rpc_client_t *create_mpi_rpc_client(MPI_Comm comm, int rank, int target) {
 	this->target = target;
 
 	this->op->execute = execute;
+	return this;
 }
 
 void destroy_mpi_rpc_client(mpi_rpc_client_t *client) {

@@ -14,7 +14,7 @@ typedef struct {
 	uint16_t code;
 	int source;
 	char ip[16];
-}register_t;
+}register_master_t;
 
 
 typedef struct {
@@ -52,6 +52,15 @@ typedef struct {
 /*
  * operation code
  */
+#define MACHINE_REGISTER_TO_MASTER 1001
+#define MASTER_CREATE_PERSISTENT_FILE 1002
+#define MASTER_DELETE_SYSTEM_FILE 1003
+#define SUB_MASTER_HEART_BLOOD 1004
+#define SUB_MASTER_ASK_GLOBAL_ID 1005
+#define CONSISTENT_FILE_TO_DISK 1006
+#define APPEND_FILE 1007
+
+
 #define CREATE_FILE_CODE 3001
 #define READ_FILE_CODE 3002
 #define CREATE_FILE_ANS_CODE 3003
