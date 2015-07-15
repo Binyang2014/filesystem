@@ -34,6 +34,7 @@ void sub(event_handler_t* event_handler)
 void* resolve_handler(event_handler_t* event_handler, void* msg_queue)
 {
 	common_msg_t common_msg;
+	//syn_queue_t* queue_syn = msg_queue;
 	queue_syn->op->syn_queue_pop(queue_syn, &common_msg);
 	switch(common_msg.operation_code)
 	{
@@ -57,6 +58,7 @@ int main()
 {
 	thread_pool_t* thread_pool;
 	common_msg_t common_msg;
+	//syn_queue_t* queue_syn;
 	int i;
 
 	log_init("/home/binyang/Program/filesystem/src/common/test", LOG_DEBUG);
@@ -73,7 +75,7 @@ int main()
 		queue_syn->op->syn_queue_push(queue_syn, &common_msg);
 	}
 
-	distroy_thread_pool(thread_pool);
+	destroy_thread_pool(thread_pool);
 	destroy_syn_queue(queue_syn);
 	log_close();
 	return 0;

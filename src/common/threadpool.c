@@ -473,7 +473,7 @@ static void start(thread_pool_t* this)
  * destroy thread pool
  * this function may be not right, should be careful
  */
-void distroy_thread_pool(thread_pool_t* thread_pool)
+void destroy_thread_pool(thread_pool_t* thread_pool)
 {
 	int i, stack_num;
 	int threads_count = thread_pool->threads_count;

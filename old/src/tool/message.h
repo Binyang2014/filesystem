@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include <mpi.h>
-#include "../global.h"
 
 #define MAX_COUNT_CID_R ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in read message
 #define MAX_COUNT_CID_W ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in write message
