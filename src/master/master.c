@@ -56,7 +56,7 @@ static void append_file(event_handler_t *event_handler) {
 
 static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	common_msg_t common_msg;
-	syn_queue_t* queue = msg_queue;
+	//syn_queue_t* queue = msg_queue;
 	queue->op->syn_queue_pop(queue, &common_msg);
 	switch(common_msg.operation_code)
 	{
@@ -97,6 +97,7 @@ master_t *create_master(size_t size, int rank) {
 	master->comm = MPI_COMM_WORLD;
 	master->rank = rank;
 	master->thread = zmalloc(sizeof(pthread_t) * 4);
+	master->rpc_server = create_mpi_rpc_server(4, rank, resolve_handler);
 }
 
 void destroy_master(master_t *master) {

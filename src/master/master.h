@@ -22,6 +22,8 @@ struct master {
 	int rank;
 	name_space_t *name_space;
 	pthread_t *thread;
+	mpi_rpc_server_t *rpc_server;
+	mpi_rpc_client_t *rpc_client;
 };
 
 typedef struct master master_t;
