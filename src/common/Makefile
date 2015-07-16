@@ -2,7 +2,7 @@ TOPDIR = ../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = log.o zmalloc.o bitmap.o mpi_communication.o sds.o basic_queue.o basic_list.o map.o syn_tool.o threadpool.o
+object = log.o zmalloc.o bitmap.o sds.o basic_queue.o basic_list.o map.o syn_tool.o threadpool.o
 target = $(TOPDIR)/lib/libcommon.a
 
 $(target): $(object)

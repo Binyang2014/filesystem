@@ -4,7 +4,7 @@
 
 int main()
 {
-	char * mem_file_system;
+	char * mem_file_system_origin, *mem_file_system;
 	int groups_count, blocks_per_group;
 	int i, j;
 	super_block_t *mem_super_block;
@@ -12,7 +12,8 @@ int main()
 
 	printf("%d\n", sizeof(super_block));
 	//format file system
-	mem_file_system = init_mem_file_system(LARGE, 0);
+	mem_file_system_origin = init_mem_file_system(LARGE, 0);
+	mem_file_system = mem_file_system_origin;
 	mem_super_block = (super_block_t *)mem_file_system;
 	groups_count = mem_super_block->s_blocks_count / mem_super_block->s_blocks_per_group;
 	blocks_per_group = mem_super_block->s_blocks_per_group;
@@ -33,5 +34,6 @@ int main()
 		mem_file_system = mem_file_system + BLOCK_SIZE * blocks_per_group;
 	}
 
+	free_mem_file_system(mem_file_system_origin);
 	return 0;
 }

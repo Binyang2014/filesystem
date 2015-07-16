@@ -109,3 +109,8 @@ char* init_mem_file_system(total_size_t t_size, int dev_num)
 
 	return mem_file_system;
 }
+
+void free_mem_file_system(char* mem_file_system)
+{
+	zfree(mem_file_system);
+}
