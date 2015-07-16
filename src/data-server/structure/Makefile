@@ -2,7 +2,7 @@ TOPDIR = ../../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-objects = basic_structure.o
+objects = basic_structure.o vfs_structure.o vfs_operations.o
 target = $(TOPDIR)/lib/libvfs.a
 
 $(target): $(objects)

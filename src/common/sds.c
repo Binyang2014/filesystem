@@ -105,7 +105,7 @@ sds sds_new_ull(uint64_t num)
 {
 	sds s;
 
-	s = sds_new_len(NULL, 64);
+	s = sds_new_len(NULL, 22);
 	ulltoa(num, s);
 	sds_update_len(s);
 	return s;
