@@ -7,9 +7,9 @@
  * this file implement functions in vfs_structure.h
  */
 #include "vfs_structure.h"
-#include "../../common/map.h""
+#include "../../common/map.h"
 #include "../../common/log.h"
-#include "../../commmon/zmalloc.h"
+#include "../../common/zmalloc.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -31,7 +31,6 @@ static void init_sb_op(superblock_op_t* s_op)
 	s_op->find_a_block_num = find_a_block_num;
 	s_op->find_serials_blocks = find_serials_blocks;
 	s_op->alloc_a_block = alloc_a_block;
-	s_op->alloc_blocks_with_hash = alloc_blocks_with_hash;
 	s_op->free_a_block = free_a_block;
 	s_op->alloc_blocks = alloc_blocks;
 	s_op->free_blocks_with_return = free_blocks_with_return;
@@ -54,8 +53,8 @@ static void* hash_table_pair_dup(void* pair)
 	uint32_t* value_t = NULL;
 
 	p->key = sds_dup(((pair_t *)pair)->key);
-	value = zmalloc(sizeof(uint32_t));
-	*value_t = (uint32_t *)(((pair_t *)pair)->value);
+	value_t = zmalloc(sizeof(uint32_t));
+	*value_t = *(uint32_t *)(((pair_t *)pair)->value);
 	p->value = value_t;
 	return (void*)p;
 }
@@ -106,7 +105,7 @@ static dataserver_sb_t * init_vfs_sb()
 	//initial hash table
 	dataserver_sb->s_hash_table = create_map(VFS_HASH_TABLE_SIZE, hash_table_value_dup, 
 			hash_table_value_free, hash_table_pair_dup, hash_table_pair_free);
-	if(dataerver_sb->s_hash_table == NULL)
+	if(dataserver_sb->s_hash_table == NULL)
 	{
 		zfree(dataserver_sb);
 		return NULL;
@@ -152,6 +151,16 @@ dataserver_sb_t* vfs_init(total_size_t t_size, int dev_num)
 	return dataserver_sb;
 }
 
+void vfs_destroy(dataserver_sb_t * dataserver_sb)
+{
+	zfree(dataserver_sb->s_op);
+	destroy_map(dataserver_sb->s_hash_table);
+	zfree(dataserver_sb);
+	free_mem_file_system(filesystem);
+	zfree(file_op);
+}
+
+//=======================some operations about vfs file============
 dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t* v_file_buff,
 		 vfs_hashtable_t* arr_table, short mode)
 {
@@ -181,3 +190,19 @@ dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t
 	return v_file_buff;
 }
 
+//==================some operastions about vfs hash table==========
+vfs_hashtable_t* init_hashtable(int table_size)
+{
+	vfs_hashtable_t* hash_table = (vfs_hashtable_t* )zmalloc(sizeof(vfs_hashtable_t));
+	hash_table->hash_table_size = table_size;
+	hash_table->chunks_arr = (uint64_t* )zmalloc(sizeof(uint64_t) * table_size);
+	hash_table->blocks_arr = (uint32_t* )zmalloc(sizeof(uint32_t) * table_size);
+	return hash_table;
+}
+
+void destroy_hashtable(vfs_hashtable_t* hash_table)
+{
+	zfree(hash_table->chunks_arr);
+	zfree(hash_table->blocks_arr);
+	zfree(hash_table);
+}

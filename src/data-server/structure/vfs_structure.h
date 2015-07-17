@@ -55,8 +55,6 @@ struct super_block_operations
 	//these functions do use really write to blocks or read from blocks
 	int (*alloc_blocks)(struct dataserver_super_block*, int arr_size,
 				uint64_t* chunks_arr, uint32_t* blocks_arr);
-	uint32_t* (*alloc_blocks_with_hash)(struct dataserver_super_block*, int arr_size,
-			uint64_t* chunks_arr, uint32_t* blocks_arr, uint32_t* hash_arr);
 	int (*free_blocks)(struct dataserver_super_block*, int arr_size, uint64_t* chunks_arr);
 	uint32_t* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size,
 			uint64_t* chunks_arr, uint32_t* blocks_arr);
@@ -160,8 +158,6 @@ uint32_t* find_serials_blocks(struct dataserver_super_block*, int arr_size,
 int alloc_a_block(dataserver_sb_t* this, uint64_t chunk_num, uint32_t block_num);
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
 			uint64_t* chunks_arr, uint32_t* blocks_arr);
-uint32_t* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
-			uint64_t* chunks_arr, uint32_t* blocks_arr, uint32_t* hash_arr);
 uint32_t free_a_block(dataserver_sb_t* this, uint64_t chunk_num);
 uint32_t* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
 		uint64_t* chunks_arr, uint32_t* blocks_arr);
@@ -176,7 +172,11 @@ int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset);
 //following functions will be finished in file vfs_structure.c
 //this function should be called first, should be alloc_vfs
 dataserver_sb_t* vfs_init(total_size_t t_size, int dev_num);
+void vfs_destroy(dataserver_sb_t *);
 //buffer provide by data server, it can not be null
 dataserver_file_t* init_vfs_file(dataserver_sb_t*, dataserver_file_t*,
 		vfs_hashtable_t* arr_table, short mode);
+//init a vfs hash table with proper size
+vfs_hashtable_t* init_hashtable(int table_size);
+void destroy_hashtable(vfs_hashtable_t* );
 #endif

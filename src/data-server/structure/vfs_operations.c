@@ -204,22 +204,6 @@ int alloc_a_block(dataserver_sb_t* this, uint64_t chunk_num, uint32_t block_num)
 	return -1;
 }
 
-uint32_t* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
-			uint64_t* chunks_arr, uint32_t* blocks_arr, uint32_t* hash_arr)
-{
-	int i;
-	uint32_t t_hash_num;
-	for(i = 0; i < arr_size; i++)
-	{
-		t_hash_num = alloc_a_block(this, chunks_arr[i], blocks_arr[i]);
-		if(t_hash_num != INF_UNSIGNED_INT)
-			hash_arr[i] = t_hash_num;
-		else
-			return NULL;
-	}
-	return hash_arr;
-}
-
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
 			uint64_t* chunks_arr, uint32_t* blocks_arr)
 {

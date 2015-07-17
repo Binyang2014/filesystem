@@ -2,33 +2,27 @@
  * This test file is to make true that vfs system works well
  *
  */
-#include "vfs_structure.h"
+#include "../vfs_structure.h"
+#include "../../../common/zmalloc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
-static unsigned long long chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
+static uint64_t chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
 		0x1243576, 0xff32};
 static char write_buff[4200] = {0};
 static char read_buff[4200] = {0};
-vfs_hashtable_t* init_hashtable(int hash_len)
-{
-	vfs_hashtable_t* hash_table = (vfs_hashtable_t* )malloc(sizeof(vfs_hashtable_t));
-	hash_table->hash_table_size = hash_len;
-	hash_table->chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long) * hash_len);
-	hash_table->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int) * hash_len);
-	return hash_table;
-}
 
 void s_hash_test(dataserver_sb_t* d_sb)
 {
-	unsigned int block_num = 255, hash_num;
+	uint32_t block_num = 255, hash_num;
 	size_t chunk_num = 12;
 	int i;
 
-	unsigned int blocks_arr[10] = {12, 6543, 432657, 34, 1234, 4356, 1904, 8192, 7935, 23876};
-	unsigned int blocks_arr_t[10];
-	unsigned int* ans;
+	uint32_t blocks_arr[10] = {12, 6543, 432657, 34, 1234, 4356, 1904, 8192, 7935, 23876};
+	uint32_t blocks_arr_t[10];
+	uint32_t* ans;
 
 	//I will test if hash table works well
 	hash_num = d_sb->s_op->alloc_a_block(d_sb, chunk_num, block_num);
@@ -59,7 +53,7 @@ void s_hash_test(dataserver_sb_t* d_sb)
 void vfs_basic_read_write_test(dataserver_file_t* d_file)
 {
 	int i, arr_len;
-	unsigned int offset;
+	uint32_t offset;
 	arr_len = d_file->arr_len;
 	for(i = 0; i < arr_len; i++)
 		d_file->f_chunks_arr[i] = chunks_arr[i];
@@ -80,7 +74,7 @@ void vfs_basic_read_write_test(dataserver_file_t* d_file)
 	d_file->f_op->vfs_write(d_file, write_buff, 7, offset);
 	d_file->f_op->vfs_read(d_file, read_buff, 7, offset);
 	printf("read from blocks\n");
-	for(i = 0; i < 7; i++)
+	for(i = 0; i < 10; i++)
 	{
 		printf("%c ", read_buff[i]);
 	}
@@ -125,12 +119,15 @@ int main()
 
 	printf("-------------test about file operations------------\n");
 	//init structure of data server file
-	d_file = (dataserver_file_t* )malloc(sizeof(dataserver_file_t));
+	d_file = (dataserver_file_t* )zmalloc(sizeof(dataserver_file_t));
 	f_arr_len = 8;
 
 	f_arr = init_hashtable(f_arr_len);
 	d_file = init_vfs_file(d_superblock, d_file, f_arr, VFS_WRITE);
 
 	vfs_basic_read_write_test(d_file);
+	zfree(d_file);
+	destroy_hashtable(f_arr);
+	vfs_destroy(d_superblock);
 	return 0;
 }
