@@ -51,4 +51,5 @@ typedef struct super_block super_block_t;
 typedef struct group_desc_block group_desc_block_t;
 char* init_mem_file_system(total_size_t t_size, int dev_num);
 //void init_mem_super_block(super_block_t * mem_super_block, int blocks_count, int blocks_per_group, int dev_num);
+void free_mem_file_system(char* mem_file_system);
 #endif

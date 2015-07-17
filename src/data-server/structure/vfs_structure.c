@@ -7,31 +7,15 @@
  * this file implement functions in vfs_structure.h
  */
 #include "vfs_structure.h"
-#include "../../tool/hash.h"
-#include "../../tool/errinfo.h"
+#include "../../common/map.h"
+#include "../../common/log.h"
+#include "../../common/zmalloc.h"
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 static file_op_t* file_op;
 static char* filesystem;
-
-static int init_hash_table(vfs_hashtable_t* s_hash_table)
-{
-	//Max file system size is 2^32 and minimum block size is 2^12
-	//we need at least 2^20 to store array, also we need to leave
-	//enough room to store INF_UNSIGNED_INT to make hash table as fast as possible
-	s_hash_table->hash_table_size = VFS_HASH_TBALE_SIZE;
-	s_hash_table->blocks_arr = (unsigned int* )malloc(sizeof(unsigned int) * s_hash_table->hash_table_size);
-	s_hash_table->chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long) * s_hash_table->hash_table_size);
-	if(s_hash_table->blocks_arr == NULL || s_hash_table->chunks_arr == NULL)
-	{
-		perror("in init_hash_table function");
-		return 1;
-	}
-	memset(s_hash_table->blocks_arr, -1, sizeof(unsigned int) * s_hash_table->hash_table_size);
-	memset(s_hash_table->chunks_arr, -1, sizeof(size_t) * s_hash_table->hash_table_size);
-	return 0;
-}
 
 static void init_sb_op(superblock_op_t* s_op)
 {
@@ -47,7 +31,6 @@ static void init_sb_op(superblock_op_t* s_op)
 	s_op->find_a_block_num = find_a_block_num;
 	s_op->find_serials_blocks = find_serials_blocks;
 	s_op->alloc_a_block = alloc_a_block;
-	s_op->alloc_blocks_with_hash = alloc_blocks_with_hash;
 	s_op->free_a_block = free_a_block;
 	s_op->alloc_blocks = alloc_blocks;
 	s_op->free_blocks_with_return = free_blocks_with_return;
@@ -63,10 +46,44 @@ static void init_file_op(file_op_t* f_op)
 	f_op->vfs_write = vfs_write;
 }
 
+//follows are some functions that will be used by hash table
+static void* hash_table_pair_dup(void* pair)
+{
+	pair_t *p = zmalloc(sizeof(pair_t));
+	uint32_t* value_t = NULL;
+
+	p->key = sds_dup(((pair_t *)pair)->key);
+	value_t = zmalloc(sizeof(uint32_t));
+	*value_t = *(uint32_t *)(((pair_t *)pair)->value);
+	p->value = value_t;
+	return (void*)p;
+}
+
+static void hash_table_pair_free(void* pair)
+{
+	pair_t *p = pair;
+	sds_free(p->key);
+	zfree(p->value);
+	zfree(p);
+}
+
+static void* hash_table_value_dup(const void* value)
+{
+	uint32_t *value_t = zmalloc(sizeof(uint32_t));
+	*value_t = *((uint32_t*)value);
+	return (void*)value_t;
+}
+
+static void hash_table_value_free(void* value)
+{
+	uint32_t* value_t = value;
+	zfree(value_t);
+}
+
 static dataserver_sb_t * init_vfs_sb()
 {
 	dataserver_sb_t *dataserver_sb;
-	dataserver_sb = (dataserver_sb_t *)malloc(sizeof(dataserver_sb_t));
+	dataserver_sb = (dataserver_sb_t *)zmalloc(sizeof(dataserver_sb_t));
 	if(dataserver_sb == NULL)
 	{
 		perror("malloc dataserver superblock failed");
@@ -74,39 +91,33 @@ static dataserver_sb_t * init_vfs_sb()
 	}
 
 	dataserver_sb->s_block = (super_block_t *)filesystem;
-	dataserver_sb->hash_function = PJWHash;//You can alter it as you wish
 	dataserver_sb->s_hash_table = NULL;
 	dataserver_sb->s_op = NULL;
 
 	//initial mutex; maybe is not right, I will review it after this function finish
 	if (pthread_mutex_init(&dataserver_sb->s_mutex, NULL) != 0)
 	{
-		free(dataserver_sb);
+		zfree(dataserver_sb);
 		perror("initial dataserver superblock mutex failed");
 		return NULL;
 	}
 
 	//initial hash table
-	dataserver_sb->s_hash_table = (vfs_hashtable_t* )malloc(sizeof(vfs_hashtable_t));
+	dataserver_sb->s_hash_table = create_map(VFS_HASH_TABLE_SIZE, hash_table_value_dup, 
+			hash_table_value_free, hash_table_pair_dup, hash_table_pair_free);
 	if(dataserver_sb->s_hash_table == NULL)
 	{
-		free(dataserver_sb);
-		perror("allocate hash_table failed");
-		return NULL;
-	}
-	if(init_hash_table(dataserver_sb->s_hash_table) != 0)
-	{
-		free(dataserver_sb);
+		zfree(dataserver_sb);
 		return NULL;
 	}
 
 
 	//initial superblock operations
-	dataserver_sb->s_op = (superblock_op_t *)malloc(sizeof(superblock_op_t));
+	dataserver_sb->s_op = (superblock_op_t *)zmalloc(sizeof(superblock_op_t));
 	if(dataserver_sb->s_op == NULL)
 	{
-		free(dataserver_sb->s_hash_table);
-		free(dataserver_sb);
+		destroy_map(dataserver_sb->s_hash_table);
+		zfree(dataserver_sb);
 		perror("allocate super block operations failed");
 		return NULL;
 	}
@@ -124,7 +135,7 @@ dataserver_sb_t* vfs_init(total_size_t t_size, int dev_num)
 	filesystem = NULL;
 	file_op = NULL;
 
-	file_op = (file_op_t *)malloc(sizeof(file_op_t));
+	file_op = (file_op_t *)zmalloc(sizeof(file_op_t));
 	if(file_op == NULL)
 	{
 		err_ret("in vfs_basic_init");
@@ -140,6 +151,16 @@ dataserver_sb_t* vfs_init(total_size_t t_size, int dev_num)
 	return dataserver_sb;
 }
 
+void vfs_destroy(dataserver_sb_t * dataserver_sb)
+{
+	zfree(dataserver_sb->s_op);
+	destroy_map(dataserver_sb->s_hash_table);
+	zfree(dataserver_sb);
+	free_mem_file_system(filesystem);
+	zfree(file_op);
+}
+
+//=======================some operations about vfs file============
 dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t* v_file_buff,
 		 vfs_hashtable_t* arr_table, short mode)
 {
@@ -169,3 +190,19 @@ dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t
 	return v_file_buff;
 }
 
+//==================some operastions about vfs hash table==========
+vfs_hashtable_t* init_hashtable(int table_size)
+{
+	vfs_hashtable_t* hash_table = (vfs_hashtable_t* )zmalloc(sizeof(vfs_hashtable_t));
+	hash_table->hash_table_size = table_size;
+	hash_table->chunks_arr = (uint64_t* )zmalloc(sizeof(uint64_t) * table_size);
+	hash_table->blocks_arr = (uint32_t* )zmalloc(sizeof(uint32_t) * table_size);
+	return hash_table;
+}
+
+void destroy_hashtable(vfs_hashtable_t* hash_table)
+{
+	zfree(hash_table->chunks_arr);
+	zfree(hash_table->blocks_arr);
+	zfree(hash_table);
+}

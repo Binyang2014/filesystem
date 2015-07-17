@@ -34,6 +34,7 @@
 #define SDS_MAX_PREALLOC (1024*1024)
 
 #include <sys/types.h>
+#include <stdint.h>
 #include <stdarg.h>
 
 typedef char *sds;
@@ -56,6 +57,7 @@ static inline size_t sds_avail(const sds s) {
 
 sds sds_new_len(const void *init, size_t init_len);
 sds sds_new(const char *init);
+sds sds_new_ull(uint64_t num);
 sds sds_empty(void);
 size_t sds_len(const sds s);
 sds sds_dup(const sds s);

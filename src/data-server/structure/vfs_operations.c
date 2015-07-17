@@ -12,17 +12,20 @@
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
-#include "../../structure/bitmap.h"
-#include "../../tool/hash.h"
-#include "../../tool/errinfo.h"
+#include <stdint.h>
+#include "../../common/sds.h"
+#include "../../common/bitmap.h"
+#include "../../common/map.h"
+#include "../../common/log.h"
+#include "../../common/zmalloc.h"
 
 //------------------------block operations---------------------------------------------------
 //following functions maybe used by read or write function
 //we do not want these functions to be see by upper layer because
 //we do not let upper layer programmer change super block structure
-static void __set_block_bm(super_block_t* super_block, unsigned int block_num)
+static void __set_block_bm(super_block_t* super_block, uint32_t block_num)
 {
-	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
 	unsigned long *bitmap;
 
 	bitmap = __get_bitmap_block(super_block, block_num);
@@ -30,9 +33,9 @@ static void __set_block_bm(super_block_t* super_block, unsigned int block_num)
 	bitmap_set(bitmap, block_num_in_group, 1);
 }
 
-static void __clear_block_bm(super_block_t* super_block, unsigned int block_num)
+static void __clear_block_bm(super_block_t* super_block, uint32_t block_num)
 {
-	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
 	unsigned long *bitmap;
 
 	bitmap = __get_bitmap_block(super_block, block_num);
@@ -40,9 +43,9 @@ static void __clear_block_bm(super_block_t* super_block, unsigned int block_num)
 	bitmap_clear(bitmap, block_num_in_group, 1);
 }
 
-static int __bm_block_set(super_block_t* super_block, unsigned int block_num)
+static int __bm_block_set(super_block_t* super_block, uint32_t block_num)
 {
-	unsigned int block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
 	unsigned long *bitmap;
 
 	bitmap = __get_bitmap_block(super_block, block_num);
@@ -50,10 +53,10 @@ static int __bm_block_set(super_block_t* super_block, unsigned int block_num)
 	return bitmap_a_bit_full(bitmap, block_num_in_group);
 }
 
-static unsigned int find_first_free_block(super_block_t* super_block, int p_group_id)
+static uint32_t find_first_free_block(super_block_t* super_block, int p_group_id)
 {
 	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
-	unsigned int blocks_per_group = super_block->s_blocks_per_group,
+	uint32_t blocks_per_group = super_block->s_blocks_per_group,
 			groups_count = super_block->s_groups_count, block_num_in_group, count = 0;
 
 	//if these group not have a free block, find next group
@@ -68,10 +71,10 @@ static unsigned int find_first_free_block(super_block_t* super_block, int p_grou
 	return block_num_in_group + p_group_id * blocks_per_group;
 }
 
-static unsigned int find_next_free_block(super_block_t* super_block, int p_group_id, unsigned int block_num)
+static uint32_t find_next_free_block(super_block_t* super_block, int p_group_id, uint32_t block_num)
 {
 	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
-	unsigned int blocks_per_group = super_block->s_blocks_per_group,
+	uint32_t blocks_per_group = super_block->s_blocks_per_group,
 			block_num_in_group = block_num % super_block->s_blocks_per_group;
 
 	//can't find free block in this group, go to next group and find first free block
@@ -83,9 +86,9 @@ static unsigned int find_next_free_block(super_block_t* super_block, int p_group
 //static void sb_regist_block(int chunk_num, int block_num);
 //static void sb_logout_block(int chunk_num);
 
-static char* find_a_block(dataserver_sb_t* dataserver_sb, unsigned int block_num)
+static char* find_a_block(dataserver_sb_t* dataserver_sb, uint32_t block_num)
 {
-	unsigned int blocks_per_groups;
+	uint32_t blocks_per_groups;
 	int group_offset;
 	super_block_t *super_block = dataserver_sb->s_block;
 	char* block;
@@ -102,17 +105,17 @@ static char* find_a_block(dataserver_sb_t* dataserver_sb, unsigned int block_num
 }
 
 //----------------------super block operations----------------------------------------
-unsigned int get_blocks_count(dataserver_sb_t* this)
+uint32_t get_blocks_count(dataserver_sb_t* this)
 {
 	return this->s_block->s_blocks_count;
 }
 
-unsigned int get_free_blocks_count(dataserver_sb_t* this)
+uint32_t get_free_blocks_count(dataserver_sb_t* this)
 {
 	return this->s_block->s_free_blocks_count;
 }
 
-unsigned int get_blocks_per_groups(dataserver_sb_t* this)
+uint32_t get_blocks_per_groups(dataserver_sb_t* this)
 {
 	return this->s_block->s_blocks_per_group;
 }
@@ -122,7 +125,7 @@ float get_filesystem_version(dataserver_sb_t* this)
 	return this->s_block->s_version;
 }
 
-unsigned int get_groups_conut(dataserver_sb_t* this)
+uint32_t get_groups_conut(dataserver_sb_t* this)
 {
 	return this->s_block->s_groups_count;
 }
@@ -137,65 +140,38 @@ unsigned short get_superblock_status(dataserver_sb_t* this)
 	return this->s_block->s_status;
 }
 
-unsigned int get_per_group_reserved(dataserver_sb_t* this)
+uint32_t get_per_group_reserved(dataserver_sb_t* this)
 {
 	return this->s_block->s_per_group_reserved;
 }
 
 //----------------------------------------------------------------------------------
 //给定chunk号，通过hash函数查找相应的block number号
-unsigned int find_a_block_num(dataserver_sb_t* this, unsigned long long chunk_num)
+uint32_t find_a_block_num(dataserver_sb_t* this, uint64_t chunk_num)
 {
-	char str[MAX_NUM_SIZE + 1];
-	unsigned int hash_num;
-	ulltoa(chunk_num, str);
-	hash_num = this->hash_function(str, this->s_hash_table->hash_table_size);
+	uint32_t* block_num_p;
+	sds key = sds_new_ull(chunk_num);
+	block_num_p = this->s_hash_table->op->get(this->s_hash_table, key);
+	sds_free(key);
 
-	//Programmer should make sure that at least a value in block_arr is -1
-	while(this->s_hash_table->blocks_arr[hash_num] != INF_UNSIGNED_INT &&
-			this->s_hash_table->chunks_arr[hash_num] != chunk_num)
+	if(block_num_p != NULL)
 	{
-		hash_num = (hash_num + 1) % (this->s_hash_table->hash_table_size);
+		uint32_t block_num = *block_num_p;
+		zfree(block_num_p);
+		return block_num;
 	}
-
-	if(this->s_hash_table->chunks_arr[hash_num] == chunk_num)
-		return this->s_hash_table->blocks_arr[hash_num];
 #ifdef VFS_RW_DEBUG
 	fprintf(stderr, "Can not find certain chunk_num in this hash table\n");
 #endif
 	return INF_UNSIGNED_INT;
 }
 
-static unsigned int find_a_block_with_hash_num(dataserver_sb_t* this, unsigned long long chunk_num,
-		unsigned int* t_hash_num)
-{
-	char str[MAX_NUM_SIZE + 1];
-	unsigned int hash_num = INF_UNSIGNED_INT;
-	ulltoa(chunk_num, str);
-	hash_num = this->hash_function(str, this->s_hash_table->hash_table_size);
-	//Programmer should make sure that at least a value in block_arr is -1
-	while(this->s_hash_table->blocks_arr[hash_num] != INF_UNSIGNED_INT &&
-			this->s_hash_table->chunks_arr[hash_num] != chunk_num)
-	{
-		hash_num = (hash_num + 1) % (this->s_hash_table->hash_table_size);
-	}
-
-	if(this->s_hash_table->chunks_arr[hash_num] == chunk_num)
-	{
-		*t_hash_num = hash_num;
-		return this->s_hash_table->blocks_arr[hash_num];
-	}
-
-	fprintf(stderr, "Can not find certain chunk_num in this hash table\n");
-	return INF_UNSIGNED_INT;
-}
-
 //success return address of array fail return null
-unsigned int* find_serials_blocks(dataserver_sb_t* this, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr)
+uint32_t* find_serials_blocks(dataserver_sb_t* this, int arr_size,
+			uint64_t* chunks_arr, uint32_t* blocks_arr)
 {
 	int i;
-	unsigned int t_block_number;
+	uint32_t t_block_number;
 
 	for(i = 0; i < arr_size; i++)
 	{
@@ -209,48 +185,30 @@ unsigned int* find_serials_blocks(dataserver_sb_t* this, int arr_size,
 }
 
 //This function just find a suitable place to store a block of data, and return
-//the block number
-unsigned int alloc_a_block(dataserver_sb_t* this, unsigned long long chunk_num, unsigned int block_num)
+//0 if success -1 if fail
+int alloc_a_block(dataserver_sb_t* this, uint64_t chunk_num, uint32_t block_num)
 {
-	unsigned int hash_num;
-	char str[MAX_NUM_SIZE + 1];
-	ulltoa(chunk_num, str);
-	hash_num = this->hash_function(str, this->s_hash_table->hash_table_size);
+	uint32_t* block_num_p;
+	sds key = sds_new_ull(chunk_num);
 
-	while(this->s_hash_table->blocks_arr[hash_num] != INF_UNSIGNED_INT)
-		hash_num = (hash_num + 1) % this->s_hash_table->hash_table_size;
-	if(this->s_hash_table->blocks_arr[hash_num] == INF_UNSIGNED_INT)
+	block_num_p = this->s_hash_table->op->get(this->s_hash_table, key);
+
+	if(block_num_p == NULL)
 	{
-		this->s_hash_table->blocks_arr[hash_num] = block_num;
-		this->s_hash_table->chunks_arr[hash_num] = chunk_num;
-		return hash_num;
+		this->s_hash_table->op->put(this->s_hash_table, key, &block_num);
+		sds_free(key);
+		return 0;
 	}
 
 	fprintf(stderr, "Can not allocated a block in this file system\n");
-	return INF_UNSIGNED_INT;
-}
-
-unsigned int* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr, unsigned int* hash_arr)
-{
-	int i;
-	unsigned int t_hash_num;
-	for(i = 0; i < arr_size; i++)
-	{
-		t_hash_num = alloc_a_block(this, chunks_arr[i], blocks_arr[i]);
-		if(t_hash_num != INF_UNSIGNED_INT)
-			hash_arr[i] = t_hash_num;
-		else
-			return NULL;
-	}
-	return hash_arr;
+	return -1;
 }
 
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
-			unsigned long long* chunks_arr, unsigned int* blocks_arr)
+			uint64_t* chunks_arr, uint32_t* blocks_arr)
 {
 	int i;
-	unsigned int t_hash_num;
+	uint32_t t_hash_num;
 	for(i = 0; i < arr_size; i++)
 	{
 		t_hash_num = alloc_a_block(this, chunks_arr[i], blocks_arr[i]);
@@ -263,25 +221,27 @@ int alloc_blocks(dataserver_sb_t* this, int arr_size,
 }
 
 //just like above, do not care really blocks and just modifies hash table
-unsigned int free_a_block(dataserver_sb_t* this, unsigned long long chunk_num)
+uint32_t free_a_block(dataserver_sb_t* this, uint64_t chunk_num)
 {
-	unsigned int block_num, hash_num;
-	block_num = find_a_block_with_hash_num(this, chunk_num, &hash_num);
-	if(block_num == INF_UNSIGNED_INT)
+	sds key = sds_new_ull(chunk_num);
+	uint32_t* block_num_p;
+	block_num_p = this->s_hash_table->op->get(this->s_hash_table, key);
+	this->s_hash_table->op->del(this->s_hash_table, key);
+	sds_free(key);
+	if(block_num_p != NULL)
 	{
-		fprintf(stderr, "free a block fails\n");
-		return INF_UNSIGNED_INT;
+		uint32_t block_num = *block_num_p;
+		zfree(block_num_p);
+		return block_num;
 	}
-	this->s_hash_table->blocks_arr[hash_num] = INF_UNSIGNED_INT;
-	this->s_hash_table->chunks_arr[hash_num] = INF_UNSIGNED_LONG;
-	return block_num;
+	return INF_UNSIGNED_INT;
 }
 
-unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
-		unsigned long long* chunks_arr, unsigned int* blocks_arr)
+uint32_t* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
+		uint64_t* chunks_arr, uint32_t* blocks_arr)
 {
 	int i;
-	unsigned int t_block_num;
+	uint32_t t_block_num;
 	for(i = 0; i < arr_size; i++)
 	{
 		t_block_num = free_a_block(this, chunks_arr[i]);
@@ -293,16 +253,18 @@ unsigned int* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
 	return blocks_arr;
 }
 
-int free_blocks(dataserver_sb_t* this, int arr_size, unsigned long long* chunks_arr)
+//free blocks, if success return 0 else return -1
+int free_blocks(dataserver_sb_t* this, int arr_size, uint64_t* chunks_arr)
 {
 	int i;
-	unsigned int t_block_num;
-	for(i = 0; i < arr_size; i++)		{
+	uint32_t t_block_num;
+	for(i = 0; i < arr_size; i++)
+	{
 		t_block_num = free_a_block(this, chunks_arr[i]);
 		if(t_block_num != INF_UNSIGNED_INT)
 			continue;
 		else
-			return INF_UNSIGNED_INT;
+			return -1;
 	}
 	return 0;
 }
@@ -310,11 +272,11 @@ int free_blocks(dataserver_sb_t* this, int arr_size, unsigned long long* chunks_
 
 void print_sb_imf(dataserver_sb_t* this)
 {
-	unsigned int blocks_count = get_blocks_count(this);
-	unsigned int free_blocks_count = get_free_blocks_count(this);
-	unsigned int blocks_per_group = get_blocks_per_groups(this);
+	uint32_t blocks_count = get_blocks_count(this);
+	uint32_t free_blocks_count = get_free_blocks_count(this);
+	uint32_t blocks_per_group = get_blocks_per_groups(this);
 	float filesystem_version = get_filesystem_version(this);
-	unsigned int groups_conut = get_groups_conut(this);
+	uint32_t groups_conut = get_groups_conut(this);
 	time_t last_write_time = get_last_write_time(this);
 	unsigned short status = get_superblock_status(this);
 	struct tm *timeinfo;
@@ -342,13 +304,13 @@ static int cal_first_bytes(off_t offset)
 
 static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
 {
-	unsigned int *blocks_arr;
-	unsigned int block_num;
+	uint32_t *blocks_arr;
+	uint32_t block_num;
 	off_t offset_in_group;
 
 #ifdef VFS_RW_DEBUG
 	char* alloced_block;
-	unsigned long long chunk_num;
+	uint64_t chunk_num;
 #endif
 
 	blocks_arr = this->f_blocks_arr;
@@ -367,7 +329,7 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
 	chunk_num = this->f_chunks_arr[offset / BLOCK_SIZE];
-	printf("The block number is %d, and the chunk number is %lld\n", block_num, chunk_num);
+	printf("The block number is %d, and the chunk number is %llu\n", block_num, chunk_num);
 #endif
 
 	return nbytes;
@@ -429,9 +391,9 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 
 static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
 {
-	unsigned long long* chunks_arr;
-	unsigned int block_num;
-	unsigned long long chunk_num;
+	uint64_t* chunks_arr;
+	uint32_t block_num;
+	uint64_t chunk_num;
 	off_t offset_in_group;
 
 #ifdef VFS_RW_DEBUG
@@ -488,7 +450,7 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 		printf("The bitmap already set!!\n");
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
-	printf("The block number is %d, and the chunk number is %lld\n", block_num, chunk_num);
+	printf("The block number is %d, and the chunk number is %llu\n", block_num, chunk_num);
 	//printf("the buffer is %s\n", buffer);
 	//printf("The block contains %s\n", alloced_block + offset_in_group);
 #endif

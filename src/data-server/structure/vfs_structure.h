@@ -8,7 +8,7 @@
  */
 #ifndef _VFS_STRUCTURE_H_
 #define _VFS_STRUCTURE_H_
-#define VFS_HASH_TBALE_SIZE ((1<<20) + (1<<19))//define the size of hash table
+#define VFS_HASH_TABLE_SIZE ((1<<20) + (1<<19))//define the size of hash table
 
 //simple function used by read
 #define ALL_ADD_THIRD(c, r, t)     \
@@ -23,17 +23,11 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <stdint.h>
+#include "../../common/map.h"
 #include "basic_structure.h"
 
 struct dataserver_super_block;
 struct dataserver_file;
-struct dataserver_block;
-
-//struct list_head
-//{
-//	struct list_head *pre;
-//	struct list_head *next;
-//};
 
 struct vfs_hashtable
 {
@@ -61,13 +55,11 @@ struct super_block_operations
 	//these functions do use really write to blocks or read from blocks
 	int (*alloc_blocks)(struct dataserver_super_block*, int arr_size,
 				uint64_t* chunks_arr, uint32_t* blocks_arr);
-	uint32_t* (*alloc_blocks_with_hash)(struct dataserver_super_block*, int arr_size,
-			uint64_t* chunks_arr, uint32_t* blocks_arr, uint32_t* hash_arr);
 	int (*free_blocks)(struct dataserver_super_block*, int arr_size, uint64_t* chunks_arr);
 	uint32_t* (*free_blocks_with_return)(struct dataserver_super_block*, int arr_size,
 			uint64_t* chunks_arr, uint32_t* blocks_arr);
 	//success return hash number else return -1
-	uint32_t (*alloc_a_block)(struct dataserver_super_block*, uint64_t chunk_num, uint32_t block_num);
+	int (*alloc_a_block)(struct dataserver_super_block*, uint64_t chunk_num, uint32_t block_num);
 	uint32_t (*free_a_block)(struct dataserver_super_block*, uint64_t chunk_num);
 
 	void (*print_sb_imf)(struct dataserver_super_block*);
@@ -97,8 +89,9 @@ struct dataserver_super_block
 
 	struct super_block_operations *s_op;
 
-	struct vfs_hashtable *s_hash_table;
-	uint32_t (*hash_function)(char* str, uint32_t size);
+	/*use hash table to store mapping between global chunk number and local
+	 * block number*/
+	map_t* s_hash_table;
 };
 
 /**
@@ -162,11 +155,9 @@ uint32_t get_per_group_reserved(dataserver_sb_t* this);
 uint32_t find_a_block_num(dataserver_sb_t* this, uint64_t chunk_num);
 uint32_t* find_serials_blocks(struct dataserver_super_block*, int arr_size,
 			uint64_t* chunks_arr, uint32_t* blocks_arr);
-uint32_t alloc_a_block(dataserver_sb_t* this, uint64_t chunk_num, uint32_t block_num);
+int alloc_a_block(dataserver_sb_t* this, uint64_t chunk_num, uint32_t block_num);
 int alloc_blocks(dataserver_sb_t* this, int arr_size,
 			uint64_t* chunks_arr, uint32_t* blocks_arr);
-uint32_t* alloc_blocks_with_hash(dataserver_sb_t* this, int arr_size,
-			uint64_t* chunks_arr, uint32_t* blocks_arr, uint32_t* hash_arr);
 uint32_t free_a_block(dataserver_sb_t* this, uint64_t chunk_num);
 uint32_t* free_blocks_with_return(dataserver_sb_t* this, int arr_size,
 		uint64_t* chunks_arr, uint32_t* blocks_arr);
@@ -181,7 +172,11 @@ int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset);
 //following functions will be finished in file vfs_structure.c
 //this function should be called first, should be alloc_vfs
 dataserver_sb_t* vfs_init(total_size_t t_size, int dev_num);
+void vfs_destroy(dataserver_sb_t *);
 //buffer provide by data server, it can not be null
 dataserver_file_t* init_vfs_file(dataserver_sb_t*, dataserver_file_t*,
 		vfs_hashtable_t* arr_table, short mode);
+//init a vfs hash table with proper size
+vfs_hashtable_t* init_hashtable(int table_size);
+void destroy_hashtable(vfs_hashtable_t* );
 #endif
