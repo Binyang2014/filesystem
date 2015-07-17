@@ -185,14 +185,15 @@ struct list* list_extract_node_to_head(struct list *list, struct node *node) {
 
 	if(node->prev) {
 		node->prev->next = node->next;
-		node->next = list->head;
 	}
 
 	if(node->next) {
 		node->next->prev = node->prev;
-		node->prev = NULL;
 	}
 
+	node->prev = NULL;
+	node->next = list->head;
+	list->head->prev = node;
 	list->head = node;
 	return list;
 }
@@ -271,14 +272,15 @@ struct list* list_extract_node_to_tail(struct list *list, struct node *node) {
 
 	if(node->prev) {
 		node->prev->next = node->next;
-		node->next = NULL;
 	}
 
 	if(node->next) {
 		node->next->prev = node->prev;
-		node->prev = list->tail;
 	}
 
+	node->next = NULL;
+	node->prev = list->tail;
+	list->tail->next = node;
 	list->tail = node;
 	return list;
 }

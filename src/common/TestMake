@@ -1,0 +1,5 @@
+map:map.c zmalloc.c sds.c basic_list.c 
+	gcc -o map map.c zmalloc.c sds.c basic_list.c
+
+cache: 	lru_cache.c zmalloc.c sds.c basic_list.c threadpool.c log.c map.c
+	 gcc -o cache lru_cache.c zmalloc.c sds.c basic_list.c threadpool.c log.c map.c -pthread -g

@@ -26,7 +26,7 @@ struct lru_cache_op{
 	void *(*get)(struct lru_cache *cache, sds key);
 	void (*put)(struct lru_cache *cache, sds key, void *value);
 	size_t (*get_size)(struct lru_cache *cache);
-	void (*del)(struct lru_cache *cache, sds key);
+	//void (*del)(struct lru_cache *cache, sds key);
 };
 
 typedef struct lru_cache lru_cache_t;

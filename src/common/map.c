@@ -6,8 +6,10 @@
  */
 
 #include <stdio.h>
+#include <assert.h>
 #include "map.h"
 #include "zmalloc.h"
+
 
 /* Copy from redis
  * MurmurHash2, by Austin Appleby
@@ -34,10 +36,8 @@ static uint32_t map_gen_hash_function(const sds key, size_t size) {
 
     /* Mix 4 bytes at a time into the hash */
     const unsigned char *data = (const unsigned char *)key;
-
     while(len >= 4) {
         uint32_t k = *(uint32_t*)data;
-
         k *= m;
         k ^= k >> r;
         k *= m;
@@ -48,7 +48,6 @@ static uint32_t map_gen_hash_function(const sds key, size_t size) {
         data += 4;
         len -= 4;
     }
-
     /* Handle the last few bytes of the input array  */
     switch(len) {
     	case 3: h ^= data[2] << 16;
@@ -73,7 +72,6 @@ static uint32_t map_gen_hash_function(const sds key, size_t size) {
 static pair_t *find(map_t *this, const sds key){
 	uint32_t h = map_gen_hash_function(key, this->size);
 
-	//printf("hey hey this = %d\n", h);
 	list_t *l = *(this->list + h);
 
 	list_iter_t *iter = l->list_ops->list_get_iterator(l, AL_START_HEAD);
@@ -90,7 +88,7 @@ static pair_t *find(map_t *this, const sds key){
 	return NULL;
 }
 
-static int put(map_t *this, const sds key, void *value) {
+static int put(map_t *this, sds key, void *value) {
 	pair_t *node = find(this, key);
 
 	if(node == NULL) {
@@ -98,7 +96,7 @@ static int put(map_t *this, const sds key, void *value) {
 		list_t *l = *(this->list + h);
 
 		pair_t *pair = (pair_t *)zmalloc(sizeof(pair_t));
-		pair->key = this->key_dup(key);
+		pair->key = sds_dup(key);
 		pair->value = this->value_dup ? this->value_dup(value) : value;
 
 		l->list_ops->list_add_node_tail(l, (void *)pair);
@@ -135,10 +133,15 @@ static int modify_key(map_t *this, sds old_key, sds new_key) {
 		if(sds_cmp(((pair_t *)node->value)->key, old_key) == 0) {
 			l->list_ops->list_remove_node(l, node);
 			sds_free(((pair_t *)node->value)->key);
-			put(this, new_key, node->value);
-			zfree(node);
-			this->current_size--;
+			put(this, sds_dup(new_key), node->value);
+
 			l->list_ops->list_release_iterator(iter);
+			if(this->value_dup) {
+				this->key_free(((pair_t *)node->value)->key);
+				this->value_free(((pair_t *)node->value)->value);
+			}
+			zfree(node);
+
 			return 0;
 		}
 		node = l->list_ops->list_next(iter);
@@ -149,6 +152,8 @@ static int modify_key(map_t *this, sds old_key, sds new_key) {
 }
 
 static size_t get_size(map_t *this) {
+	assert(this->current_size >= 0);
+
 	return this->current_size;
 }
 
@@ -210,3 +215,63 @@ void destroy_map(map_t *this) {
 	zfree(this->list);
 	zfree(this);
 }
+
+void print_map_keys() {
+
+}
+
+/*------------------T	E	S	T----------------*/
+#define MAP_TEST 0
+#if (GLOBAL_TEST) || (MAP_TEST)
+
+void list_free(void *value) {
+	pair_t *p = value;
+	sds_free(p->key);
+	zfree(p->value);
+	zfree(p);
+}
+
+int main() {
+	map_t *map = create_map(10, NULL, NULL, NULL, list_free);
+	sds key1 = sds_new("1234");
+	sds key2 = sds_new("2345");
+	sds key3 = sds_new("3456");
+	sds key4 = sds_new("5678");
+	sds key5 = sds_new("6789");
+
+	int *num = zmalloc(sizeof(int));
+	*num = 1234;
+	map->op->put(map, key1, num);
+
+	num = zmalloc(sizeof(int));
+	*num = 2345;
+	map->op->put(map, key2, num);
+
+	num = zmalloc(sizeof(int));
+	*num = 3456;
+	map->op->put(map, key3, num);
+
+	num = zmalloc(sizeof(int));
+	*num = 4567;
+	map->op->put(map, key4, num);
+
+	num = zmalloc(sizeof(int));
+	*num = 5678;
+	map->op->put(map, key5, num);
+
+	map->op->del(map, key5);
+	map->op->get(map, key5);
+	map->op->del(map, key5);
+	num = zmalloc(sizeof(int));
+	*num = 5678;
+	map->op->put(map, key5, num);
+
+	sds_free(key1);
+	sds_free(key2);
+	sds_free(key3);
+	sds_free(key4);
+	sds_free(key5);
+	destroy_map(map);
+}
+#endif
+
