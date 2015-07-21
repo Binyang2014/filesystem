@@ -100,11 +100,11 @@ static void __write_log(log_level_t level, char* msg)
 		if(LOG_THREAD_SAFE)
 		{
 			pthread_mutex_lock(&global_logger.log_write_mutex);
-			fprintf(fp, "%d %u %s %s %s\n", (int)pid, (unsigned int)tid, buf, level_name[level], msg);
+			fprintf(fp, "[%s] %d %u %s %s\n", level_name[level], (int)pid, (unsigned int)tid, buf, msg);
 			pthread_mutex_unlock(&global_logger.log_write_mutex);
 		}
 		else
-			fprintf(fp, "%d %s %s %s\n", (int)pid, buf, level_name[level], msg);
+			fprintf(fp, "[%s] %d %s %s\n", level_name[level], (int)pid, buf, msg);
 		fflush(fp);
 	}
 	return;

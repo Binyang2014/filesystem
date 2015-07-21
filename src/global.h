@@ -45,7 +45,7 @@
 
 //use for debug
 #define DEBUG 1
-#define VFS_RW_DEBUG 1
+//#define VFS_RW_DEBUG 1
 #define DATASERVER_COMM_DEBUG 1
 #define THREAD_POOL_DEBUG 1
 #define DATASERVER_BUFF_DEBUG 1
@@ -62,12 +62,4 @@ enum TOTAL_SIZE
 
 typedef enum TOTAL_SIZE total_size_t;
 
-/*DEFINE LOG LEVEL*/
-
-//#define LOG_DEBUG 1
-//#define LOG_INFO 2
-//#define LOG_WARN 3
-//#define LOG_ERROR 4
-//#define LOG_FATAL 5
-//#define LOG_LEVEL 0
 #endif

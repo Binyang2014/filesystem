@@ -18,7 +18,7 @@
 )
 #define VFS_READ 0x01
 #define VFS_WRITE 0x10
-
+#define VFS_DELETE 0x100
 
 #include <pthread.h>
 #include <sys/types.h>
@@ -78,7 +78,7 @@ struct file_operations
 	int (*vfs_read)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
 	int (*vfs_write)(struct dataserver_file*, char* buffer, size_t count, off_t offset);
 	//delete function has not been well defined yet, I will redefine it after test read and write
-	int (*vfs_delete)(struct dataserver_file*);
+	void (*vfs_remove)(struct dataserver_file*);
 };
 
 //only one copy in memory
@@ -168,6 +168,7 @@ void print_sb_imf(dataserver_sb_t* this);
 //following functions is implemented in file vfs_operations.c about file operations
 int vfs_read(dataserver_file_t*, char* buffer, size_t count, off_t offset);
 int vfs_write(dataserver_file_t*, char* buffer, size_t count, off_t offset);
+void vfs_remove(dataserver_file_t*);
 
 //following functions will be finished in file vfs_structure.c
 //this function should be called first, should be alloc_vfs

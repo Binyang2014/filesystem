@@ -64,6 +64,7 @@ static uint32_t find_first_free_block(super_block_t* super_block, int p_group_id
 			(block_num_in_group = find_first_zero_bit(bitmap, blocks_per_group)) == blocks_per_group)
 	{
 		p_group_id = (p_group_id + 1) % groups_count;
+		bitmap = __get_bitmap_from_gid(super_block, p_group_id);
 		count++;
 	}
 	if(count == groups_count)
@@ -160,9 +161,6 @@ uint32_t find_a_block_num(dataserver_sb_t* this, uint64_t chunk_num)
 		zfree(block_num_p);
 		return block_num;
 	}
-#ifdef VFS_RW_DEBUG
-	fprintf(stderr, "Can not find certain chunk_num in this hash table\n");
-#endif
 	return INF_UNSIGNED_INT;
 }
 
@@ -329,7 +327,7 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
 	chunk_num = this->f_chunks_arr[offset / BLOCK_SIZE];
-	printf("The block number is %d, and the chunk number is %llu\n", block_num, chunk_num);
+	printf("The block number is %d, and the chunk number is %llu\n", block_num, (unsigned long long)chunk_num);
 #endif
 
 	return nbytes;
@@ -438,6 +436,10 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 		pthread_mutex_unlock(&this->super_block->s_mutex);
 		return -1;
 	}
+
+	//change some information about super block
+	this->super_block->s_block->s_last_write_time = time(NULL);
+	this->super_block->s_block->s_free_blocks_count--;
 	pthread_mutex_unlock(&this->super_block->s_mutex);
 
 	//memcpy do not change super block, so we can put it out
@@ -450,7 +452,7 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 		printf("The bitmap already set!!\n");
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
-	printf("The block number is %d, and the chunk number is %llu\n", block_num, chunk_num);
+	printf("The block number is %d, and the chunk number is %llu\n", block_num, (unsigned long long)chunk_num);
 	//printf("the buffer is %s\n", buffer);
 	//printf("The block contains %s\n", alloced_block + offset_in_group);
 #endif
@@ -513,3 +515,16 @@ int vfs_write(dataserver_file_t* this, char* buffer, size_t count, off_t offset)
 	return nbytes_write;
 }
 
+void vfs_remove(dataserver_file_t* this)
+{
+	int i;
+	int blocks_count = this->arr_len;
+
+	pthread_mutex_lock(&this->super_block->s_mutex);
+	free_blocks(this->super_block, blocks_count, this->f_chunks_arr);
+	for(i = 0; i < blocks_count; i++)
+		__clear_block_bm(this->super_block->s_block, this->f_blocks_arr[i]);
+	this->super_block->s_block->s_last_write_time = time(NULL);
+	this->super_block->s_block->s_free_blocks_count += blocks_count;
+	pthread_mutex_unlock(&this->super_block->s_mutex);
+}
