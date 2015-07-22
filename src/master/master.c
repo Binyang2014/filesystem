@@ -26,19 +26,19 @@ static master_t *local_master;
  * finish appending file
  */
 /*---------------Master Service Start---------------*/
+static uint64_t static_get_global_id(master_t *master, uint64_t num) {
+	assert(num > 0);
+
+	pthread_mutex_lock(&(master->mutex_global_id));
+	uint64_t result = master->global_id;
+	master->global_id += num;
+	pthread_mutex_unlock(&(master->mutex_global_id));
+
+	return result;
+}
+
 static void *get_event_handler_param(event_handler_t *event_handler) {
 	return event_handler->event_buffer_list->head->value;
-}
-
-static machine_role_t *get_machine_role(const char *ip) {
-
-}
-
-static void machine_register(event_handler_t *event_handler) {
-	register_master_t *re = get_event_handler_param(event_handler);
-	machine_role_t *role = get_machine_role(re->ip);
-	local_master->rpc_server->op->send_result(role, re->source, re->tag, sizeof(machine_role_t));
-	zfree(role);
 }
 
 static void create_persistent_file(event_handler_t *event_handler) {
@@ -70,7 +70,12 @@ static void sub_master_heart_blood(event_handler_t *event_handler) {
 }
 
 static void sub_master_ask_global_id(event_handler_t *event_handler) {
-
+	sub_master_ask_global_id_t *ask = get_event_handler_param(event_handler);
+	master_global_id_ans_t *result = zmalloc(sizeof(*result));
+	result->start = static_get_global_id(local_master, ask->id_num);
+	result->end = result->start + ask->id_num;
+	local_master->rpc_server->op->send_result(result, ask->source, ask->tag, sizeof(*result));
+	zfree(result);
 }
 
 static void consistent_file_to_disk(event_handler_t *event_handler) {
@@ -87,9 +92,6 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	queue->op->syn_queue_pop(queue, &common_msg);
 	switch(common_msg.operation_code)
 	{
-		case MACHINE_REGISTER_TO_MASTER:
-			event_handler->handler = machine_register;
-			break;
 		case MASTER_CREATE_PERSISTENT_FILE:
 			event_handler->handler = create_persistent_file;
 			break;
@@ -101,7 +103,7 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 
 /*---------------Master Service End---------------*/
 
-static void get_net_topology() {
+static void master_get_net_topology(master_t *master, sds file_name) {
 
 }
 
