@@ -10,61 +10,6 @@
 #include <mpi.h>
 #include "../../global.h"
 
-enum machine_role{
-	MASTER,
-	SUB_MASTER,
-	DATA_MASTER,
-	DATA_SERVER
-};
-
-typedef struct {
-	uint16_t operation_code;
-	int source;
-	int tag;
-	char ip[16];
-}register_master_t;
-
-typedef struct {
-	enum machine_role role;
-	int data_master_rank;
-	int sub_master_rank;
-	int master_rank;
-}machine_role_t;
-
-typedef struct {
-	uint16_t operation_code;
-	int source;
-	int tag;
-	char name[256];
-}master_create_file_t;
-
-typedef struct {
-	int result_code;
-}master_create_file_ans_t;
-
-typedef struct {
-	uint16_t operation_code;
-	int source;
-	int tag;
-	uint64_t append_size;
-}master_append_file_t;
-
-typedef struct {
-	int result_code;
-}master_append_file_ans_t;
-
-typedef struct {
-	uint16_t operation_code;
-	int source;
-	int tag;
-	char name[256];
-}master_deleter_system_file_t;
-
-typedef struct {
-	int result_code;
-}master_deleter_system_file_ans_t;
-
-
 #define MAX_COUNT_CID_R ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in read message
 #define MAX_COUNT_CID_W ((MAX_CMD_MSG_LEN - 16) / 8) //max length of chunks id array in write message
 #define MAX_COUNT_DATA  ((MAX_DATA_MSG_LEN - 16) / 8) //max count of data in one message package
@@ -93,6 +38,7 @@ typedef struct {
 #define CONSISTENT_FILE_TO_DISK 1006
 #define APPEND_FILE 1007
 
+#define MACHINE_ROLE_GET_ROLE 2001
 
 #define CREATE_FILE_CODE 3001
 #define READ_FILE_CODE 3002
@@ -101,14 +47,121 @@ typedef struct {
 #define C_D_WRITE_BLOCK_CODE 3005
 #define C_D_READ_BLOCK_CODE 3006
 
-/**
- * master answer code
- */
-#define CREATE_FILE_SUCCESS 600
-#define CREATE_FILE_FAIL 601
-#define LOCATION_MAX_BLOCK 170
 
 #define MSG_COMM_TO_CMD(p_common_msg) ((char*)(p_common_msg) + COMMON_MSG_HEAD)
+
+enum machine_role{
+	MASTER,
+	SUB_MASTER,
+	DATA_MASTER,
+	DATA_SERVER
+};
+
+
+/*-------------------------ROLE ALLOCATOR----------------------*/
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	char ip[16];
+}machine_register_role_t;
+
+typedef struct {
+	int waiting_struction;
+}machine_wait_role_t;
+
+typedef struct {
+	char ip[16];
+	enum machine_role role;
+	int data_master_rank;
+	int sub_master_rank;
+	int master_rank;
+}machine_role_t;
+
+/*-------------------MASTER MESSAGE StRUCTURE------------------*/
+#define FILE_NAME_MAX_LENGTH 255
+
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	char name[FILE_NAME_MAX_LENGTH];
+}master_create_file_t;
+
+typedef struct {
+	int result_code;
+}master_create_file_ans_t;
+
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	uint64_t append_size;
+}master_append_file_t;
+
+typedef struct {
+	int result_code;
+}master_append_file_ans_t;
+
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	char name[FILE_NAME_MAX_LENGTH];
+}master_deleter_system_file_t;
+
+typedef struct {
+	int result_code;
+}master_deleter_system_file_ans_t;
+
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	uint64_t id_num;
+}sub_master_ask_global_id_t;
+
+
+typedef struct {
+	uint64_t start;
+	uint64_t end;
+}master_global_id_ans_t;
+
+
+/*-------------------SUB_MASTER MESSAGE STRCTURE--------------------*/
+
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	char file_name[255];
+	uint64_t append_size;
+}s_m_allocate_tmp_space_t;
+
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	char file_name[FILE_NAME_MAX_LENGTH];
+}s_m_create_temporary_file_t;
+
+typedef struct {
+	int result_code;
+}s_m_create_temporary_file_ans_t;
+
+typedef struct {
+	uint16_t operation_code;
+	int source;
+	int tag;
+	char file_name[FILE_NAME_MAX_LENGTH];
+}s_m_delete_temporary_file_t;
+
+typedef struct {
+	int result_code;
+}s_m_delete_temporary_file_ans_t;
+
+/*-------------------SUB_MASTER MESSAGE STRCTURE END-----------------*/
+
 
 /**
  * It's a common message used by message buffer
@@ -146,27 +199,27 @@ typedef struct block_location{
 	unsigned long block_seq;
 }block_location;
 
-/**
- * master answer of client create file
- */
-typedef struct ans_client_create_file{
-	unsigned short operation_code;
-	unsigned char is_tail;
-	unsigned int block_num;
-	unsigned long generated_id;
-	block_location block_global_num[LOCATION_MAX_BLOCK];
-}ans_client_create_file;
-
-/**
- * master answer of client create file
- */
-typedef struct ans_client_read_file{
-	unsigned short operation_code;
-	unsigned char is_tail;
-	unsigned int block_num;
-	unsigned long generated_id;
-	block_location block_global_num[LOCATION_MAX_BLOCK];
-}ans_client_read_file;
+///**
+// * master answer of client create file
+// */
+//typedef struct ans_client_create_file{
+//	unsigned short operation_code;
+//	unsigned char is_tail;
+//	unsigned int block_num;
+//	unsigned long generated_id;
+//	block_location block_global_num[LOCATION_MAX_BLOCK];
+//}ans_client_create_file;
+//
+///**
+// * master answer of client create file
+// */
+//typedef struct ans_client_read_file{
+//	unsigned short operation_code;
+//	unsigned char is_tail;
+//	unsigned int block_num;
+//	unsigned long generated_id;
+//	block_location block_global_num[LOCATION_MAX_BLOCK];
+//}ans_client_read_file;
 
 /*
  * data server send heart blood to master
@@ -311,22 +364,22 @@ typedef struct read_c_to_d msg_r_ctod_t;
 typedef struct write_c_to_d msg_w_ctod_t;
 typedef struct acc_d_and_c msg_acc_candd_t;
 
-//following functions are used for debug
-void printf_msg_status(mpi_status_t* status);
+////following functions are used for debug
+//void printf_msg_status(mpi_status_t* status);
 
 //wrap basic MPI function here
-void d_mpi_cmd_recv(void* msg, mpi_status_t* status_t);
-void d_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
-void d_mpi_data_recv(void* msg, int source, int tag, mpi_status_t* status_t);
-void d_mpi_data_send(void* msg, int source, int tag);
-void d_mpi_cmd_send(void* msg, int source, int tag);
-
-void m_mpi_cmd_send(void *msg, int source, int tag);
-void m_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
-
-void c_mpi_cmd_send(void *msg, mpi_status_t* status_t);
-void c_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
-void c_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
+//void d_mpi_cmd_recv(void* msg, mpi_status_t* status_t);
+//void d_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
+//void d_mpi_data_recv(void* msg, int source, int tag, mpi_status_t* status_t);
+//void d_mpi_data_send(void* msg, int source, int tag);
+//void d_mpi_cmd_send(void* msg, int source, int tag);
+//
+//void m_mpi_cmd_send(void *msg, int source, int tag);
+//void m_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
+//
+//void c_mpi_cmd_send(void *msg, mpi_status_t* status_t);
+//void c_mpi_cmd_recv(void *msg, mpi_status_t* status_t);
+//void c_mpi_acc_recv(void* msg, int source, int tag, mpi_status_t* status_t);
 
 void common_msg_dup(void *dest, void *source);
 
