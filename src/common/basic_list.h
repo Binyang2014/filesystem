@@ -49,8 +49,8 @@ struct node
 
 struct list_iter
 {
-    struct node *next;
-    int direction;
+	struct node *next;
+	int direction;
 };
 
 struct list_operations
@@ -78,13 +78,13 @@ struct list_operations
 
 struct list
 {
-    struct node *head;
-    struct node *tail;
-    struct list_operations* list_ops;
-    void *(*dup)(void *ptr);
-    void (*free)(void *ptr);
-    int (*match)(void *ptr, void *key);
-    unsigned long len;
+	struct node *head;
+	struct node *tail;
+	struct list_operations* list_ops;
+	void *(*dup)(void *ptr);
+	void (*free)(void *ptr);
+	int (*match)(void *ptr, void *key);
+	unsigned long len;
 };
 
 /* Typedef */

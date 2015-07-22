@@ -44,6 +44,7 @@ static void init_file_op(file_op_t* f_op)
 {
 	f_op->vfs_read = vfs_read;
 	f_op->vfs_write = vfs_write;
+	f_op->vfs_remove = vfs_remove;
 }
 
 //follows are some functions that will be used by hash table

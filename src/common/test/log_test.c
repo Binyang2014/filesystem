@@ -20,7 +20,7 @@ int main()
 	pthread_t tid;
 
 	printf("The dir is %s", s);
-	log_init(s, LOG_DEBUG);
+	log_init("", LOG_DEBUG);
 
 	pthread_create(&tid, NULL, write_log, NULL);
 
