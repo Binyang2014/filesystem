@@ -105,7 +105,7 @@ typedef void* (*resolve_handler_t)(event_handler_t*, void* args);
 /*===============================thread pool=======================================*/
 
 //there are promote, deactive, reactive and start functions
-thread_pool_t* alloc_thread_pool(int threads_count, void*, resolve_handler_t);
-void distroy_thread_pool(thread_pool_t *);
+thread_pool_t* alloc_thread_pool(int threads_count, void* queue, resolve_handler_t resolve_handler);
+void destroy_thread_pool(thread_pool_t *);
 
 #endif

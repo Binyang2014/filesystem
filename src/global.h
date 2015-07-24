@@ -20,7 +20,7 @@
 
 //following is about message length, and only fixed lenght can be defined here
 #define MAX_CMD_MSG_LEN 4096
-#define MAX_DATA_CONTENT_LEN 1<<22
+#define MAX_DATA_CONTENT_LEN (1<<22)
 
 //data server configure about buffer size, just a test, need to be redefined
 #define D_FILE_BSIZE	(1<<8)
@@ -32,6 +32,8 @@
 
 //use for debug
 #define DEBUG 1
+#define RPC_SERVER_DEBUG 1
+//#define MPI_COMMUNICATION_DEBUG 1
 //#define VFS_RW_DEBUG 1
 #define DATASERVER_COMM_DEBUG 1
 #define THREAD_POOL_DEBUG 1

@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../log.h"
+#include "../../structure_tool/log.h"
 #include "../mpi_communication.h"
 
 int main(int argc, char* argv[])

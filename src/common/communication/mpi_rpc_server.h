@@ -12,7 +12,7 @@
 #include <mpi.h>
 #include "mpi_rpc_structure.h"
 #include "mpi_communication.h"
-#include "../threadpool.h"
+#include "../structure_tool/threadpool.h"
 #include "../../global.h"
 
 struct mpi_rpc_server {

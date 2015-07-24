@@ -11,8 +11,8 @@
 
 #ifndef SRC_COMMON_COMMUNICATION_MESSAGE_H_
 #define SRC_COMMON_COMMUNICATION_MESSAGE_H_
-#include <mpi.h>
 #include "../../global.h"
+#include <stdint.h>
 
 //length of some type of messages
 #define COMMON_MSG_HEAD 4
@@ -88,9 +88,7 @@ typedef struct {
 	int master_rank;
 }machine_role_t;
 
-/**
- * It's a common message used by message buffer
- */
+/*------------------------COMMON MESSAGE-----------------------*/
 typedef struct{
 	int source;
 	uint16_t operation_code;
@@ -200,7 +198,7 @@ typedef struct client_create_file{
 	uint16_t transfer_version;
 	uint32_t reserved;
 	uint64_t file_size;
-	int8_t file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_create_file;
 
 typedef struct client_read_file{
@@ -208,7 +206,7 @@ typedef struct client_read_file{
 	uint16_t transfer_version;
 	uint32_t reserved;
 	uint64_t file_size;
-	int8_t file_name[CLIENT_MASTER_MESSAGE_CONTENT_SIZE];
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_read_file;
 
 typedef struct answer_confirm{
@@ -279,7 +277,7 @@ typedef struct{
 	uint32_t read_len;//the length will read, just send to one data server
 	uint32_t chunks_count;//the numbers of chunks will be read
 
-	uint64_t long chunks_id_arr[MAX_COUNT_CID_R];
+	uint64_t chunks_id_arr[MAX_COUNT_CID_R];
 }read_c_to_d_t;
 
 //return accept message when you are ready to receive data message
@@ -302,7 +300,7 @@ typedef struct{
 	int8_t tail;//if tail
 	int8_t reserved[1];
 
-	uint64_t long data[MAX_COUNT_DATA];
+	uint64_t data[MAX_COUNT_DATA];
 }msg_data_t;
 
 //origin write operation, do not support insert
@@ -316,7 +314,7 @@ typedef struct{
 	uint32_t write_len;
 	uint32_t chunks_count;
 	//64 bits aligned
-	uint64_t long chunks_id_arr[MAX_COUNT_CID_W];
+	uint64_t chunks_id_arr[MAX_COUNT_CID_W];
 }write_c_to_d_t;
 
 //you can use this structure to insert text to a file
@@ -339,6 +337,16 @@ typedef struct block{
 
 /*-------------------DATA_SERVER MESSAGE STRUCTURE END----------------*/
 
+/*-------------------COMMON MESSAGE FUNCTIONS-------------------------*/
 void common_msg_dup(void *dest, void *source);
+void recv_common_msg(common_msg_t* msg, int source, int tag);
+int get_source(common_msg_t* msg);
+int get_transfer_version(common_msg_t* msg);
+uint16_t get_operation_code(common_msg_t* msg);
+
+/*------------------------MESSAGE FUNCTIONS---------------------------*/
+//You can choose MPI or sockets to send message
+void send_cmd_msg(void* msg, int dst, int tag);
+void send_data_msg(void* msg, int dst, int tag);
 
 #endif /* SRC_COMMON_COMMUNICATION_MESSAGE_H_ */
