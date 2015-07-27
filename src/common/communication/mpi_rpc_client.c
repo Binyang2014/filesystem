@@ -25,10 +25,10 @@ static void* execute(mpi_rpc_client_t *client, void *message, int message_size, 
 }
 
 /*---------------------API Implementation----------------------*/
-mpi_rpc_client_t *create_mpi_rpc_client(int rank, int target) {
+mpi_rpc_client_t *create_mpi_rpc_client(int client_id, int target) {
 	mpi_rpc_client_t *this = zmalloc(sizeof(mpi_rpc_client_t));
 	this->op = zmalloc(sizeof(mpi_rpc_client_op_t));
-	this->rank = rank;
+	this->client_id = client_id;
 	this->target = target;
 
 	this->op->execute = execute;

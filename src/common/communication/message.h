@@ -5,8 +5,11 @@
  *      Author: ron
  *      Modified: Binyang
  *
- * Because we do not know how compiler with orgnize message structure so we must be sure that
- * all message structure is aligned in 64 bits.
+ * Because we do not know how compiler with orgnize message structure so we 
+ * must be sure that all message structure is aligned in 64 bits. In CMD type
+ * messges, we must offer tag to idetify witch client send it. We use tag to
+ * identify different clients and transfer number to identify make true client
+ * and server use same protocal, and this field is not used yet.
  */
 
 #ifndef SRC_COMMON_COMMUNICATION_MESSAGE_H_
@@ -32,6 +35,11 @@
 #define CLIENT_INSTRUCTION_ANS_MESSAGE_TAG 401
 
 //operation code
+//ACC CODE
+#define ACCEPT_REPLY 0007
+#define ACC_OK 0001
+#define ACC_FAIL 0002
+
 //Mater should deal with
 #define MACHINE_REGISTER_TO_MASTER 1001
 #define MASTER_CREATE_PERSISTENT_FILE 1002
@@ -59,13 +67,21 @@
 
 #define MSG_COMM_TO_CMD(p_common_msg) ((int8_t*)(p_common_msg) + COMMON_MSG_HEAD)
 
+//reply message type and it not complete
+typedef enum{
+	ACC,
+	DATA,
+	ANS,
+	CMD,
+	HEAD
+}reply_msg_type_t;
+
 enum machine_role{
 	MASTER,
 	SUB_MASTER,
 	DATA_MASTER,
 	DATA_SERVER
 };
-
 
 /*-------------------------ROLE ALLOCATOR----------------------*/
 typedef struct {
@@ -95,6 +111,19 @@ typedef struct{
 	uint16_t transfer_version;
 	int8_t rest[MAX_CMD_MSG_LEN - COMMON_MSG_HEAD];
 }common_msg_t;
+
+/*----------------------ACCEPT AESSAGE-------------------------*/
+typedef struct{
+	uint32_t op_status;
+	uint32_t reserved;
+}acc_msg_t;
+
+/*-----------------------MESSAGE HEAD--------------------------*/
+typedef struct{
+	uint32_t len;
+	uint32_t op_status;//status of last message
+	uint64_t options;
+}head_msg_t;
 
 /*-------------------MASTER MESSAGE StRUCTURE------------------*/
 #define FILE_NAME_MAX_LENGTH 255
@@ -341,12 +370,18 @@ typedef struct block{
 void common_msg_dup(void *dest, void *source);
 void recv_common_msg(common_msg_t* msg, int source, int tag);
 int get_source(common_msg_t* msg);
-int get_transfer_version(common_msg_t* msg);
+uint16_t get_transfer_version(common_msg_t* msg);
 uint16_t get_operation_code(common_msg_t* msg);
 
 /*------------------------MESSAGE FUNCTIONS---------------------------*/
-//You can choose MPI or sockets to send message
+//You can choose MPI or sockets from send message
 void send_cmd_msg(void* msg, int dst, int tag);
 void send_data_msg(void* msg, int dst, int tag);
+void send_msg(void* msg, int dst, int tag, int len);
+void send_acc_msg(void* msg, int dst, int tag);
+void send_head_msg(void* msg, int dst, int tag);
+
+void recv_acc_msg(void* msg, int source, int tag);
+void recv_data_msg(void* msg, int source, int tag);
 
 #endif /* SRC_COMMON_COMMUNICATION_MESSAGE_H_ */
