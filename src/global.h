@@ -8,7 +8,7 @@
 //about block information
 #define MAX_ALLOC_SIZE (1<<30)
 #define CHUNK_SIZE  0
-#define BLOCK_SIZE (1<<12)
+#define BLOCK_SIZE (1<<20)
 #define N_LOG_BLOCKS_PER_G 4
 
 //some number maybe useful

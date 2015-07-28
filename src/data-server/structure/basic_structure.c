@@ -5,9 +5,9 @@
  * to complete functions
  */
 #include "basic_structure.h"
-#include "../../common/bitmap.h"
-#include "../../common/log.h"
-#include "../../common/zmalloc.h"
+#include "../../common/structure_tool/bitmap.h"
+#include "../../common/structure_tool/log.h"
+#include "../../common/structure_tool/zmalloc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

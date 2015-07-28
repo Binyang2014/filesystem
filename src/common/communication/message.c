@@ -15,6 +15,7 @@ void common_msg_dup(void *dest, void *source){
 	memcpy(dest, source, sizeof(common_msg_t));
 }
 
+//if source == -1 receive any source if tag == -1 receive any tag
 void recv_common_msg(common_msg_t* msg, int source, int tag)
 {
 	mpi_status_t status;
@@ -44,14 +45,17 @@ void send_cmd_msg(void* msg, int dst, int tag)
 	//else use other tools such as sockets
 }
 
-void send_data_msg(void* msg, int dst, int tag)
+void send_data_msg(void* msg, int dst, int tag, uint32_t len)
 {
 	//maybe need compress here
 	mpi_send(msg, dst, tag, MAX_DATA_MSG_LEN);
 }
 
-void send_acc_msg(void* msg, int dst, int tag)
+void send_acc_msg(void* msg, int dst, int tag, int status)
 {
+	acc_msg_t* acc_msg = (acc_msg_t* )acc_msg;
+	if(status != ACC_IGNORE)
+		acc_msg->op_status = status;
 	mpi_send(msg, dst, tag, sizeof(acc_msg_t));
 	//sockets functions
 }
@@ -68,7 +72,7 @@ void send_msg(void* msg, int dst, int tag, int len)
 	//else can use sockets
 }
 
-void recv_data_msg(void* msg, int source, int tag)
+void recv_data_msg(void* msg, int source, int tag, uint32_t len)
 {
 	//only mpi function now
 	mpi_status_t status;
@@ -79,4 +83,17 @@ void recv_acc_msg(void* msg, int source, int tag)
 {
 	mpi_status_t status;
 	mpi_recv(msg, source, tag, sizeof(acc_msg_t), &status);
+}
+
+void recv_head_msg(void* msg, int source, int tag)
+{
+	mpi_status_t status;
+	mpi_recv(msg, source, tag, sizeof(head_msg_t), &status);
+}
+
+void recv_msg(void* msg, int source, int tag, int len)
+{
+	//only mpi function here
+	mpi_status_t status;
+	mpi_recv(msg, source, tag, len, &status);
 }

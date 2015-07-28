@@ -13,11 +13,11 @@
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
-#include "../../common/sds.h"
-#include "../../common/bitmap.h"
-#include "../../common/map.h"
-#include "../../common/log.h"
-#include "../../common/zmalloc.h"
+#include "../../common/structure_tool/sds.h"
+#include "../../common/structure_tool/bitmap.h"
+#include "../../common/structure_tool/map.h"
+#include "../../common/structure_tool/log.h"
+#include "../../common/structure_tool/zmalloc.h"
 
 //------------------------block operations---------------------------------------------------
 //following functions maybe used by read or write function

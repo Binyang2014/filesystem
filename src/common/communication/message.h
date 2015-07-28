@@ -17,6 +17,10 @@
 #include "../../global.h"
 #include <stdint.h>
 
+//some define about message source(ip address) and message tag(port number)
+#define ANY_SOURCE -1
+#define ANY_TAG -1
+
 //length of some type of messages
 #define COMMON_MSG_HEAD 4
 #define COMMON_MSG_LEN (MAX_CMD_MSG_LEN + COMMON_MSG_HEAD)
@@ -39,6 +43,7 @@
 #define ACCEPT_REPLY 0007
 #define ACC_OK 0001
 #define ACC_FAIL 0002
+#define ACC_IGNORE 1111
 
 //Mater should deal with
 #define MACHINE_REGISTER_TO_MASTER 1001
@@ -325,9 +330,8 @@ typedef struct{
 	uint32_t offset;//form the beginning chunks
 
 	uint32_t seqno;//number of this read
-	uint16_t transfer_version;
 	int8_t tail;//if tail
-	int8_t reserved[1];
+	int8_t reserved[3];
 
 	uint64_t data[MAX_COUNT_DATA];
 }msg_data_t;
@@ -376,12 +380,16 @@ uint16_t get_operation_code(common_msg_t* msg);
 /*------------------------MESSAGE FUNCTIONS---------------------------*/
 //You can choose MPI or sockets from send message
 void send_cmd_msg(void* msg, int dst, int tag);
-void send_data_msg(void* msg, int dst, int tag);
+//this function should be modified later
+void send_data_msg(void* msg, int dst, int tag, uint32_t len);
 void send_msg(void* msg, int dst, int tag, int len);
-void send_acc_msg(void* msg, int dst, int tag);
+void send_acc_msg(void* msg, int dst, int tag, int status);
 void send_head_msg(void* msg, int dst, int tag);
 
 void recv_acc_msg(void* msg, int source, int tag);
-void recv_data_msg(void* msg, int source, int tag);
+//this function should be modified later
+void recv_data_msg(void* msg, int source, int tag, uint32_t len);
+void recv_head_msg(void* msg, int source, int tag);
+void recv_msg(void* msg, int source, int tag, int len);
 
 #endif /* SRC_COMMON_COMMUNICATION_MESSAGE_H_ */

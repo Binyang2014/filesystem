@@ -2,7 +2,7 @@ TOPDIR = ../../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = message.o mpi_communication.o mpi_rpc_client.o mpi_rpc_server.o
+object = message.o mpi_communication.o rpc_client.o rpc_server.o
 target = $(TOPDIR)/lib/libcommon.a
 
 $(target): $(object)

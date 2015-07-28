@@ -3,8 +3,8 @@
  *
  */
 #include "../vfs_structure.h"
-#include "../../../common/zmalloc.h"
-#include "../../../common/log.h"
+#include "../../../common/structure_tool/zmalloc.h"
+#include "../../../common/structure_tool/log.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,8 +13,8 @@
 
 static uint64_t chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
 		0x1243576, 0xff32};
-static char write_buff[4200] = {0};
-static char read_buff[4200] = {0};
+static char write_buff[(2<<20) + 4200] = {0};
+static char read_buff[(2<<20) + 4200] = {0};
 
 void write_file(dataserver_file_t* d_sb, const char* file_path, off_t file_len);
 void read_and_write_to_disk(dataserver_file_t* d_sb, const char* copy_path, off_t file_len);
