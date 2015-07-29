@@ -64,5 +64,7 @@ int main()
 	list->list_ops->list_release_iterator(iter);
 	return_buffer_list(dataserver, list);
 	printf("The node queue size is %d\n", dataserver->buff_node_queue->current_size);
+	free_data_server_buff(dataserver);
+	free(dataserver);
 	return 0;
 }

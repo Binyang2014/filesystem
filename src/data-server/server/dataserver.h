@@ -9,9 +9,9 @@
 
 #include <pthread.h>
 #include "../structure/vfs_structure.h"
-#include "../../tool/message.h"
-#include "../../tool/threadpool.h"
-#include "../../structure/basic_queue.h"
+#include "../../common/communication/message.h"
+#include "../../common/structure_tool/threadpool.h"
+#include "../../common/structure_tool/basic_queue.h"
 
 #define F_ARR_SIZE (1 << 12)
 #define BUFF_NODE_SIZE (1 << 8)
@@ -54,7 +54,7 @@ struct data_server
 	//event handler
 	event_handler_set_t* event_handler;
 	//used to provide synchronized visit to a queue
-	queue_syn_t* queue_syn;
+	syn_queue_t* queue_syn;
 };
 
 typedef struct data_server data_server_t;

@@ -5,13 +5,14 @@
  */
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "dataserver_buff.h"
-#include "../../tool/errinfo.h"
-#include "../../structure/bitmap.h"
-#include "../../structure/basic_list.h"
-#include "../../structure/basic_queue.h"
+#include "../../common/structure_tool/log.h"
+#include "../../common/structure_tool/bitmap.h"
+#include "../../common/structure_tool/basic_list.h"
+#include "../../common/structure_tool/basic_queue.h"
+#include "../../common/structure_tool/zmalloc.h"
 
-//need to be init, I will do it later
 static list_node_t* list_node_arr;
 static msg_data_t* msg_data_arr;
 static common_msg_t* common_msg_arr;
@@ -167,7 +168,7 @@ void return_f_arr_buff(data_server_t* data_server, vfs_hashtable_t* buff)
 	num = buff->hash_table_size;
 	//Calculate start position
 	pos = ((unsigned long)(buff->blocks_arr) - (unsigned long)(summary_table.blocks_arr)) /
-			sizeof(unsigned int);
+			sizeof(uint32_t);
 
 #ifdef DATASERVER_BUFF_DEBUG
 	printf("The release position is %ld\n", pos);
@@ -213,30 +214,30 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	queue_set_dup_method(data_server->reply_message_buff, reply_msg_dup);
 	queue_set_dup_method(data_server->f_arr_buff, f_arr_dup);
 
-	if((list_node_arr = (list_node_t* )malloc(sizeof(list_node_t) * init_length *
+	if((list_node_arr = (list_node_t* )zmalloc(sizeof(list_node_t) * init_length *
 			BUFF_NODE_SIZE)) == NULL)
 		err_sys("error when allocate buffer");
-	if((msg_data_arr = (msg_data_t* )malloc(sizeof(msg_data_t) * init_length)) == NULL)
+	if((msg_data_arr = (msg_data_t* )zmalloc(sizeof(msg_data_t) * init_length)) == NULL)
 		err_sys("error when allocate buffer");
-	if((common_msg_arr = (common_msg_t* )malloc(sizeof(common_msg_t) * init_length)) == NULL)
+	if((common_msg_arr = (common_msg_t* )zmalloc(sizeof(common_msg_t) * init_length)) == NULL)
 		err_sys("error when allocate buffer");
-	if((file_arr = (dataserver_file_t* )malloc(sizeof(dataserver_file_t) * init_length))
+	if((file_arr = (dataserver_file_t* )zmalloc(sizeof(dataserver_file_t) * init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((reply_message_arr = (void* )malloc(MAX_CMD_MSG_LEN * init_length)) == NULL)
+	if((reply_message_arr = (void* )zmalloc(MAX_CMD_MSG_LEN * init_length)) == NULL)
 		err_sys("error when allocate buffer");
-	if((f_map_arr = (vfs_hashtable_t* )malloc(sizeof(vfs_hashtable_t) * F_ARR_SIZE)) == NULL)
+	if((f_map_arr = (vfs_hashtable_t* )zmalloc(sizeof(vfs_hashtable_t) * F_ARR_SIZE)) == NULL)
 		err_sys("error when allocate buffer");
 
 	//allocate for data server array map structure
 	summary_table.hash_table_size = F_ARR_SIZE;
-	if((summary_table.blocks_arr = (unsigned int* )malloc(sizeof(unsigned int)	* F_ARR_SIZE))
+	if((summary_table.blocks_arr = (uint32_t* )zmalloc(sizeof(uint32_t)	* F_ARR_SIZE))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((summary_table.chunks_arr = (unsigned long long* )malloc(sizeof(unsigned long long)*
+	if((summary_table.chunks_arr = (uint64_t* )zmalloc(sizeof(uint64_t)*
 			F_ARR_SIZE)) == NULL)
 		err_sys("error when allocate buffer");
-	if((data_server->f_arr_bitmap = (unsigned long*)malloc(sizeof(unsigned long) *
+	if((data_server->f_arr_bitmap = (unsigned long*)zmalloc(sizeof(unsigned long) *
 			F_ARR_SIZE / BITS_PER_LONG)) == NULL)
 		err_sys("error when allocate buffer");
 
@@ -272,6 +273,29 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 		data_server->buff_node_queue->basic_queue_op->push(data_server->buff_node_queue,
 				&ptr_temp);
 	}
+}
+
+void free_data_server_buff(data_server_t *data_server)
+{
+	//free map structure
+	zfree(data_server->f_arr_bitmap);
+	zfree(summary_table.blocks_arr);
+	zfree(summary_table.chunks_arr);
+
+	zfree(f_map_arr);
+	zfree(reply_message_arr);
+	zfree(file_arr);
+	zfree(common_msg_arr);
+	zfree(msg_data_arr);
+	zfree(list_node_arr);
+
+	//free message queue
+	destroy_basic_queue(data_server->f_arr_buff);
+	destroy_basic_queue(data_server->reply_message_buff);
+	destroy_basic_queue(data_server->file_buff);
+	destroy_basic_queue(data_server->common_msg_buff);
+	destroy_basic_queue(data_server->m_data_buff);
+	destroy_basic_queue(data_server->buff_node_queue);
 }
 
 void return_buffer_list(data_server_t* data_server, list_t* list)

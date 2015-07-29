@@ -24,6 +24,7 @@ void return_file_info_buff(data_server_t*, void*);
 void return_f_arr_buff(data_server_t*, vfs_hashtable_t*);
 
 void set_data_server_buff(data_server_t*, int);
+void free_data_server_buff(data_server_t *data_server);
 void return_buffer_list(data_server_t*,  list_t*);
 #endif
 //void
