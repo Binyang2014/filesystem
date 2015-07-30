@@ -17,7 +17,8 @@
 /*--------------------Private Declaration---------------------*/
 static void server_start(rpc_server_t *server);
 static void server_stop(rpc_server_t *server);
-static int send_result(void *param, int dst, int tag, int len, reply_msg_type_t type);
+static int send_result(void *param, int dst, int tag, int len, msg_type_t type);
+static int recv_reply(void* param, int source, int tag, msg_type_t type);
 
 /*--------------------Global Declaration----------------------*/
 rpc_server_t *create_rpc_server(int thread_num, int rank,
@@ -30,15 +31,14 @@ static void server_start(rpc_server_t *server)
 	server->thread_pool->tp_ops->start(server->thread_pool);
 
 #if defined(RPC_SERVER_DEBUG)
-	puts("RPC_SERVER && THREAD POOL START");
+	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START");
 #endif
 
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel) {
-		//TODO if multi_client send request to this, Is there any parallel problem ?
 		recv_common_msg(server->recv_buff, ANY_SOURCE, ANY_TAG);
 #if defined(RPC_SERVER_DEBUG)
-		puts("RPC_SERVER PUT MESSAGE");
+		log_write(LOG_DEBUG, "RPC_SERVER PUT MESSAGE");
 #endif
 		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
 	}
@@ -48,8 +48,9 @@ static void server_stop(rpc_server_t *server) {
 	server->server_thread_cancel = 1;
 }
 
+//only data message and ans message need len
 static int send_result(void *param, int dst, int tag, int len, 
-		reply_msg_type_t type)
+		msg_type_t type)
 {
 	head_msg_t head_msg;
 
@@ -81,6 +82,22 @@ static int send_result(void *param, int dst, int tag, int len,
 	return 0;
 }
 
+int recv_reply(void* param, int source, int tag, msg_type_t type)
+{
+	switch(type)
+	{
+		case ACC:
+			recv_acc_msg(param, source, tag);
+			break;
+		case DATA:
+			recv_data_msg(param, source, tag, IGNORE_LENGTH);
+			break;
+		default:
+			log_write(LOG_ERR, "wrong type of message, check your code");
+			return -1;
+	}
+	return 0;
+}
 /*--------------------API Implementation--------------------*/
 rpc_server_t *create_rpc_server(int thread_num, int server_id,
 		resolve_handler_t resolve_handler)
@@ -96,6 +113,7 @@ rpc_server_t *create_rpc_server(int thread_num, int server_id,
 	this->op->server_start = server_start;
 	this->op->server_stop = server_stop;
 	this->op->send_result = send_result;
+	this->op->recv_reply = recv_reply;
 
 	this->recv_buff = zmalloc(sizeof(common_msg_t));
 	return this;

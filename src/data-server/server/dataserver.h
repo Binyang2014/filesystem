@@ -10,6 +10,7 @@
 #include <pthread.h>
 #include "../structure/vfs_structure.h"
 #include "../../common/communication/message.h"
+#include "../../common/communication/rpc_server.h"
 #include "../../common/structure_tool/threadpool.h"
 #include "../../common/structure_tool/basic_queue.h"
 
@@ -55,6 +56,7 @@ struct data_server
 	event_handler_set_t* event_handler;
 	//used to provide synchronized visit to a queue
 	syn_queue_t* queue_syn;
+	rpc_server_t* rpc_server;
 };
 
 typedef struct data_server data_server_t;

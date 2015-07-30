@@ -20,6 +20,7 @@
 //some define about message source(ip address) and message tag(port number)
 #define ANY_SOURCE -1
 #define ANY_TAG -1
+#define IGNORE_LENGTH -1
 
 //length of some type of messages
 #define COMMON_MSG_HEAD 4
@@ -43,6 +44,9 @@
 #define ACCEPT_REPLY 0007
 #define ACC_OK 0001
 #define ACC_FAIL 0002
+#define READ_FAIL 0003
+#define WRITE_FAIL 0004
+#define INIT_WRITE_FAIL 0005
 #define ACC_IGNORE 1111
 
 //Mater should deal with
@@ -79,7 +83,7 @@ typedef enum{
 	ANS,
 	CMD,
 	HEAD
-}reply_msg_type_t;
+}msg_type_t;
 
 enum machine_role{
 	MASTER,
@@ -313,16 +317,6 @@ typedef struct{
 
 	uint64_t chunks_id_arr[MAX_COUNT_CID_R];
 }read_c_to_d_t;
-
-//return accept message when you are ready to receive data message
-//status is 0 if excuse successfully
-typedef struct {
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint32_t status;
-
-	uint32_t reserved;
-}acc_d_and_c_t;
 
 //read and write use this message
 typedef struct{

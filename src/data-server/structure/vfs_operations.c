@@ -317,7 +317,7 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 
 	if(! __bm_block_set(this->super_block->s_block, block_num))
 	{
-		fprintf(stderr, "You want to read a block that have no data in it\n");
+		log_write(LOG_ERR, "You should not see this information, vfs wrong!");
 		return -1;
 	}
 	memcpy(buffer, find_a_block(this->super_block, block_num) + offset_in_group, nbytes);

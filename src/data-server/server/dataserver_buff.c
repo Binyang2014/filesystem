@@ -95,7 +95,7 @@ void* get_common_msg_buff(data_server_t* data_server)
 }
 
 /*
- * get the number of buffers, because this is a array maybe I need
+ * get a number of buffers, because this is a array maybe I need
  * to reorganize it. How to get a series of room in memory. Maybe
  * use bitmap?
  */
@@ -214,6 +214,7 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	queue_set_dup_method(data_server->reply_message_buff, reply_msg_dup);
 	queue_set_dup_method(data_server->f_arr_buff, f_arr_dup);
 
+	//allocate buffers
 	if((list_node_arr = (list_node_t* )zmalloc(sizeof(list_node_t) * init_length *
 			BUFF_NODE_SIZE)) == NULL)
 		err_sys("error when allocate buffer");

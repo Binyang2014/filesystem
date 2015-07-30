@@ -26,7 +26,8 @@ struct rpc_server_op {
 	void (*server_start)(struct rpc_server *server);
 	void (*server_stop)(struct rpc_server *server);
 	int (*send_result)(void *param, int source, int tag, int len,
-			reply_msg_type_t type);
+			msg_type_t type);
+	int (*recv_reply)(void* param, int source, int tag, msg_type_t type);
 };
 
 typedef struct rpc_server rpc_server_t;

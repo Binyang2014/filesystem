@@ -48,7 +48,8 @@ void send_cmd_msg(void* msg, int dst, int tag)
 void send_data_msg(void* msg, int dst, int tag, uint32_t len)
 {
 	//maybe need compress here
-	mpi_send(msg, dst, tag, MAX_DATA_MSG_LEN);
+	if(len == IGNORE_LENGTH)
+		mpi_send(msg, dst, tag, MAX_DATA_MSG_LEN);
 }
 
 void send_acc_msg(void* msg, int dst, int tag, int status)
@@ -76,7 +77,8 @@ void recv_data_msg(void* msg, int source, int tag, uint32_t len)
 {
 	//only mpi function now
 	mpi_status_t status;
-	mpi_recv(msg, source, tag, MAX_CMD_MSG_LEN, &status);
+	if(len == IGNORE_LENGTH)
+		mpi_recv(msg, source, tag, MAX_CMD_MSG_LEN, &status);
 }
 
 void recv_acc_msg(void* msg, int source, int tag)
