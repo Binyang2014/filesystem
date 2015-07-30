@@ -11,13 +11,17 @@
 #include "../structure/vfs_structure.h"
 #include "../../common/communication/message.h"
 #include "../../common/communication/rpc_server.h"
-#include "../../common/structure_tool/threadpool.h"
-#include "../../common/structure_tool/basic_queue.h"
 
+//buffer size
 #define F_ARR_SIZE (1 << 12)
 #define BUFF_NODE_SIZE (1 << 8)
 #define THREAD_POOL_SIZE 1
+#define MSG_QUEUE_SIZE (1 << 7)
 #define HEART_FREQ 3
+//initial flag
+#define MSG_READ 0000
+#define MSG_WRITE 0001
+
 //many kinds of locks
 
 struct data_server_operations
@@ -48,14 +52,7 @@ struct data_server
 	//all used for f_arr_buff
 	unsigned long* f_arr_bitmap;
 
-	//thread pool
-	thread_pool_t* thread_pool;
-	//message queue
-	basic_queue_t* m_cmd_queue;
-	//event handler
-	event_handler_set_t* event_handler;
-	//used to provide synchronized visit to a queue
-	syn_queue_t* queue_syn;
+	//provide thread pool and message passing
 	rpc_server_t* rpc_server;
 };
 

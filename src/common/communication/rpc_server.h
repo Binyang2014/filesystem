@@ -33,7 +33,8 @@ struct rpc_server_op {
 typedef struct rpc_server rpc_server_t;
 typedef struct rpc_server_op rpc_server_op_t;
 
-rpc_server_t *create_rpc_server(int thread_num, int server_id, void *(*resolve_handler)(event_handler_t *event_handler, void* msg_queue));
+rpc_server_t *create_rpc_server(int thread_num, int queue_size, int
+		server_id, resolve_handler_t resolve_handler);
 void destroy_rpc_server(rpc_server_t *server);
 
 #endif /* SRC_COMMON_COMMUNICATION_RPC_SERVER_H_ */

@@ -1,32 +1,29 @@
 /*
  * Created on 2015.1.23
  * Author:binyang
- *
+ * Modified on 2015.7.31
  * This file will finish all data server's work
  */
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <mpi.h>
 #include <pthread.h>
 #include <unistd.h>
 #include "dataserver.h"
 #include "dataserver_buff.h"
 #include "dataserver_handler.h"
 #include "../structure/vfs_structure.h"
-#include "../../structure/basic_list.h"
-#include "../../structure/basic_queue.h"
-#include "../../tool/errinfo.h"
-#include "../../tool/syn_tool.h"
-#include "../../tool/threadpool.h"
+#include "../../common/communication/rpc_server.h"
+#include "../../common/structure_tool/basic_list.h"
+#include "../../common/structure_tool/log.h"
 
 //this is a demo, there are many things to add
 
 //many kinds of locks
 
 static data_server_t* data_server;
-static void* heart_beat(void* args);
+//static void* heart_beat(void* args);
 
 int get_current_imformation(data_server_t * server_imf)
 {
@@ -69,40 +66,14 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 	data_server->machine_id = dev_num;
 	//init buffer
 	set_data_server_buff(data_server, THREAD_POOL_SIZE);
-	//init msg_cmd_buffer
-	data_server->m_cmd_queue = alloc_basic_queue(COMMON_MSG_LEN, 0);
-	//init threads pool
-	data_server->thread_pool = alloc_thread_pool(THREAD_POOL_SIZE, data_server->m_cmd_queue);
-	//init queue_syn_tool
-	data_server->queue_syn = alloc_queue_syn();
-	//init event_handler
-	data_server->event_handler = alloc_event_handler_set(data_server->thread_pool,
-			m_resolve);
+
+	//init rpc server
+	data_server->rpc_server = create_rpc_server(THREAD_POOL_SIZE,
+			MSG_QUEUE_SIZE, dev_num, m_resolve);
+
 	//init many kinds of locks
 	return data_server;
 	//end of init
-}
-
-//receive cmd message from client or master
-void m_cmd_receive()
-{
-	void* start_pos;
-	basic_queue_t * msg_queue;
-	static common_msg_t t_common_msg;
-	static mpi_status_t status;
-
-	msg_queue = data_server->m_cmd_queue;
-
-#ifdef DATASERVER_COMM_DEBUG
-	printf("The tid of this thread is %lu\n", (unsigned long)pthread_self());
-	printf("I'm waiting for a message\n");
-#endif
-	//receive message from client
-	start_pos = (char*) (&t_common_msg) + COMMON_MSG_HEAD;
-	d_mpi_cmd_recv(start_pos, &status);
-	t_common_msg.source = status.source;
-	//use syn_queue_push here
-	syn_queue_push(msg_queue, data_server->queue_syn, &t_common_msg);
 }
 
 /*=================================resolve message=========================================*/
@@ -114,9 +85,9 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	list_t* t_buff_list;
 	list_node_t* t_buff;
 	list_iter_t* iter;
-	msg_r_ctod_t* read_msg = NULL;
-	msg_w_ctod_t* write_msg = NULL;
-	event_handler->spcical_struct = data_server;
+	read_c_to_d_t* read_msg = NULL;
+	write_c_to_d_t* write_msg = NULL;
+	event_handler->special_struct = data_server;
 
 	//get buffer structure for event handler
 	 if( (event_handler->event_buffer_list = get_buffer_list(data_server, 5)) == NULL )
@@ -126,12 +97,12 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	//decide use which structure
 	if(flag == MSG_READ)
 	{
-		read_msg = (msg_r_ctod_t* )MSG_COMM_TO_CMD(common_msg);
+		read_msg = (read_c_to_d_t* )MSG_COMM_TO_CMD(common_msg);
 		chunks_count = read_msg->chunks_count;
 	}
 	else
 	{
-		write_msg = (msg_w_ctod_t* )MSG_COMM_TO_CMD(common_msg);
+		write_msg = (write_c_to_d_t* )MSG_COMM_TO_CMD(common_msg);
 		chunks_count = write_msg->chunks_count;
 	}
 
@@ -148,7 +119,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	memcpy(t_buff->value, common_msg, sizeof(common_msg_t));
 
 #ifdef DATASERVER_COMM_DEBUG
-	printf("the cmmon_msg is %p\n", t_buff->value);
+	log_write(LOG_DEBUG, "the cmmon_msg is %p", t_buff->value);
 #endif
 
 	t_buff = t_buff_list->list_ops->list_next(iter);
@@ -159,7 +130,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	}
 
 #ifdef DATASERVER_COMM_DEBUG
-	printf("the reply_msg_buff is %p\n", t_buff->value);
+	log_write(LOG_DEBUG, "the reply_msg_buff is %p", t_buff->value);
 #endif
 
 	t_buff = t_buff_list->list_ops->list_next(iter);
@@ -170,7 +141,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	}
 
 #ifdef DATASERVER_COMM_DEBUG
-	printf("the data_buff is %p\n", t_buff->value);
+	log_write(LOG_DEBUG, "the data_buff is %p", t_buff->value);
 #endif
 
 	t_buff = t_buff_list->list_ops->list_next(iter);
@@ -181,7 +152,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	}
 
 #ifdef DATASERVER_COMM_DEBUG
-	printf("the file_info_buff is %p\n", t_buff->value);
+	log_write(LOG_DEBUG, "the file_info_buff is %p\n", t_buff->value);
 #endif
 
 	t_buff = t_buff_list->list_ops->list_next(iter);
@@ -192,10 +163,10 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	}
 
 #ifdef DATASERVER_COMM_DEBUG
-	printf("the f_arr_buff is %p\n", t_buff->value);
-	printf("the buffer size is %d\n", ((vfs_hashtable_t*)t_buff->value)->hash_table_size);
-	printf("the array buffer is %p\n", ((vfs_hashtable_t*)t_buff->value)->blocks_arr);
-	printf("the chunks buffer is %p\n", ((vfs_hashtable_t*)t_buff->value)->chunks_arr);
+	log_write(LOG_DEBUG, "the f_arr_buff is %p", t_buff->value);
+	log_write(LOG_DEBUG, "the buffer size is %d", ((vfs_hashtable_t*)t_buff->value)->hash_table_size);
+	log_write(LOG_DEBUG, "the array buffer is %p", ((vfs_hashtable_t*)t_buff->value)->blocks_arr);
+	log_write(LOG_DEBUG, "the chunks buffer is %p", ((vfs_hashtable_t*)t_buff->value)->chunks_arr);
 #endif
 
 	t_buff_list->list_ops->list_release_iterator(iter);
@@ -206,16 +177,16 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 {
 	//this variable allocate in stack. may be each thread need one common message
 	static common_msg_t t_common_msg;
-	basic_queue_t* t_msg_queue = msg_queue;
-	unsigned short operation_code;
+	syn_queue_t* syn_queue = msg_queue;
+	uint16_t operation_code;
 	int error;
 
 #ifdef DATASERVER_COMM_DEBUG
-	printf("In m_resolve function\n");
+	log_write(LOG_DEBUG, "In m_resolve function\n");
 #endif
 
 	//access queue use syn_queue_push
-	syn_queue_pop(t_msg_queue, data_server->queue_syn, &t_common_msg);
+	syn_queue->op->syn_queue_pop(syn_queue, &t_common_msg);
 	operation_code = t_common_msg.operation_code;
 
 	//this function should solve how to initiate event handler, each thread has its' own
@@ -242,33 +213,28 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 
 void *dataserver_run(void *arg)
 {
-	err_ret("========dataserver run start and process id is %d========", getpid());
-	data_server_t* dateserver = (data_server_t*)arg;
-	char* msg;
-	pthread_t tid;
+	data_server_t* data_server = (data_server_t*)arg;
+	//char* msg;
 
-	msg = (char*)malloc(sizeof(char) * MAX_CMD_MSG_LEN);
-	dateserver->thread_pool->tp_ops->start(dateserver->thread_pool, dateserver->event_handler);
-	pthread_create(&tid, NULL, heart_beat, msg);
-	for(;;)
-	{
-		m_cmd_receive();
-	}
+	log_write(LOG_INFO, "=====data server has started=====");
+	//msg = (char*)malloc(sizeof(char) * MAX_CMD_MSG_LEN);
+	data_server->rpc_server->op->server_start(data_server->rpc_server);
+//	pthread_create(&tid, NULL, heart_beat, msg);
 	return 0;
 }
 
-void* heart_beat(void* msg)
-{
-	for(;;)
-	{
-		d_server_heart_blood_t* heart_beat_msg;
-		heart_beat_msg = (d_server_heart_blood_t*)msg;
-		heart_beat_msg->operation_code = D_M_HEART_BLOOD_CODE;
-		heart_beat_msg->id = data_server->machine_id;
-		//send heart beat to master
-		d_mpi_cmd_send(heart_beat_msg, 0, 0);
-		//printf("heart beat coming\n");
-		sleep(1);
-	}
-	return NULL;
-}
+//void* heart_beat(void* msg)
+//{
+//	for(;;)
+//	{
+//		d_server_heart_blood_t* heart_beat_msg;
+//		heart_beat_msg = (d_server_heart_blood_t*)msg;
+//		heart_beat_msg->operation_code = D_M_HEART_BLOOD_CODE;
+//		heart_beat_msg->id = data_server->machine_id;
+//		//send heart beat to master
+//		d_mpi_cmd_send(heart_beat_msg, 0, 0);
+//		//printf("heart beat coming\n");
+//		sleep(1);
+//	}
+//	return NULL;
+//}

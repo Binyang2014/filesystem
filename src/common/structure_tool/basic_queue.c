@@ -144,7 +144,7 @@ basic_queue_iterator *create_basic_queue_iterator(basic_queue_t *queue)
 	return iterator;
 }
 
-basic_queue_t* alloc_basic_queue(int type_size, int queue_len)
+basic_queue_t* alloc_basic_queue(int queue_len, int type_size)
 {
 	basic_queue_t* this;
 	this = (basic_queue_t*) malloc(sizeof(basic_queue_t));
