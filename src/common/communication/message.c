@@ -50,14 +50,16 @@ void send_data_msg(void* msg, int dst, int tag, uint32_t len)
 	//maybe need compress here
 	if(len == IGNORE_LENGTH)
 		mpi_send(msg, dst, tag, MAX_DATA_MSG_LEN);
+	else
+		mpi_send(msg, dst, tag, MAX_DATA_MSG_LEN);
 }
 
 void send_acc_msg(void* msg, int dst, int tag, int status)
 {
-	acc_msg_t* acc_msg = (acc_msg_t* )acc_msg;
+	acc_msg_t* acc_msg = (acc_msg_t* )msg;
 	if(status != ACC_IGNORE)
 		acc_msg->op_status = status;
-	mpi_send(msg, dst, tag, sizeof(acc_msg_t));
+	mpi_send(acc_msg, dst, tag, sizeof(acc_msg_t));
 	//sockets functions
 }
 
@@ -78,7 +80,9 @@ void recv_data_msg(void* msg, int source, int tag, uint32_t len)
 	//only mpi function now
 	mpi_status_t status;
 	if(len == IGNORE_LENGTH)
-		mpi_recv(msg, source, tag, MAX_CMD_MSG_LEN, &status);
+		mpi_recv(msg, source, tag, MAX_DATA_MSG_LEN, &status);
+	else
+		mpi_recv(msg, source, tag, MAX_DATA_MSG_LEN, &status);
 }
 
 void recv_acc_msg(void* msg, int source, int tag)

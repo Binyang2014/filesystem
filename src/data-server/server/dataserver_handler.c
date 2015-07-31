@@ -271,6 +271,8 @@ void d_read_handler(event_handler_t* event_handle)
 	}
 
 	//receive accept message
+	int j = 0;
+	while(!j);
 	acc_msg = zmalloc(sizeof(acc_msg_t));
 	this->rpc_server->op->recv_reply(acc_msg, source, tag, ACC);
 	if(acc_msg->op_status != ACC_OK)

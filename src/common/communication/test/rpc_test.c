@@ -76,6 +76,7 @@ int main(int argc, char* argv[])
 			printf("rpc test result = %d\n", result->result);
 		}
 		destroy_rpc_client(client);
+		zfree(msg);
 	}
 	mpi_finish();
 	return 0;

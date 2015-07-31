@@ -29,7 +29,7 @@ static void server_start(rpc_server_t *server)
 
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel) {
-		recv_common_msg(server->recv_buff, ANY_SOURCE, ANY_TAG);
+		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
 #if defined(RPC_SERVER_DEBUG)
 		log_write(LOG_DEBUG, "RPC_SERVER PUT MESSAGE");
 #endif

@@ -29,7 +29,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 		log_write(LOG_ERR, "client has not been provided command message");
 		return -1;
 	}
-	send_cmd_msg(client->send_buff, client->target, client->tag);
+	send_cmd_msg(client->send_buff, client->target, CMD_TAG);
 	switch(exe_type)
 	{
 		case READ:
@@ -128,7 +128,13 @@ rpc_client_t *create_rpc_client(int client_id, int target, int tag)
 	this->tag = tag;
 	this->send_buff = this->second_send_buff = this->recv_buff = NULL;
 	this->recv_buff_len = this->second_send_buff_len = 0;
-
+	if(tag == CMD_TAG)
+	{
+		log_write(LOG_WARN, "you can not send message use command tag");
+		zfree(this->op);
+		zfree(this);
+		return NULL;
+	}
 	this->op->execute = execute;
 	this->op->set_recv_buff = set_recv_buff;
 	this->op->set_send_buff = set_send_buff;
@@ -156,8 +162,5 @@ static void set_second_send_buff(struct rpc_client* client, void* buff, uint32_t
 
 void destroy_rpc_client(rpc_client_t *client) {
 	zfree(client->op);
-	zfree(client->send_buff);
-	zfree(client->recv_buff);
-	zfree(client->second_send_buff);
 	zfree(client);
 }

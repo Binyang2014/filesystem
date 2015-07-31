@@ -74,11 +74,11 @@ int main(int argc, char* argv[])
 		client->op->set_send_buff(client, &r_msg);
 		memset(&data_msg, 0, sizeof(data_msg));
 		client->op->set_recv_buff(client, &data_msg, sizeof(msg_data_t));
-		if(client->op->execute(client, READ));
+		if(client->op->execute(client, READ) < 0)
 			log_write(LOG_ERR, "client read wrong");
-		//printf_msg_status(&status);
 		for(i = 0 ; i < 16; i++)
 			printf("%c ", *((char*)data_msg.data + i));;
+		printf("\n");
 	}
 	mpi_finish();
 	return 0;
