@@ -67,6 +67,7 @@ struct list_operations
 	void (*list_del_node)(struct list *list, struct node *node);
 	struct list_iter* (*list_get_iterator)(struct list *list, int direction);
 	struct node* (*list_next)(struct list_iter *iter);
+	int (*list_has_next)(struct list_iter *iter);
 	void (*list_release_iterator)(struct list_iter *iter);
 	struct list* (*list_dup)(struct list *orig);
 	struct node* (*list_search_key)(struct list *list, void *key);

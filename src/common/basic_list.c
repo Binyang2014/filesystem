@@ -45,6 +45,7 @@ static void init_list_ops(list_op_t* list_ops)
 	list_ops->list_index = list_index;
 	list_ops->list_insert_node = list_insert_node;
 	list_ops->list_next = list_next;
+	list_ops->list_has_next = list_has_next;
 	list_ops->list_release_iterator = list_release_iterator;
 	list_ops->list_rewind = list_rewind;
 	list_ops->list_rewind_tail = list_rewind_tail;
@@ -396,6 +397,10 @@ static list_node_t *list_next(list_iter_t *iter)
 			iter->next = current->prev;
 	}
 	return current;
+}
+
+static int list_has_next(list_iter_t *iter) {
+	return iter->next != NULL;
 }
 
 /* Duplicate the whole list. On out of memory NULL is returned.

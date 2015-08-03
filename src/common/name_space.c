@@ -8,9 +8,22 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "name_space.h"
 
-/*-------------------Private Implementation--------------------*/
+#define FILE_EXISTS 400
+#define FILE_NOT_EXISTS 404
+#define FILE_OPERATE_SUCCESS 0
+
+/*-------------------Private Declaration----------------------*/
+static file_node_t *find(name_space_t *space, sds name);
+static int add_temporary_file(name_space_t *space, sds file_name);
+static int rename_file(name_space_t *space, sds old_name, sds new_name);
+static int delete_file(name_space_t *space, sds file_name);
+static int file_finish_consistent(struct name_space *space, sds file_name);
+static int file_exists(struct name_space *space, sds file_name);
+
+/*-------------------Local Implementation--------------------*/
 static void *list_dup(void *ptr) {
 	pair_t *pair = zmalloc(sizeof(*pair));
 	pair_t *tmp = ptr;
@@ -27,14 +40,10 @@ static void list_free(void *ptr) {
 	zfree(pair->value);
 }
 
-static file_node_t *find(name_space_t *space, sds name) {
-	return space->name_space->op->get(space->name_space, name);
-}
-
-static int add_file(name_space_t *space, sds file_name, enum file_type_enum type) {
+static file_node_t *add_file(name_space_t *space, sds file_name, enum file_type_enum type) {
 	file_node_t *node = find(space, file_name);
 	if(node != NULL) {
-		return -1;//TODO
+		return NULL; //TODO
 	}
 
 	node = zmalloc(sizeof(file_node_t));
@@ -43,15 +52,45 @@ static int add_file(name_space_t *space, sds file_name, enum file_type_enum type
 	node->file_type = type;
 	node->consistent_size = 0;
 	space->file_num++;
-	return 1;
+	return node;
+}
+
+/*-------------------Private Implementation--------------------*/
+static file_node_t *find(name_space_t *space, sds name) {
+	return space->name_space->op->get(space->name_space, name);
 }
 
 static int add_temporary_file(name_space_t *space, sds file_name) {
-	return add_file(space, file_name, TEMPORARY_FILE);
+	file_node_t *node = add_file(space, file_name, TEMPORARY_FILE);
+	if(node == NULL) {
+		return FILE_EXISTS;
+	}
+
+	space->name_space->op->put(file_name, node);
+	return FILE_OPERATE_SUCCESS;
 }
 
 static int add_persistent_file(name_space_t *space, sds file_name) {
-	return add_file(space, file_name, PERSISTENT_FILE);
+	int file_exists = access(file_name, F_OK);
+	if(file_exists) {
+		return FILE_EXISTS;
+	}
+
+	file_node_t *node = add_file(space, file_name, PERSISTENT_FILE);
+	FILE *fp = fopen(file_name, "ab+");
+	node->fp = fp;
+	space->name_space->op->put(file_name, node);
+	return FILE_OPERATE_SUCCESS;
+}
+
+static int append_file(name_space_t *space, sds file_name, uint64_t append_size) {
+	file_node_t *node = find(space, file_name);
+	if(node == NULL) {
+		return FILE_NOT_EXISTS;
+	}
+
+	node->file_size +=append_size;
+	return FILE_OPERATE_SUCCESS;
 }
 
 static int rename_file(name_space_t *space, sds old_name, sds new_name) {

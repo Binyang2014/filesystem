@@ -157,7 +157,7 @@ static size_t get_size(map_t *this) {
 	return this->current_size;
 }
 
-void del(map_t *this, sds key){
+static void del(map_t *this, sds key){
 	uint32_t h = map_gen_hash_function(key, this->size);
 
 	list_t *l = *(this->list + h);
@@ -173,6 +173,40 @@ void del(map_t *this, sds key){
 		node = l->list_ops->list_next(iter);
 	}
 	l->list_ops->list_release_iterator(iter);
+}
+
+static int has_next(map_iterator_t *iter) {
+	if(iter->dir_no >= iter->map->size) {
+		return 0;
+	}
+
+	if(iter->iter != NULL && iter->list->list_ops->list_has_next(iter->iter)) {
+		return 1;
+	}
+
+	if(iter->iter != NULL) {
+		iter->list->list_ops->list_release_iterator(iter->iter);
+	}
+
+	do{
+		iter->dir_no++;
+		iter->list = *(iter->list + iter->dir_no);
+	}while(iter->list->len > 0);
+
+	if(iter->dir_no >= iter->map->size) {
+		return 0;
+	}
+
+	iter->iter = iter->list->list_ops->list_get_iterator(iter->list, AL_START_HEAD);
+	return 1;
+}
+
+static void *next(map_iterator_t *iter) {
+	if(iter == NULL || iter->iter == NULL) {
+		return NULL;
+	}
+
+	return iter->list->list_ops->list_next(iter->iter)->value;
 }
 
 map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
@@ -214,6 +248,28 @@ void destroy_map(map_t *this) {
 	}
 	zfree(this->list);
 	zfree(this);
+}
+
+map_iterator_t *create_map_iterator(map_t *map) {
+	map_iterator_t *this = zmalloc(sizeof(*this));
+	this->map = map;
+	this->dir_no = 0;
+	this->list = *(map->list + this->dir_no);
+	this->iter = this->list->list_ops->list_get_iterator(this->list);
+	this->op = zmalloc(sizeof(map_iterator_op_t));
+	this->op->has_next = has_next;
+	this->op->next = next;
+
+	return this;
+}
+
+
+void destroy_map_iterator(map_iterator_t *iter) {
+	zfree(iter->op);
+	if(iter->iter) {
+		iter->list->list_ops->list_release_iterator(iter->iter);
+	}
+	zfree(iter);
 }
 
 void print_map_keys() {

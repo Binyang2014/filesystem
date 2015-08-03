@@ -160,6 +160,10 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 	fclose(fp);
 }
 
+static void allocate_machine_role(machine_role_allocator_t *allocator) {
+
+}
+
 static void *get_event_handler_param(event_handler_t *event_handler) {
 	return event_handler->event_buffer_list->head->value;
 }

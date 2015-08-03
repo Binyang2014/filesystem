@@ -11,7 +11,7 @@
 #include "./common/syn_tool.h"
 #include "master.h"
 
-/*---------------Private Declaration---------------*/
+/*--------------------Private Declaration--------------------*/
 static master_t *local_master;
 
 /**
@@ -51,6 +51,10 @@ static void create_persistent_file(event_handler_t *event_handler) {
 	zfree(result);
 }
 
+static void allocate_append_space() {
+
+}
+
 /*
  * TODO
  * check if the file is totally consistent to the disk
@@ -79,10 +83,14 @@ static void sub_master_ask_global_id(event_handler_t *event_handler) {
 }
 
 static void consistent_file_to_disk(event_handler_t *event_handler) {
+	//master_append_file_ans_t *append = get_event_handler_param(event_handler);
 
 }
 
 static void append_file(event_handler_t *event_handler) {
+	master_append_file_t *t = get_event_handler_param(event_handler);
+	master_append_file_ans_t *result = zmalloc(sizeof(*result));
+	result->result_code = local_master->name_space->op->append_file(local_master->name_space, t->file_name, t->append_size);
 
 }
 
@@ -102,10 +110,6 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 }
 
 /*---------------Master Service End---------------*/
-
-static void master_get_net_topology(master_t *master, sds file_name) {
-
-}
 
 /*
  * allocate necessary space
