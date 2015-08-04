@@ -4,6 +4,8 @@
  *  Created on: 2015年7月13日
  *      Author: ron
  */
+#include <string.h>
+#include <stdlib.h>
 #include "rpc_client.h"
 #include "message.h"
 #include "../structure_tool/zmalloc.h"
@@ -16,8 +18,89 @@ static void set_recv_buff(rpc_client_t* client, void* buff , uint32_t
 static void set_send_buff(rpc_client_t* client, void* buff);
 static void set_second_send_buff(rpc_client_t* client, void* buff, uint32_t
 		second_send_buff_len);
+static void recv_data(rpc_client_t* client, uint32_t len);
+static void send_data(rpc_client_t* client, uint32_t len);
 
 /*--------------------Private Implementation------------------*/
+static void recv_data(rpc_client_t* client, uint32_t len)
+{
+	msg_data_t *data_msg;
+	void* recv_buff = client->recv_buff;
+	uint32_t recv_buff_len = client->recv_buff_len, offset = 0;
+	int recv_count, rest_bytes, i;
+
+	//I should be sure this error will not happen
+	if(len > recv_buff_len)
+	{
+		log_write(LOG_ERR, "receive buffer is too small to receive entire message");
+		exit(1);
+	}
+	data_msg = (msg_data_t* )zmalloc(sizeof(msg_data_t));
+	recv_count = len / MAX_DATA_CONTENT_LEN;
+	rest_bytes = len % MAX_DATA_CONTENT_LEN;
+	for(i = 0; i < recv_count; i++)
+	{
+		recv_data_msg(data_msg, client->target, client->tag, IGNORE_LENGTH);
+		memcpy(recv_buff + offset, data_msg->data, data_msg->len);
+		offset = offset + data_msg->len;
+	}
+	if(rest_bytes != 0)
+	{
+		recv_data_msg(data_msg, client->target, client->tag, rest_bytes);
+		memcpy(recv_buff + offset, data_msg->data, data_msg->len);
+		offset = offset + data_msg->len;
+	}
+	zfree(data_msg);
+}
+
+static void send_data(rpc_client_t* client, uint32_t len)
+{
+	msg_data_t* data_msg;
+	void* send_buff = client->second_send_buff;
+	uint32_t msg_offset = 0, offset = 0, send_buff_len =
+		client->second_send_buff_len;
+	int send_count, rest_bytes, i;
+	write_c_to_d_t* cmd_msg;
+
+	if(len > send_buff_len)
+	{
+		log_write(LOG_ERR, "receive buffer is too small to receive entire message");
+		exit(1);
+	}
+	data_msg = (msg_data_t *)zmalloc(sizeof(msg_data_t));
+	send_count = len / MAX_DATA_CONTENT_LEN;
+	rest_bytes = len % MAX_DATA_CONTENT_LEN;
+	cmd_msg = client->send_buff;
+	msg_offset = cmd_msg->offset;
+
+	for(i = 0; i < send_count; i++)
+	{
+		data_msg->len = MAX_DATA_CONTENT_LEN;
+		data_msg->offset = msg_offset;
+		data_msg->seqno = i;
+		data_msg->tail = 0;
+		if(rest_bytes == 0 && i == send_count - 1)
+			data_msg->tail = 1;
+		memcpy(data_msg->data, send_buff + offset, data_msg->len);
+		msg_offset = msg_offset + data_msg->len;
+		offset = offset + data_msg->len;
+		send_data_msg(data_msg, client->target, client->tag, IGNORE_LENGTH);
+		msg_offset = msg_offset + data_msg->len;
+	}
+	if(rest_bytes != 0)
+	{
+		data_msg->len = rest_bytes;
+		data_msg->offset = msg_offset;
+		data_msg->seqno = i;
+		data_msg->tail = 1;
+		memcpy(data_msg->data, send_buff + offset, data_msg->len);
+		send_data_msg(data_msg, client->target, client->tag, data_msg->len);
+		msg_offset = msg_offset + data_msg->len;
+		offset = offset + data_msg->len;
+	}
+	zfree(data_msg);
+}
+
 static int execute(rpc_client_t *client, execute_type_t exe_type)
 {
 	void* recv_msg_buff = NULL;
@@ -32,7 +115,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 	send_cmd_msg(client->send_buff, client->target, CMD_TAG);
 	switch(exe_type)
 	{
-		case READ:
+		case READ_C_TO_D:
 			head_msg = zmalloc(sizeof(head_msg_t));
 			recv_head_msg(head_msg, client->target, client->tag);
 			if(head_msg->op_status != ACC_OK)
@@ -41,8 +124,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				zfree(head_msg);
 				return -1;
 			}
-			recv_data_msg(client->recv_buff, client->target, client->tag,
-					head_msg->len);
+			recv_data(client, head_msg->len);
 			acc_msg = zmalloc(sizeof(acc_msg_t));
 			send_acc_msg(acc_msg, client->target, client->tag, ACC_OK);
 			log_write(LOG_INFO, "finish read operation");
@@ -50,7 +132,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			zfree(acc_msg);
 			break;
 
-		case WRITE:
+		case WRITE_C_TO_D:
 			acc_msg = zmalloc(sizeof(acc_msg_t));
 			recv_acc_msg(acc_msg, client->target, client->tag);
 			if(acc_msg->op_status != ACC_OK)
@@ -61,8 +143,8 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			}
 			if(client->second_send_buff != NULL &&
 					client->second_send_buff_len > 0)
-				send_data_msg(client->second_send_buff, client->target, client->tag,
-						client->second_send_buff_len);
+				send_data(client,
+						((write_c_to_d_t*)client->send_buff)->write_len);
 			else
 			{
 				log_write(LOG_ERR, "client does not offer data yet");

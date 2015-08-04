@@ -226,8 +226,7 @@ dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t
 			for(i = 0; i < v_file_buff->arr_len; i++)
 				if(!__bm_block_set(super_block->s_block, v_file_buff->f_blocks_arr[i]))
 				{
-					log_write(LOG_ERR, "You should not see this imformation,\
-							vfs wrong!");
+					log_write(LOG_ERR, "You should not see this imformation,vfs wrong!");
 					return NULL;
 				}
 			return v_file_buff;
@@ -256,8 +255,7 @@ dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t
 				if(alloc_a_block(super_block, v_file_buff->f_chunks_arr[i], block_num) ==
 						INF_UNSIGNED_INT)
 				{
-					log_write(LOG_ERR, "wrong when allocating a block in hash\
-							table");
+					log_write(LOG_ERR, "wrong when allocating a block in hash table");
 					__clear_block_bm(super_block->s_block, block_num);
 					pthread_mutex_unlock(&super_block->s_mutex);
 					return NULL;

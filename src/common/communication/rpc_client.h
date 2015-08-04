@@ -12,8 +12,8 @@
 
 enum execute_type
 {
-	READ,
-	WRITE,
+	READ_C_TO_D,
+	WRITE_C_TO_D,
 	COMMAND,
 	COMMAND_WITH_RETURN
 };

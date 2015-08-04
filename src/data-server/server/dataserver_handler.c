@@ -29,7 +29,7 @@ static int read_from_vfs(dataserver_file_t *file, msg_data_t* buff, size_t count
 		return -1;
 	}
 
-	buff->len = count;
+	buff->len = ans;
 	buff->seqno = seqno;
 	buff->offset = offset + ans;//I don't know if this operation is right
 
@@ -68,7 +68,7 @@ static int m_read_handler(data_server_t* data_server, int source, int tag, msg_f
 
 		//send message to client
 		data_server->rpc_server->op->send_result(buff, source, tag,
-				IGNORE_LENGTH, DATA);
+				temp_ans, DATA);
 
 		//already read at the end of the file
 		if(temp_ans == 0)
@@ -92,7 +92,7 @@ static int m_read_handler(data_server_t* data_server, int source, int tag, msg_f
 	}
 
 	data_server->rpc_server->op->send_result(buff, source, tag,
-			IGNORE_LENGTH, DATA);
+			temp_ans, DATA);
 	ans = ans + temp_ans;
 
 #ifdef DATASERVER_COMM_DEBUG

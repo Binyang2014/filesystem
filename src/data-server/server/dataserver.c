@@ -19,7 +19,9 @@
 #include "../../common/structure_tool/log.h"
 
 //this is a demo, there are many things to add
-
+//initial flag
+#define MSG_READ 0000
+#define MSG_WRITE 0001
 //many kinds of locks
 
 static data_server_t* data_server;
@@ -193,13 +195,13 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 	//event handler and we do not need to care about it
 	switch(operation_code)
 	{
-	case MSG_READ:
+	case C_D_READ_BLOCK_CODE:
 		error = init_rw_event_handler(event_handler, &t_common_msg, MSG_READ);
 		if(error == -1)
 			err_quit("error when allocate buffer");
 		//invoke a thread to excuse
 		return d_read_handler;
-	case MSG_WRITE:
+	case C_D_WRITE_BLOCK_CODE:
 		error = init_rw_event_handler(event_handler, &t_common_msg, MSG_WRITE);
 		if(error == -1)
 			err_quit("error when allocate buffer");

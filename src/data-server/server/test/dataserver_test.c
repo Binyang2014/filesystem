@@ -12,24 +12,21 @@ void init_w_struct(write_c_to_d_t* w_msg)
 	w_msg->chunks_count = 1;
 	w_msg->chunks_id_arr[0] = 256;
 	w_msg->offset = 0;
-	w_msg->operation_code = 0x01;
+	w_msg->operation_code = C_D_WRITE_BLOCK_CODE;
 	w_msg->write_len = 16;
 	w_msg->unique_tag = 13;
 }
 
-void init_data_structure(msg_data_t* data_msg)
+void init_data_structure(char data_msg[])
 {
-	data_msg->len = 16;
-	data_msg->offset = 0;
-	data_msg->seqno = 0;
-	data_msg->tail = 1;
-	data_msg->data[0] = 0x3031323334353637;
-	data_msg->data[1] = 0x3736353433323130;
+	int i;
+	for(i = 0; i < 16; i++)
+		data_msg[i] = '0' + i;
 }
 
 void init_r_structure(read_c_to_d_t* r_msg)
 {
-	r_msg->operation_code = MSG_READ;
+	r_msg->operation_code = C_D_READ_BLOCK_CODE;
 	r_msg->chunks_id_arr[0] = 256;
 	r_msg->offset = 0;
 	r_msg->read_len = 16;
@@ -43,8 +40,8 @@ int main(int argc, char* argv[])
 	int i;
 	data_server_t* dataserver;
 	write_c_to_d_t w_msg;
-	msg_data_t data_msg;
 	read_c_to_d_t r_msg;
+	char data_msg[16];
 
 	log_init("", LOG_DEBUG);
 	mpi_init_with_thread(&argc, &argv);
@@ -62,9 +59,9 @@ int main(int argc, char* argv[])
 		init_w_struct(&w_msg);
 		printf("sending message to data server\n");
 		client->op->set_send_buff(client, &w_msg);
-		init_data_structure(&data_msg);
-		client->op->set_second_send_buff(client, &data_msg, sizeof(data_msg));
-		if(client->op->execute(client, WRITE) < 0)
+		init_data_structure(data_msg);
+		client->op->set_second_send_buff(client, data_msg, 16);
+		if(client->op->execute(client, WRITE_C_TO_D) < 0)
 			log_write(LOG_ERR, "client write wrong");
 		destroy_rpc_client(client);
 
@@ -72,12 +69,12 @@ int main(int argc, char* argv[])
 		client = create_rpc_client(id, 0, 13);
 		init_r_structure(&r_msg);
 		client->op->set_send_buff(client, &r_msg);
-		memset(&data_msg, 0, sizeof(data_msg));
-		client->op->set_recv_buff(client, &data_msg, sizeof(msg_data_t));
-		if(client->op->execute(client, READ) < 0)
+		memset(data_msg, 0, sizeof(data_msg));
+		client->op->set_recv_buff(client, data_msg, 16);
+		if(client->op->execute(client, READ_C_TO_D) < 0)
 			log_write(LOG_ERR, "client read wrong");
 		for(i = 0 ; i < 16; i++)
-			printf("%c ", *((char*)data_msg.data + i));;
+			printf("%c ", data_msg[i]);
 		printf("\n");
 	}
 	mpi_finish();

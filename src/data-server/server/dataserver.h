@@ -18,9 +18,6 @@
 #define THREAD_POOL_SIZE 1
 #define MSG_QUEUE_SIZE (1 << 7)
 #define HEART_FREQ 3
-//initial flag
-#define MSG_READ 0000
-#define MSG_WRITE 0001
 
 //many kinds of locks
 

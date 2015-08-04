@@ -51,7 +51,10 @@ void send_data_msg(void* msg, int dst, int tag, uint32_t len)
 	if(len == IGNORE_LENGTH)
 		mpi_send(msg, dst, tag, MAX_DATA_MSG_LEN);
 	else
-		mpi_send(msg, dst, tag, MAX_DATA_MSG_LEN);
+	{
+		len = len + DATA_MSG_HEAD_LEN;
+		mpi_send(msg, dst, tag, len);
+	}
 }
 
 void send_acc_msg(void* msg, int dst, int tag, int status)
@@ -82,7 +85,10 @@ void recv_data_msg(void* msg, int source, int tag, uint32_t len)
 	if(len == IGNORE_LENGTH)
 		mpi_recv(msg, source, tag, MAX_DATA_MSG_LEN, &status);
 	else
-		mpi_recv(msg, source, tag, MAX_DATA_MSG_LEN, &status);
+	{
+		len = len + DATA_MSG_HEAD_LEN;
+		mpi_recv(msg, source, tag, len, &status);
+	}
 }
 
 void recv_acc_msg(void* msg, int source, int tag)

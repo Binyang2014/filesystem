@@ -18,7 +18,8 @@ static void printf_msg_status(mpi_status_t* status)
 	int len;
 
 	MPI_Error_string(status->error_num, s, &len);
-	log_write(LOG_DEBUG, "The information comes from MPI status The MPI source is %d, The MPI tag is %d The MPI error is %s", status->source, status->tag, s);
+	log_write(LOG_DEBUG, "The information comes from MPI status The MPI source is %d, The MPI tag is %d The MPI error is %s",
+			status->source, status->tag, s);
 }
 
 void mpi_send(void* msg, int dst, int tag, int len)
@@ -55,7 +56,8 @@ void mpi_recv(void* msg, int source, int tag, int len, mpi_status_t* status_t)
 		tag = MPI_ANY_TAG;
 
 	MPI_Recv(msg, len, MPI_CHAR, source, tag, MPI_COMM_WORLD, &status);
-	log_write(LOG_INFO, "received message from sender %d and the receiver is %d the length is %d", status.MPI_SOURCE, dst, len);
+	log_write(LOG_INFO, "received message from sender %d and the receiver is %d the length is %d",
+			status.MPI_SOURCE, dst, status.count);
 	if(status_t != NULL)
 	{
 		status_t->error_num = status.MPI_ERROR;
