@@ -19,74 +19,7 @@
 #include "../../common/structure_tool/log.h"
 #include "../../common/structure_tool/zmalloc.h"
 
-//------------------------block operations---------------------------------------------------
-//following functions maybe used by read or write function
-//we do not want these functions to be see by upper layer because
-//we do not let upper layer programmer change super block structure
-static void __set_block_bm(super_block_t* super_block, uint32_t block_num)
-{
-	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
-	unsigned long *bitmap;
-
-	bitmap = __get_bitmap_block(super_block, block_num);
-	block_num_in_group = block_num % blocks_per_group;
-	bitmap_set(bitmap, block_num_in_group, 1);
-}
-
-static void __clear_block_bm(super_block_t* super_block, uint32_t block_num)
-{
-	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
-	unsigned long *bitmap;
-
-	bitmap = __get_bitmap_block(super_block, block_num);
-	block_num_in_group = block_num % blocks_per_group;
-	bitmap_clear(bitmap, block_num_in_group, 1);
-}
-
-static int __bm_block_set(super_block_t* super_block, uint32_t block_num)
-{
-	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
-	unsigned long *bitmap;
-
-	bitmap = __get_bitmap_block(super_block, block_num);
-	block_num_in_group = block_num % blocks_per_group;
-	return bitmap_a_bit_full(bitmap, block_num_in_group);
-}
-
-static uint32_t find_first_free_block(super_block_t* super_block, int p_group_id)
-{
-	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
-	uint32_t blocks_per_group = super_block->s_blocks_per_group,
-			groups_count = super_block->s_groups_count, block_num_in_group, count = 0;
-
-	//if these group not have a free block, find next group
-	while(count < groups_count &&
-			(block_num_in_group = find_first_zero_bit(bitmap, blocks_per_group)) == blocks_per_group)
-	{
-		p_group_id = (p_group_id + 1) % groups_count;
-		bitmap = __get_bitmap_from_gid(super_block, p_group_id);
-		count++;
-	}
-	if(count == groups_count)
-		return INF_UNSIGNED_INT;
-	return block_num_in_group + p_group_id * blocks_per_group;
-}
-
-static uint32_t find_next_free_block(super_block_t* super_block, int p_group_id, uint32_t block_num)
-{
-	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
-	uint32_t blocks_per_group = super_block->s_blocks_per_group,
-			block_num_in_group = block_num % super_block->s_blocks_per_group;
-
-	//can't find free block in this group, go to next group and find first free block
-	if((block_num_in_group = find_next_zero_bit(bitmap, blocks_per_group, block_num_in_group))
-			== blocks_per_group)
-		return find_first_free_block(super_block, p_group_id + 1);
-	return block_num_in_group + p_group_id * blocks_per_group;
-}
-//static void sb_regist_block(int chunk_num, int block_num);
-//static void sb_logout_block(int chunk_num);
-
+//------------------------basic function--------------------
 static char* find_a_block(dataserver_sb_t* dataserver_sb, uint32_t block_num)
 {
 	uint32_t blocks_per_groups;
@@ -136,7 +69,7 @@ time_t get_last_write_time(dataserver_sb_t* this)
 	return this->s_block->s_last_write_time;
 }
 
-unsigned short get_superblock_status(dataserver_sb_t* this)
+uint16_t get_superblock_status(dataserver_sb_t* this)
 {
 	return this->s_block->s_status;
 }
@@ -276,7 +209,7 @@ void print_sb_imf(dataserver_sb_t* this)
 	float filesystem_version = get_filesystem_version(this);
 	uint32_t groups_conut = get_groups_conut(this);
 	time_t last_write_time = get_last_write_time(this);
-	unsigned short status = get_superblock_status(this);
+	uint16_t status = get_superblock_status(this);
 	struct tm *timeinfo;
 	timeinfo = localtime(&last_write_time);
 
@@ -315,11 +248,6 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 	block_num = blocks_arr[offset / BLOCK_SIZE];
 	offset_in_group = offset % BLOCK_SIZE;
 
-	if(! __bm_block_set(this->super_block->s_block, block_num))
-	{
-		log_write(LOG_ERR, "You should not see this information, vfs wrong!");
-		return -1;
-	}
 	memcpy(buffer, find_a_block(this->super_block, block_num) + offset_in_group, nbytes);
 
 #ifdef VFS_RW_DEBUG
@@ -389,74 +317,29 @@ int vfs_read(dataserver_file_t *this, char* buffer, size_t count, off_t offset)
 
 static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t offset)
 {
-	uint64_t* chunks_arr;
+	uint32_t* blocks_arr;
 	uint32_t block_num;
-	uint64_t chunk_num;
 	off_t offset_in_group;
 
 #ifdef VFS_RW_DEBUG
 	char* alloced_block;
 #endif
 
-	chunks_arr = this->f_chunks_arr;
-	chunk_num = chunks_arr[offset / BLOCK_SIZE];
+	blocks_arr = this->f_blocks_arr;
+	block_num = blocks_arr[offset / BLOCK_SIZE];
 	offset_in_group = offset % BLOCK_SIZE;
-
-	//if this file already has this block
-	if((block_num = this->super_block->s_op->find_a_block_num(this->super_block, chunk_num))
-			!= INF_UNSIGNED_INT)
-	{
-
-#ifdef VFS_RW_DEBUG
-		if( !__bm_block_set(this->super_block->s_block, block_num))
-			err_quit("You use a block but not set the bitmap");
-		else
-			printf("You will rewrite a block\n");
-#endif
-
-		this->f_blocks_arr[offset / BLOCK_SIZE] = block_num;//this statement may be not useful
-		memcpy(find_a_block(this->super_block, block_num) + offset_in_group, buffer, nbytes);
-		return nbytes;
-	}
-
-	pthread_mutex_lock(&this->super_block->s_mutex);
-
-	//here we find a free block from very beginning, may be we want find it near other block in
-	//this file, it will be considered later
-	//we should make sure that another thread no find same block number got their block
-	if( (block_num = find_first_free_block(this->super_block->s_block, 0)) == INF_UNSIGNED_INT )
-	{
-		err_msg("this data server is full");
-		return -1;
-	}
-	__set_block_bm(this->super_block->s_block, block_num);
-	if( alloc_a_block(this->super_block, chunk_num, block_num) == INF_UNSIGNED_INT)
-	{
-		err_msg("wrong in allocated a block in hash table");
-		pthread_mutex_unlock(&this->super_block->s_mutex);
-		return -1;
-	}
-
-	//change some information about super block
-	this->super_block->s_block->s_last_write_time = time(NULL);
-	this->super_block->s_block->s_free_blocks_count--;
-	pthread_mutex_unlock(&this->super_block->s_mutex);
 
 	//memcpy do not change super block, so we can put it out
 	memcpy(find_a_block(this->super_block, block_num) + offset_in_group, buffer, nbytes);
-	this->f_blocks_arr[offset / BLOCK_SIZE] = block_num;//this statement may be not useful
 
 #ifdef VFS_RW_DEBUG
 	printf("--------------VFS_RW_DEBUG WRITE PART-----------------\n");
-	if(__bm_block_set(this->super_block->s_block, block_num))
-		printf("The bitmap already set!!\n");
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
 	printf("The block number is %d, and the chunk number is %llu\n", block_num, (unsigned long long)chunk_num);
 	//printf("the buffer is %s\n", buffer);
 	//printf("The block contains %s\n", alloced_block + offset_in_group);
 #endif
-
 	return nbytes;
 }
 

@@ -24,6 +24,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include "../../common/structure_tool/map.h"
+#include "../../common/structure_tool/bitmap.h"
 #include "basic_structure.h"
 
 struct dataserver_super_block;
@@ -115,8 +116,11 @@ typedef struct vfs_hashtable vfs_hashtable_t;
 typedef struct super_block_operations superblock_op_t;
 typedef struct file_operations file_op_t;
 
+//------------------------bitmap operations-------------------------------
+//following functions maybe used by read or write function
 //these function I want to be used inline
-inline static unsigned long* __get_bitmap_block(super_block_t* super_block, uint32_t block_num)
+inline static unsigned long* __get_bitmap_block(super_block_t* super_block,
+		uint32_t block_num)
 {
 	uint32_t group_id = block_num / super_block->s_blocks_per_group;
 	uint32_t bitmap_block_num;
@@ -129,7 +133,9 @@ inline static unsigned long* __get_bitmap_block(super_block_t* super_block, uint
 	bitmap = (unsigned long *)((char *)super_block + (BLOCK_SIZE * bitmap_block_num));
 	return bitmap;
 }
-inline static unsigned long* __get_bitmap_from_gid(super_block_t* super_block, uint32_t group_id)
+
+inline static unsigned long* __get_bitmap_from_gid(super_block_t* super_block,
+		uint32_t group_id)
 {
 	uint32_t bitmap_block_num;
 	unsigned long *bitmap;
@@ -141,6 +147,38 @@ inline static unsigned long* __get_bitmap_from_gid(super_block_t* super_block, u
 	bitmap = (unsigned long *)((char *)super_block + (BLOCK_SIZE * bitmap_block_num));
 	return bitmap;
 }
+
+inline static void __set_block_bm(super_block_t* super_block, uint32_t block_num)
+{
+	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	unsigned long *bitmap;
+
+	bitmap = __get_bitmap_block(super_block, block_num);
+	block_num_in_group = block_num % blocks_per_group;
+	bitmap_set(bitmap, block_num_in_group, 1);
+}
+
+inline static void __clear_block_bm(super_block_t* super_block, uint32_t block_num)
+{
+	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	unsigned long *bitmap;
+
+	bitmap = __get_bitmap_block(super_block, block_num);
+	block_num_in_group = block_num % blocks_per_group;
+	bitmap_clear(bitmap, block_num_in_group, 1);
+}
+
+inline static int __bm_block_set(super_block_t* super_block, uint32_t block_num)
+{
+	uint32_t block_num_in_group, blocks_per_group = super_block->s_blocks_per_group;
+	unsigned long *bitmap;
+
+	bitmap = __get_bitmap_block(super_block, block_num);
+	block_num_in_group = block_num % blocks_per_group;
+	return bitmap_a_bit_full(bitmap, block_num_in_group);
+}
+
+//------------------------------------------------------------------------------
 
 //following functions is implemented in file vfs_operations.c about super block
 uint32_t get_blocks_count(dataserver_sb_t* this);
