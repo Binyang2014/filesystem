@@ -11,6 +11,7 @@
 #include "threadpool.h"
 #include "log.h"
 #include "syn_tool.h"
+#include "../../global.h"
 
 static void* thread_do(void* arg);
 
@@ -389,7 +390,7 @@ static int pop_stack(thread_pool_t* this, thread_t* stack_top)
 	if(top == 0)
 	{
 #ifdef THREAD_POOL_DEBUG
-		err_msg("now the spare stack is empty");
+		log_write(LOG_DEBUG, "now the spare stack is empty");
 #endif
 		return -1;
 	}

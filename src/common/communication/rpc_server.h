@@ -16,6 +16,7 @@
 struct rpc_server {
 	int server_id;
 	int server_thread_cancel;
+	int server_commit_cancel;//let server to stop
 	void *recv_buff;
 	struct rpc_server_op *op;
 	syn_queue_t *request_queue;
@@ -36,5 +37,9 @@ typedef struct rpc_server_op rpc_server_op_t;
 rpc_server_t *create_rpc_server(int thread_num, int queue_size, int
 		server_id, resolve_handler_t resolve_handler);
 void destroy_rpc_server(rpc_server_t *server);
+
+void init_server_stop_handler(event_handler_t *, void* server, void*
+		common_msg);
+void server_stop_handler(event_handler_t *event_handler);
 
 #endif /* SRC_COMMON_COMMUNICATION_RPC_SERVER_H_ */

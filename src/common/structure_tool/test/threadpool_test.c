@@ -62,7 +62,8 @@ int main()
 	//syn_queue_t* queue_syn;
 	int i;
 
-	log_init("/home/binyang/Program/filesystem/src/common/test", LOG_DEBUG);
+	//log_init("/home/binyang/Program/filesystem/src/common/test", LOG_DEBUG);
+	log_init("", LOG_DEBUG);
 	queue_syn = alloc_syn_queue(10, sizeof(common_msg_t));
 	thread_pool = alloc_thread_pool(8, queue_syn, resolve_handler);
 

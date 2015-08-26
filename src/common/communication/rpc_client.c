@@ -154,8 +154,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			recv_acc_msg(acc_msg, client->target, client->tag);
 			if(acc_msg->op_status != ACC_OK)
 			{
-				log_write(LOG_ERR, "data server has something wrong and can not\
-						save data");
+				log_write(LOG_ERR, "data server has something wrong and can not save data");
 				zfree(acc_msg);
 				return -1;
 			}
@@ -173,6 +172,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				return -1;
 			}
 			log_write(LOG_INFO, "command execute successfully");
+			zfree(acc_msg);
 			break;
 
 			//receive buffer will be freed when destroy rpc client or you can
@@ -191,6 +191,28 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			recv_msg(client->recv_buff, client->target, client->tag,
 					head_msg->len);
 			zfree(head_msg);
+			break;
+
+		case STOP_SERVER:
+			acc_msg = zmalloc(sizeof(acc_msg_t));
+			recv_acc_msg(acc_msg, client->target, client->tag);
+			if(acc_msg->op_status != ACC_OK)
+			{
+				log_write(LOG_ERR, "can not stop server now");
+				zfree(acc_msg);
+				return -1;
+			}
+			//send this message again to let server stop
+			send_cmd_msg(client->send_buff, client->target, CMD_TAG);
+			recv_acc_msg(acc_msg, client->target, client->tag);
+			if(acc_msg->op_status != ACC_OK)
+			{
+				log_write(LOG_ERR, "can not stop server now");
+				zfree(acc_msg);
+				return -1;
+			}
+			log_write(LOG_INFO, "server will stop soon");
+			zfree(acc_msg);
 			break;
 
 		default:

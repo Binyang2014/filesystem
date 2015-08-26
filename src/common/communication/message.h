@@ -75,6 +75,10 @@
 #define C_D_WRITE_BLOCK_CODE 4001
 #define C_D_READ_BLOCK_CODE 4002
 
+//Server stop code
+//every handler should achieve this function
+#define SERVER_STOP 9000
+
 #define MSG_COMM_TO_CMD(p_common_msg) ((int8_t*)(p_common_msg) + COMMON_MSG_HEAD)
 
 //reply message type and it not complete
@@ -134,6 +138,14 @@ typedef struct{
 	uint32_t op_status;//status of last message
 	uint64_t options;
 }head_msg_t;
+
+/*----------------------STOP SERVER MESSAGE---------------------*/
+typedef struct{
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	int source;
+	int tag;
+}stop_server_msg_t;
 
 /*-------------------MASTER MESSAGE StRUCTURE------------------*/
 #define FILE_NAME_MAX_LENGTH 255

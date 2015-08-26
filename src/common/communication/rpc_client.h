@@ -15,7 +15,8 @@ enum execute_type
 	READ_C_TO_D,
 	WRITE_C_TO_D,
 	COMMAND,
-	COMMAND_WITH_RETURN
+	COMMAND_WITH_RETURN,
+	STOP_SERVER
 };
 
 struct rpc_client {

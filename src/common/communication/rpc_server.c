@@ -6,10 +6,12 @@
  */
 
 #include <math.h>
+#include <unistd.h>
 #include "rpc_server.h"
 #include "../structure_tool/zmalloc.h"
 #include "../structure_tool/syn_tool.h"
 #include "../structure_tool/log.h"
+#include "../structure_tool/basic_list.h"
 #include "message.h"
 
 /*--------------------Private Declaration---------------------*/
@@ -23,16 +25,14 @@ static void server_start(rpc_server_t *server)
 {
 	server->thread_pool->tp_ops->start(server->thread_pool);
 
-#if defined(RPC_SERVER_DEBUG)
 	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START");
-#endif
 
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel) {
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
-#if defined(RPC_SERVER_DEBUG)
+
 		log_write(LOG_DEBUG, "RPC_SERVER PUT MESSAGE");
-#endif
+
 		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
 	}
 }
@@ -100,6 +100,7 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size,
 	this->request_queue = alloc_syn_queue(queue_size, sizeof(common_msg_t));
 	this->server_id = server_id;
 	this->server_thread_cancel = 0;
+	this->server_commit_cancel = 0;
 	this->thread_pool = alloc_thread_pool(thread_num, this->request_queue, resolve_handler);
 
 	this->op = zmalloc(sizeof(rpc_server_op_t));
@@ -114,10 +115,50 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size,
 
 void destroy_rpc_server(rpc_server_t *server)
 {
-	server_stop(server);
+	while(server->server_commit_cancel != 1);
+	//wait client receive ack message
+	sleep(1);
 	destroy_syn_queue(server->request_queue);
 	destroy_thread_pool(server->thread_pool);
 	zfree(server->op);
 	zfree(server->recv_buff);
 	zfree(server);
+}
+
+/*--------------------TO STOP SERVER---------------------*/
+void init_server_stop_handler(event_handler_t *event_handler, void* server,
+		void* common_msg)
+{
+	list_t *list;
+
+	event_handler->special_struct = server;
+	event_handler->event_buffer_list = list_create();
+	list = event_handler->event_buffer_list;
+	list->list_ops->list_add_node_head(list,
+			MSG_COMM_TO_CMD(common_msg));
+}
+
+void server_stop_handler(event_handler_t *event_handler)
+{
+	rpc_server_t *server = event_handler->special_struct;
+	list_t *list = event_handler->event_buffer_list;
+	stop_server_msg_t *stop_server_msg = list_node_value(list->list_ops->list_index(list,
+				0));
+	acc_msg_t *acc_msg = (acc_msg_t*)zmalloc(sizeof(acc_msg_t));
+
+	log_write(LOG_INFO, "This server wiil be stoped soon!!!");
+	if(server->server_thread_cancel == 0)
+		server->op->server_stop(server);
+	//mark it, and will tell destroy functoin later
+	else
+		server->server_commit_cancel = -1;
+
+	acc_msg->op_status = ACC_OK;
+	server->op->send_result(acc_msg, stop_server_msg->source, stop_server_msg->tag, IGNORE_LENGTH, ACC);
+	zfree(acc_msg);
+	list_release(list);
+	event_handler->event_buffer_list = NULL;
+	//tell destory function to destroy this server
+	if(server->server_commit_cancel == -1)
+		server->server_commit_cancel = 1;
 }
