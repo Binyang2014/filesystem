@@ -92,7 +92,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	event_handler->special_struct = data_server;
 
 	//get buffer structure for event handler
-	 if( (event_handler->event_buffer_list = get_buffer_list(data_server, 5)) == NULL )
+	 if( (event_handler->event_buffer_list = get_buffer_list(data_server, 4)) == NULL )
 		 return -1;
 	t_buff_list = event_handler->event_buffer_list;
 
@@ -122,17 +122,6 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 
 #ifdef DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "the cmmon_msg is %p", t_buff->value);
-#endif
-
-	t_buff = t_buff_list->list_ops->list_next(iter);
-	if( (t_buff->value = get_reply_msg_buff(data_server)) == NULL )
-	{
-		t_buff_list->list_ops->list_release_iterator(iter);
-		return -1;
-	}
-
-#ifdef DATASERVER_COMM_DEBUG
-	log_write(LOG_DEBUG, "the reply_msg_buff is %p", t_buff->value);
 #endif
 
 	t_buff = t_buff_list->list_ops->list_next(iter);

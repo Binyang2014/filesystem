@@ -48,10 +48,10 @@ int main()
 	return_file_info_buff(dataserver, value);
 
 	//test reply_message_buff
-	node  = list->list_ops->list_next(iter);
-	value = get_reply_msg_buff(dataserver);
-	list_set_node_value(node, value);
-	return_reply_msg_buff(dataserver, value);
+	//node  = list->list_ops->list_next(iter);
+	//value = get_reply_msg_buff(dataserver);
+	//list_set_node_value(node, value);
+	//return_reply_msg_buff(dataserver, value);
 
 	//test f_arr_buff
 	node  = list->list_ops->list_next(iter);

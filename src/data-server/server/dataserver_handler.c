@@ -42,10 +42,10 @@ static int read_from_vfs(dataserver_file_t *file, msg_data_t* buff, size_t count
 
 /**
  * handle the request from client about reading from a file
- * buff and msg_buff should be allocated properly outside
+ * buff should be allocated properly outside
  */
 static int m_read_handler(data_server_t* data_server, int source, int tag, msg_for_rw_t* file_info,
-		void* buff, void* msg_buff)
+		void* buff)
 {
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
@@ -122,7 +122,7 @@ static int write_to_vfs(dataserver_file_t *file, msg_data_t* buff, off_t offset)
 
 //write message handler
 static int m_write_handler(data_server_t* data_server, int source, int tag, msg_for_rw_t* file_info,
-		void* buff, void* msg_buff)
+		void* buff)
 {
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
@@ -169,9 +169,6 @@ static void resolve_rw_handler_buffer(event_handler_t* event_handle,
 	handle_buff->common_msg = list_node_value(node);
 
 	node = buffer_list->list_ops->list_next(iter);
-	handle_buff->msg_buffer = list_node_value(node);
-
-	node = buffer_list->list_ops->list_next(iter);
 	handle_buff->data_buffer = list_node_value(node);
 
 	node = buffer_list->list_ops->list_next(iter);
@@ -194,10 +191,6 @@ static void release_rw_handler_buffer(event_handler_t* event_handle)
 	node = buffer_list->list_ops->list_next(iter);
 	value = list_node_value(node);
 	reture_common_msg_buff(dataserver, value);
-
-	node = buffer_list->list_ops->list_next(iter);
-	value = list_node_value(node);
-	return_reply_msg_buff(dataserver, value);
 
 	node = buffer_list->list_ops->list_next(iter);
 	value = list_node_value(node);
@@ -261,8 +254,8 @@ void d_read_handler(event_handler_t* event_handle)
 	this->rpc_server->op->send_result(head_msg, source, tag, IGNORE_LENGTH, HEAD);
 	zfree(head_msg);
 
-	if(m_read_handler(this, source, tag, handle_buff.file_info, handle_buff.data_buffer,
-				handle_buff.msg_buffer) == -1)
+	if(m_read_handler(this, source, tag, handle_buff.file_info,
+				handle_buff.data_buffer) == -1)
 	{
 		log_write(LOG_ERR, "internal wrong when reading data and data server is crushed");
 		release_rw_handler_buffer(event_handle);
@@ -323,8 +316,8 @@ void d_write_handler(event_handler_t* event_handle)
 	this->rpc_server->op->send_result(acc_msg, source, tag, IGNORE_LENGTH, ACC);
 
 	//recv data and send acc to client
-	if(m_write_handler(this, source, tag, handle_buff.file_info, handle_buff.data_buffer,
-			handle_buff.msg_buffer) == -1)
+	if(m_write_handler(this, source, tag, handle_buff.file_info,
+				handle_buff.data_buffer) == -1)
 	{
 		//do somthing here
 		acc_msg->op_status = WRITE_FAIL;

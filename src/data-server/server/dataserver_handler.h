@@ -29,7 +29,6 @@ struct msg_for_rw
 struct rw_handle_buffer
 {
 	common_msg_t* common_msg;
-	void* msg_buffer;
 	char* data_buffer;
 	struct msg_for_rw* file_info;
 	vfs_hashtable_t* f_arr_buff;

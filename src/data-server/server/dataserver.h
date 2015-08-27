@@ -44,7 +44,6 @@ struct data_server
 	basic_queue_t* m_data_buff;//message data buffer
 	basic_queue_t *common_msg_buff;//each thread need a common message buffer
 	basic_queue_t* file_buff;//each read or write requests need a file information buffer
-	basic_queue_t* reply_message_buff;//may be we need reply message buffer for each thread
 	basic_queue_t* f_arr_buff;//array that contain maps from global to local
 	//all used for f_arr_buff
 	unsigned long* f_arr_bitmap;

@@ -17,13 +17,13 @@ static list_node_t* list_node_arr;
 static msg_data_t* msg_data_arr;
 static common_msg_t* common_msg_arr;
 static dataserver_file_t* file_arr;
-static void* reply_message_arr;
+// static void* reply_message_arr;
 static vfs_hashtable_t* f_map_arr;
 static vfs_hashtable_t summary_table;
 
 /*===================== Prototypes ==========================*/
 static void buff_node_dup(void*, void*);
-static void reply_msg_dup(void*, void*);
+// static void reply_msg_dup(void*, void*);
 static void m_data_dup(void*, void*);
 static void file_info_dup(void*, void*);
 static void f_arr_dup(void*, void*);
@@ -49,19 +49,6 @@ list_t* get_buffer_list(data_server_t* data_server, int num)
 		list->list_ops->list_add_exist_node_tail(list, node);
 	}
 	return list;
-}
-
-/**
- * get a block of message buffer from data server
- */
-void* get_reply_msg_buff(data_server_t* data_server)
-{
-	void* msg_buffer = NULL;
-	basic_queue_t* buff_queue;
-	buff_queue = data_server->reply_message_buff;
-
-	buff_queue->basic_queue_op->pop(buff_queue, &msg_buffer);
-	return msg_buffer;
 }
 
 void* get_data_buff(data_server_t* data_server)
@@ -136,13 +123,6 @@ void reture_common_msg_buff(data_server_t* data_server, void* buff)
 	buff_queue->basic_queue_op->push(buff_queue, &buff);
 }
 
-void return_reply_msg_buff(data_server_t* data_server, void* buff)
-{
-	basic_queue_t* buff_queue;
-	buff_queue = data_server->reply_message_buff;
-	buff_queue->basic_queue_op->push(buff_queue, &buff);
-}
-
 void return_data_buff(data_server_t* data_server, void* buff)
 {
 	basic_queue_t* buff_queue;
@@ -199,9 +179,9 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	if((data_server->file_buff = alloc_basic_queue(sizeof(dataserver_file_t*), init_length + 1))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((data_server->reply_message_buff = alloc_basic_queue(sizeof(void*), init_length + 1))
-			== NULL)
-		err_sys("error when allocate buffer");
+	// if((data_server->reply_message_buff = alloc_basic_queue(sizeof(void*), init_length + 1))
+	// 		== NULL)
+	// 	err_sys("error when allocate buffer");
 	if((data_server->f_arr_buff = alloc_basic_queue(sizeof(vfs_hashtable_t*), init_length + 1))
 			== NULL)
 		err_sys("error when allocate buffer");
@@ -211,7 +191,7 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	queue_set_dup_method(data_server->m_data_buff, m_data_dup);
 	queue_set_dup_method(data_server->common_msg_buff, common_msg_buff_dup);
 	queue_set_dup_method(data_server->file_buff, file_info_dup);
-	queue_set_dup_method(data_server->reply_message_buff, reply_msg_dup);
+	// queue_set_dup_method(data_server->reply_message_buff, reply_msg_dup);
 	queue_set_dup_method(data_server->f_arr_buff, f_arr_dup);
 
 	//allocate buffers
@@ -225,8 +205,8 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	if((file_arr = (dataserver_file_t* )zmalloc(sizeof(dataserver_file_t) * init_length))
 			== NULL)
 		err_sys("error when allocate buffer");
-	if((reply_message_arr = (void* )zmalloc(MAX_CMD_MSG_LEN * init_length)) == NULL)
-		err_sys("error when allocate buffer");
+	// if((reply_message_arr = (void* )zmalloc(MAX_CMD_MSG_LEN * init_length)) == NULL)
+	// 	err_sys("error when allocate buffer");
 	if((f_map_arr = (vfs_hashtable_t* )zmalloc(sizeof(vfs_hashtable_t) * F_ARR_SIZE)) == NULL)
 		err_sys("error when allocate buffer");
 
@@ -257,10 +237,6 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 		data_server->file_buff->basic_queue_op->push(data_server->file_buff,
 				&ptr_temp);
 
-		ptr_temp = reply_message_arr + MAX_CMD_MSG_LEN * i;
-		data_server->reply_message_buff->basic_queue_op->push(data_server->reply_message_buff,
-				&ptr_temp);
-
 		ptr_temp = &f_map_arr[i];
 		data_server->f_arr_buff->basic_queue_op->push(data_server->f_arr_buff,
 				&ptr_temp);
@@ -284,7 +260,7 @@ void free_data_server_buff(data_server_t *data_server)
 	zfree(summary_table.chunks_arr);
 
 	zfree(f_map_arr);
-	zfree(reply_message_arr);
+	// zfree(reply_message_arr);
 	zfree(file_arr);
 	zfree(common_msg_arr);
 	zfree(msg_data_arr);
@@ -292,7 +268,7 @@ void free_data_server_buff(data_server_t *data_server)
 
 	//free message queue
 	destroy_basic_queue(data_server->f_arr_buff);
-	destroy_basic_queue(data_server->reply_message_buff);
+	// destroy_basic_queue(data_server->reply_message_buff);
 	destroy_basic_queue(data_server->file_buff);
 	destroy_basic_queue(data_server->common_msg_buff);
 	destroy_basic_queue(data_server->m_data_buff);
@@ -326,11 +302,6 @@ void return_buffer_list(data_server_t* data_server, list_t* list)
 static void buff_node_dup(void* dest, void* buff_node)
 {
 	*(void** )dest = *(void** )buff_node;
-}
-
-static void reply_msg_dup(void* dest, void* reply_msg)
-{
-	*(void** )dest =  *(void** )reply_msg;
 }
 
 static void m_data_dup(void* dest, void* m_data)
