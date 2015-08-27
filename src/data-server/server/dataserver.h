@@ -62,7 +62,7 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue);
 //about data server
 data_server_t* alloc_dataserver(total_size_t t_size, int dev_num);
 int get_current_imformation(data_server_t* server_imf); //返回目前数据节点的信息
-void destory_datasrever();
+void destroy_dataserver();
 
 //this is the ultimate goal!
 void *dataserver_run(void *arg);

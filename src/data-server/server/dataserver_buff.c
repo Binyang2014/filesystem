@@ -17,13 +17,11 @@ static list_node_t* list_node_arr;
 static msg_data_t* msg_data_arr;
 static common_msg_t* common_msg_arr;
 static dataserver_file_t* file_arr;
-// static void* reply_message_arr;
 static vfs_hashtable_t* f_map_arr;
 static vfs_hashtable_t summary_table;
 
 /*===================== Prototypes ==========================*/
 static void buff_node_dup(void*, void*);
-// static void reply_msg_dup(void*, void*);
 static void m_data_dup(void*, void*);
 static void file_info_dup(void*, void*);
 static void f_arr_dup(void*, void*);
@@ -260,7 +258,6 @@ void free_data_server_buff(data_server_t *data_server)
 	zfree(summary_table.chunks_arr);
 
 	zfree(f_map_arr);
-	// zfree(reply_message_arr);
 	zfree(file_arr);
 	zfree(common_msg_arr);
 	zfree(msg_data_arr);
@@ -268,7 +265,6 @@ void free_data_server_buff(data_server_t *data_server)
 
 	//free message queue
 	destroy_basic_queue(data_server->f_arr_buff);
-	// destroy_basic_queue(data_server->reply_message_buff);
 	destroy_basic_queue(data_server->file_buff);
 	destroy_basic_queue(data_server->common_msg_buff);
 	destroy_basic_queue(data_server->m_data_buff);

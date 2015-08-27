@@ -6,6 +6,7 @@
 #include "../../../common/communication/rpc_client.h"
 #include "../../../common/communication/mpi_communication.h"
 #include "../../../common/structure_tool/log.h"
+#include "../../../common/structure_tool/zmalloc.h"
 
 void init_w_struct(write_c_to_d_t* w_msg)
 {
@@ -51,9 +52,11 @@ int main(int argc, char* argv[])
 	{
 		dataserver = alloc_dataserver(MIDDLE, 0);
 		dataserver_run(dataserver);
+		destroy_dataserver(dataserver);
 	}
 	else
 	{
+		stop_server_msg_t* stop_server_msg = NULL;
 		rpc_client_t* client = create_rpc_client(id, 0, 13);
 		//It can write to data server
 		init_w_struct(&w_msg);
@@ -76,6 +79,21 @@ int main(int argc, char* argv[])
 		for(i = 0 ; i < 16; i++)
 			printf("%c ", data_msg[i]);
 		printf("\n");
+		destroy_rpc_client(client);
+
+		//send message to stop data server
+		client = create_rpc_client(id, 0, 13);
+		stop_server_msg = zmalloc(sizeof(stop_server_msg_t));
+		stop_server_msg->operation_code = SERVER_STOP;
+		stop_server_msg->source = 1;
+		stop_server_msg->tag = 13;
+		client->op->set_send_buff(client, stop_server_msg);
+		if(client->op->execute(client, STOP_SERVER) < 0)
+			log_write(LOG_ERR, "stop server wrong");
+		else
+			log_write(LOG_INFO, "can't believe it");
+		destroy_rpc_client(client);
+		zfree(stop_server_msg);
 	}
 	mpi_finish();
 	return 0;

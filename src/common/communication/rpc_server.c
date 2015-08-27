@@ -126,16 +126,21 @@ void destroy_rpc_server(rpc_server_t *server)
 }
 
 /*--------------------TO STOP SERVER---------------------*/
-void init_server_stop_handler(event_handler_t *event_handler, void* server,
+int init_server_stop_handler(event_handler_t *event_handler, void* server,
 		void* common_msg)
 {
 	list_t *list;
 
 	event_handler->special_struct = server;
 	event_handler->event_buffer_list = list_create();
-	list = event_handler->event_buffer_list;
+	if( (list = event_handler->event_buffer_list) == NULL )
+	{
+		log_write(LOG_ERR, "error when allocate list");
+		return -1;
+	}
 	list->list_ops->list_add_node_head(list,
 			MSG_COMM_TO_CMD(common_msg));
+	return 0;
 }
 
 void server_stop_handler(event_handler_t *event_handler)

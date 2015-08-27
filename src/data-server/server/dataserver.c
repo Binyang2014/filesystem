@@ -17,6 +17,7 @@
 #include "../../common/communication/rpc_server.h"
 #include "../../common/structure_tool/basic_list.h"
 #include "../../common/structure_tool/log.h"
+#include "../../common/structure_tool/zmalloc.h"
 
 //this is a demo, there are many things to add
 //initial flag
@@ -57,7 +58,7 @@ int get_current_imformation(data_server_t * server_imf)
 
 data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 {
-	data_server = (data_server_t* )malloc(sizeof(data_server_t));
+	data_server = (data_server_t* )zmalloc(sizeof(data_server_t));
 	if(data_server == NULL)
 		err_sys("error while allocate data server");
 
@@ -78,6 +79,13 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 	//end of init
 }
 
+void destroy_dataserver(data_server_t* data_server)
+{
+	destroy_rpc_server(data_server->rpc_server);
+	free_data_server_buff(data_server);
+	vfs_destroy(data_server->d_super_block);
+	zfree(data_server);
+}
 /*=================================resolve message=========================================*/
 
 static int init_rw_event_handler(event_handler_t* event_handler,
@@ -190,12 +198,18 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 			err_quit("error when allocate buffer");
 		//invoke a thread to excuse
 		return d_read_handler;
+
 	case C_D_WRITE_BLOCK_CODE:
 		error = init_rw_event_handler(event_handler, &t_common_msg, MSG_WRITE);
 		if(error == -1)
 			err_quit("error when allocate buffer");
 		//invoke a thread to excuse
 		return d_write_handler;
+
+	case SERVER_STOP:
+		init_server_stop_handler(event_handler, data_server->rpc_server, &t_common_msg);
+		return server_stop_handler;
+
 	default:
 		return NULL;
 	}
