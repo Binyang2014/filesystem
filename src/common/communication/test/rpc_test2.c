@@ -26,8 +26,14 @@ void hello(event_handler_t *event_handler) {
 	puts("hello start");
 
 	void *result = zmalloc(sizeof(test_result_t));
+	head_msg_t head_msg;
+
 	((test_result_t *)(result))->result = 1090;
-	local_server->op->send_result(result, 1, 1, sizeof(test_result_t), ANS);
+	//local_server->op->send_result(result, 1, 1, sizeof(test_result_t), ANS);
+	head_msg.op_status = ACC_OK;
+	head_msg.len = sizeof(test_result_t);
+	local_server->op->send_to_queue(local_server, &head_msg, 1, 1, sizeof(head_msg_t));
+	local_server->op->send_to_queue(local_server, result, 1, 1, sizeof(test_result_t));
 	puts("hello end");
 	zfree(result);
 }
@@ -65,7 +71,7 @@ int main(int argc, char* argv[])
 	rank = get_mpi_rank();
 
 	if(rank == 0) {
-		rpc_server_t *server = create_rpc_server(3, 3, 0, resolve_handler);
+		rpc_server_t *server = create_rpc_server2(3, 3, 3, 0, resolve_handler);
 		local_server = server;
 		server->op->server_start(server);
 		printf("Can you see me??\n");

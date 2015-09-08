@@ -2,9 +2,9 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdint.h>
-#include "../syn_tool.h"
-#include "../threadpool.h"
-#include "../log.h"
+#include "syn_tool.h"
+#include "threadpool.h"
+#include "log.h"
 
 syn_queue_t* queue_syn;
 typedef struct common_msg
@@ -77,8 +77,9 @@ int main()
 		queue_syn->op->syn_queue_push(queue_syn, &common_msg);
 	}
 
-	destroy_thread_pool(thread_pool);
-	destroy_syn_queue(queue_syn);
-	log_close();
+	//destroy_thread_pool(thread_pool);
+	//destroy_syn_queue(queue_syn);
+	//log_close();
+	sleep(1000);
 	return 0;
 }

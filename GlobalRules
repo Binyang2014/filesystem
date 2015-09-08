@@ -38,6 +38,6 @@ test_clean::
 	$(CC) $(CFLAGS) -c $< $(OUTPUT_OPTION)
 
 %.d:%.c
-	$(CC) -MM $< > $@.$$$$;\
+	$(CC) -MM $(INCLUDE) $< > $@.$$$$;\
 	sed 's,$*.o,$*.$(OBJSUF) $*.d,g' < $@.$$$$ > $@;\
 	rm -f $@.$$$$

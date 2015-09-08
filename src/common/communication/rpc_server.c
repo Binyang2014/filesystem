@@ -7,18 +7,23 @@
 
 #include <math.h>
 #include <unistd.h>
+#include <assert.h>
+#include <string.h>
 #include "rpc_server.h"
-#include "../structure_tool/zmalloc.h"
-#include "../structure_tool/syn_tool.h"
-#include "../structure_tool/log.h"
-#include "../structure_tool/basic_list.h"
+#include "zmalloc.h"
+#include "syn_tool.h"
+#include "log.h"
+#include "basic_list.h"
 #include "message.h"
 
 /*--------------------Private Declaration---------------------*/
 static void server_start(rpc_server_t *server);
 static void server_stop(rpc_server_t *server);
 static int send_result(void *param, int dst, int tag, int len, msg_type_t type);
+static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag,
+		int len);
 static int recv_reply(void* param, int source, int tag, msg_type_t type);
+static void* send_msg_from_queue(void* server);
 
 /*--------------------Private Implementation------------------*/
 static void server_start(rpc_server_t *server)
@@ -29,11 +34,23 @@ static void server_start(rpc_server_t *server)
 
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel) {
+		if(server->send_queue != NULL)
+			pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
+
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
 
 		log_write(LOG_DEBUG, "RPC_SERVER PUT MESSAGE");
 
 		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
+	}
+	//no more message need to send
+	if(server->send_queue != NULL)
+	{
+		while(!server->send_queue->queue->basic_queue_op->is_empty(server->send_queue->queue))
+			usleep(50);
+		pthread_cancel(server->qsend_tid);
+		pthread_join(server->qsend_tid, NULL);
+		log_write(LOG_DEBUG, "send queue thread has been canceled");
 	}
 }
 
@@ -75,7 +92,42 @@ static int send_result(void *param, int dst, int tag, int len,
 	return 0;
 }
 
-int recv_reply(void* param, int source, int tag, msg_type_t type)
+static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag,
+		int len)
+{
+	syn_queue_t *send_queue = server->send_queue;
+	rpc_send_msg_t *rpc_send_msg = server->send_buff;
+	assert(rpc_send_msg->msg == NULL);
+
+	rpc_send_msg->dst = dst;
+	rpc_send_msg->tag = tag;
+	rpc_send_msg->length = len;
+	rpc_send_msg->msg = zmalloc(len);
+	memcpy(rpc_send_msg->msg, param, len);
+	send_queue->op->syn_queue_push(send_queue, rpc_send_msg);
+	rpc_send_msg->msg = NULL;
+}
+
+static void* send_msg_from_queue(void* server)
+{
+	rpc_server_t *rpc_server = (rpc_server_t *)server;
+	syn_queue_t *send_queue = rpc_server->send_queue;
+	rpc_send_msg_t *rpc_send_msg = zmalloc(sizeof(rpc_send_msg_t));
+
+	while(1)
+	{
+		send_queue->op->syn_queue_pop(send_queue, rpc_send_msg);
+		send_msg(rpc_send_msg->msg, rpc_send_msg->dst, rpc_send_msg->tag,
+				rpc_send_msg->length);
+		zfree(rpc_send_msg->msg);
+		rpc_send_msg->msg = NULL;
+	}
+
+	zfree(rpc_send_msg);
+	return NULL;
+}
+
+static int recv_reply(void* param, int source, int tag, msg_type_t type)
 {
 	switch(type)
 	{
@@ -98,6 +150,8 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size,
 	rpc_server_t *this = zmalloc(sizeof(rpc_server_t));
 
 	this->request_queue = alloc_syn_queue(queue_size, sizeof(common_msg_t));
+	this->send_queue = NULL;
+	this->send_buff = NULL;
 	this->server_id = server_id;
 	this->server_thread_cancel = 0;
 	this->server_commit_cancel = 0;
@@ -107,9 +161,22 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size,
 	this->op->server_start = server_start;
 	this->op->server_stop = server_stop;
 	this->op->send_result = send_result;
+	this->op->send_to_queue = send_to_queue;
 	this->op->recv_reply = recv_reply;
 
 	this->recv_buff = zmalloc(sizeof(common_msg_t));
+	return this;
+}
+
+rpc_server_t *create_rpc_server2(int thread_num, int recv_qsize, int send_qsize,
+		int server_id, resolve_handler_t resolve_handler)
+{
+	rpc_server_t *this = create_rpc_server(thread_num, recv_qsize, server_id,
+			resolve_handler);
+	this->send_queue = alloc_syn_queue(send_qsize, sizeof(rpc_send_msg_t));
+	this->send_buff = zmalloc(sizeof(rpc_send_msg_t));
+	this->send_buff->msg = NULL;
+
 	return this;
 }
 
@@ -117,11 +184,14 @@ void destroy_rpc_server(rpc_server_t *server)
 {
 	while(server->server_commit_cancel != 1);
 	//wait client receive ack message
-	sleep(1);
+	usleep(500);
 	destroy_syn_queue(server->request_queue);
+	if(server->send_queue != NULL)
+		destroy_syn_queue(server->send_queue);
 	destroy_thread_pool(server->thread_pool);
 	zfree(server->op);
 	zfree(server->recv_buff);
+	zfree(server->send_buff);
 	zfree(server);
 }
 

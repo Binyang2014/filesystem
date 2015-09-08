@@ -13,11 +13,11 @@
 #include "dataserver.h"
 #include "dataserver_buff.h"
 #include "dataserver_handler.h"
-#include "../structure/vfs_structure.h"
-#include "../../common/communication/rpc_server.h"
-#include "../../common/structure_tool/basic_list.h"
-#include "../../common/structure_tool/log.h"
-#include "../../common/structure_tool/zmalloc.h"
+#include "vfs_structure.h"
+#include "rpc_server.h"
+#include "basic_list.h"
+#include "log.h"
+#include "zmalloc.h"
 
 //this is a demo, there are many things to add
 //initial flag

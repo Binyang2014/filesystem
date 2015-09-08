@@ -14,9 +14,9 @@
 #define _DARASERVER_COMM_H_
 
 #include "dataserver.h"
-#include "../../common/communication/message.h"
-#include "../../global.h"
-#include "../structure/vfs_structure.h"
+#include "message.h"
+#include "global.h"
+#include "vfs_structure.h"
 
 
 struct msg_for_rw

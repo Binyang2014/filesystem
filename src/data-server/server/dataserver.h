@@ -8,9 +8,9 @@
 #define _FILESYSTEM_DATASERVER_H_
 
 #include <pthread.h>
-#include "../structure/vfs_structure.h"
-#include "../../common/communication/message.h"
-#include "../../common/communication/rpc_server.h"
+#include "vfs_structure.h"
+#include "message.h"
+#include "rpc_server.h"
 
 //buffer size
 #define F_ARR_SIZE (1 << 12)

@@ -7,11 +7,11 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include "dataserver_buff.h"
-#include "../../common/structure_tool/log.h"
-#include "../../common/structure_tool/bitmap.h"
-#include "../../common/structure_tool/basic_list.h"
-#include "../../common/structure_tool/basic_queue.h"
-#include "../../common/structure_tool/zmalloc.h"
+#include "log.h"
+#include "bitmap.h"
+#include "basic_list.h"
+#include "basic_queue.h"
+#include "zmalloc.h"
 
 static list_node_t* list_node_arr;
 static msg_data_t* msg_data_arr;

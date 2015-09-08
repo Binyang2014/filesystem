@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include "../dataserver.h"
-#include "../../../common/communication/rpc_client.h"
-#include "../../../common/communication/mpi_communication.h"
-#include "../../../common/structure_tool/log.h"
-#include "../../../common/structure_tool/zmalloc.h"
+#include "dataserver.h"
+#include "rpc_client.h"
+#include "mpi_communication.h"
+#include "log.h"
+#include "zmalloc.h"
 
 void init_w_struct(write_c_to_d_t* w_msg)
 {

@@ -12,7 +12,7 @@
 #define _BASIC_STRUCTURE_H_
 
 #include <stdint.h>
-#include "../../global.h"
+#include "global.h"
 
 //sizeof(super_block) = 1028
 struct super_block

@@ -11,7 +11,7 @@
 #include "threadpool.h"
 #include "log.h"
 #include "syn_tool.h"
-#include "../../global.h"
+#include "global.h"
 
 static void* thread_do(void* arg);
 

@@ -7,9 +7,9 @@
  * this file implement functions in vfs_structure.h
  */
 #include "vfs_structure.h"
-#include "../../common/structure_tool/map.h"
-#include "../../common/structure_tool/log.h"
-#include "../../common/structure_tool/zmalloc.h"
+#include "map.h"
+#include "log.h"
+#include "zmalloc.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>

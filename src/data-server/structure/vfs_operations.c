@@ -13,11 +13,11 @@
 #include <string.h>
 #include <pthread.h>
 #include <stdint.h>
-#include "../../common/structure_tool/sds.h"
-#include "../../common/structure_tool/bitmap.h"
-#include "../../common/structure_tool/map.h"
-#include "../../common/structure_tool/log.h"
-#include "../../common/structure_tool/zmalloc.h"
+#include "sds.h"
+#include "bitmap.h"
+#include "map.h"
+#include "log.h"
+#include "zmalloc.h"
 
 //------------------------basic function--------------------
 static char* find_a_block(dataserver_sb_t* dataserver_sb, uint32_t block_num)

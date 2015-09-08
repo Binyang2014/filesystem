@@ -14,7 +14,7 @@
 
 #ifndef SRC_COMMON_COMMUNICATION_MESSAGE_H_
 #define SRC_COMMON_COMMUNICATION_MESSAGE_H_
-#include "../../global.h"
+#include "global.h"
 #include <stdint.h>
 
 //some define about message source(ip address) and message tag(port number)

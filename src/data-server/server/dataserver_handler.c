@@ -9,11 +9,11 @@
 #include <stdlib.h>
 #include "dataserver_handler.h"
 #include "dataserver_buff.h"
-#include "../../common/communication/message.h"
-#include "../../common/structure_tool/log.h"
-#include "../structure/vfs_structure.h"
-#include "../../common/structure_tool/threadpool.h"
-#include "../../common/structure_tool/zmalloc.h"
+#include "message.h"
+#include "log.h"
+#include "vfs_structure.h"
+#include "threadpool.h"
+#include "zmalloc.h"
 
 /*=========================INTERNEL FUNCITION EVOKED BY HANDLER================================*/
 static int read_from_vfs(dataserver_file_t *file, msg_data_t* buff, size_t count,

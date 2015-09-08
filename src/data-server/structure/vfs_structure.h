@@ -23,8 +23,8 @@
 #include <pthread.h>
 #include <sys/types.h>
 #include <stdint.h>
-#include "../../common/structure_tool/map.h"
-#include "../../common/structure_tool/bitmap.h"
+#include "map.h"
+#include "bitmap.h"
 #include "basic_structure.h"
 
 struct dataserver_super_block;
