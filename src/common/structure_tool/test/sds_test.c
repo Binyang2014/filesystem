@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
-#include "../sds.h"
-#include "../test_help.h"
+#include "sds.h"
+#include "test_help.h"
 
 int main(void) {
 	{

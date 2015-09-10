@@ -81,7 +81,7 @@ struct list
 	struct node *head;
 	struct node *tail;
 	struct list_operations* list_ops;
-	void *(*dup)(void *ptr);
+	void *(*dup)(const void *ptr);
 	void (*free)(void *ptr);
 	int (*match)(void *ptr, void *key);
 	unsigned long len;

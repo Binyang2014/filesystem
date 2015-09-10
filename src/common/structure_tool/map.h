@@ -43,6 +43,6 @@ typedef struct pair pair_t;
 typedef struct map_op map_op_t;
 
 map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
-		void *(*list_dup)(void *ptr), void (*list_free)(void *ptr));
+		void *(*list_dup)(const void *ptr), void (*list_free)(void *ptr));
 void destroy_map(map_t *map);
 #endif /* SRC_MAP_H_ */

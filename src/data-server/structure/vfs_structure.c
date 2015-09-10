@@ -83,7 +83,7 @@ static void init_file_op(file_op_t* f_op)
 }
 
 //follows are some functions that will be used by hash table
-static void* hash_table_pair_dup(void* pair)
+static void* hash_table_pair_dup(const void* pair)
 {
 	pair_t *p = zmalloc(sizeof(pair_t));
 	uint32_t* value_t = NULL;

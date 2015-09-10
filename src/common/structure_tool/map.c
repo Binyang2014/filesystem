@@ -176,7 +176,7 @@ void del(map_t *this, sds key){
 }
 
 map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
-		void *(*list_dup)(void *ptr), void (*list_free)(void *ptr)) {
+		void *(*list_dup)(const void *ptr), void (*list_free)(void *ptr)) {
 	int i;
 
 	map_t *this = (map_t *)(zmalloc(sizeof(map_t)));

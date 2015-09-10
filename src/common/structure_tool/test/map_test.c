@@ -1,13 +1,13 @@
 #include <stdio.h>
-#include "../map.h"
-#include "../sds.h"
-#include "../zmalloc.h"
+#include "map.h"
+#include "sds.h"
+#include "zmalloc.h"
 
-void *pair_dup(void *pair){
+void *pair_dup(const void *pair){
 	pair_t *p = zmalloc(sizeof(pair_t));
 	p->key = sds_dup(((pair_t *)pair)->key);
 	int *t = zmalloc(sizeof(int));
-	*t = *((int *)((pair_t *)pair)->key);
+	*t = *((int *)((pair_t *)pair)->value);
 	p->value = t;
 	return (void *)p;
 }
