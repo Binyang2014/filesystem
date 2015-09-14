@@ -7,19 +7,23 @@
 #include <pthread.h>
 #include <time.h>
 #include <assert.h>
+#include <string.h>
 #include "zookeeper.h"
 #include "zmalloc.h"
 #include "sds.h"
+#include "log.h"
 
 //==============================PRIVATE FUNCTION DECLARE==========================
 static void update_znode_status(znode_status_t *status, int version, int mode);
 
-static void* pair_dup(const void *pair);
+static void *pair_dup(const void *pair);
 static void pair_free(void* pair);
 static void v_free(void *v);
-static void* v_dup(const void *v);
+static void *v_dup(const void *v);
 
-static int add_znode();
+static zvalue *find_znode(ztree_t *tree, sds path);
+static int add_znode(ztree_t *tree, sds path, zvalue *value);
+static void delete_znode(ztree_t *tree, sds path);
 
 static void update_znode_status(znode_status_t *status, int version, int mode)
 {
@@ -99,7 +103,7 @@ void destroy_zvalue(zvalue_t *value)
 }
 
 //==============================USED FOR CREATING ZPATH============================
-static void* pair_dup(const void *pair)
+static void *pair_dup(const void *pair)
 {
 	pair_t *p = zmalloc(sizeof(pair_t));
 	p->key = sds_dup(((pair_t *)pair)->key);
@@ -121,20 +125,158 @@ static v_free(void *v)
 	destroy(value);
 }
 
-static void* v_dup(const void *v)
+static void *v_dup(const void *v)
 {
 	zvalue_t *value = v;
 	return (void *)zvalue_dup(value);
 }
 
 //==================================ZTREE FUNCTIONS================================
+//this function will going to find correct zvalue related by path and will
+//return NULL if this zvalue does not exist. The path format will be like
+///temp/tmp1:watch/watch1. Before ':' is file path, represent real file stored
+//in this server and behind ':' is created by client whitch is used to
+//synchronize the requests
+static zvalue *find_znode(ztree_t *tree, sds path)
+{
+	int count, sub_count, i;
+	sds file_path, zvalue_path;
+	zvalue_t *file_node, sub_node = NULL;
+	map_t *zpath, sub_path;
+	sds *args, *sub_args;
+	args = sds_split_len(path, sds_len(path), ":", &count);
+
+	//path is like /temp/tmp1:
+	if(count == 1)
+	{
+		file_path = args[0];
+		file_node = zpath->op->get(zpath, file_path);
+		sds_free_split_res(args, count);
+		return file_node;
+	}
+	file_path = args[0];
+	zvalue_path = args[1];
+
+	zpath = tree->zpath;
+	file_node = zpath->op->get(zpath, file_path);
+	if(file_node == NULL)
+	{
+		sds_free_split_res(args, count);
+		return NULL;
+	}
+
+	//find file path node, now need to find sub path node
+	sub_path = file_node->child;
+	destroy_zvalue(file_node);
+	sub_args = sds_split_len(zvalue_path, sds_len(zvalue_path), "\\", &sub_count);
+	sds_free_split_res(args, count);
+
+	for(i = 0; i < sub_count; i++)
+	{
+		if(sub_node != NULL)
+			destroy_zvalue(sub_node);
+		sub_node = sub_path->op->get(sub_path, sub_args[i]);
+		if(sub_node == NULL)
+		{
+			destroy_zvalue(sub_node);
+			sds_free_split_res(sub_args, sub_count);
+			return NULL;
+		}
+		sub_path = sub_node->child;
+	}
+	//this reference send to caller, and caller need to destroy it
+	return sub_node;
+}
+
+//This function will add znode to ztree success return 0, failed return -1,
+//value in args list should be destroyed by caller
+static int add_znode(ztree_t *tree, sds path, zvalue *value)
+{
+	sds parent_path, node_name;
+	int len, start = 0, end;
+	zvalue *parent_node;
+	map_t *child_map = NULL;
+
+	len = sds_len(path);
+	parent_path = sds_dup(path);
+	//if the path is like "/temp/tmp"
+	for(end = len - 1; end >= 0 && parent_path[end] != ':', end--);
+	if(end < 0)
+	{
+		map_t *child_map = tree->zpath;
+		child_map->op->put(child_map, parent_path, value);
+		sds_free(parent_path);
+		return 0;
+	}
+
+	for(end = len - 1; parent_path[end] != '\\', end--);
+	sds_range(parent_path, start, end - 1);
+	node_name = sds_dup(path);
+	sds_range(node_name, end + 1, -1);
+
+	parent_node = find_znode(tree, parent_path);
+	if(parent_node == NULL)
+	{
+		log_write(LOG_ERR, "path is incorrect");
+		return -1;
+	}
+	child_map = parent_node->child;
+	child_map->op->put(child_map, node_name, value);
+
+	destroy_zvalue(parent_node);
+	sds_free(parent_path);
+	sds_free(node_name);
+	return 0;
+}
+
+static void delete_znode(ztree_t *tree, sds path)
+{
+	sds parent_path, node_name;
+	int len, start = 0, end;
+	zvalue *parent_node;
+	map_t *child_map = NULL;
+
+	len = sds_len(path);
+	parent_path = sds_dup(path);
+	//if the path is like "/temp/tmp"
+	for(end = len - 1; end >= 0 && parent_path[end] != ':', end--);
+	if(end < 0)
+	{
+		map_t * child_map = tree->zpath;
+		child_map->op->del(child_map, parent_path);
+		sds_free(parent_path);
+		return;
+	}
+
+	for(end = len - 1; parent_path[end] != '\\', end--);
+	sds_range(parent_path, start, end - 1);
+	node_name = sds_dup(path);
+	sds_range(node_name, end + 1, -1);
+
+	parent_node = find_znode(tree, parent_path);
+	if(parent_path == NULL)
+		return;
+	child_map = parent_node->child;
+	child_map->op->del(child_map, node_name);
+
+	destroy_zvalue(parent_node);
+	sds_free(parent_path);
+	sds_free(node_name);
+}
+
+//================================public functions==============================
 ztree_t *create_ztree(int version)
 {
 	ztree_t *this = zmalloc(sizeof(ztree_t));
 	if(this == NULL)
 		return NULL;
 	this->zpath = create_map(ZPATH_COUNT, v_dup, v_free, pair_dup, pair_free);
+	//init operations
 	this->op = zmalloc(sizeof(ztree_op_t));
+	this->op->find_znode = find_znode;
+	this->op->add_znode = add_znode;
+	this->op->delete_znode = delete_znode;
+
 	update_znode_status(&this->status, version, ZNODE_CREATE);
 	return this;
 }

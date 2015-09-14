@@ -59,11 +59,9 @@ struct zvalue
 
 struct ztree_op
 {
-	zvalue* (*find_znode)(sds path);
-	void (*add_zparents)();
-	void (*add_znode)();
-	void (*delete_zndoe)();
-	void (*delete_zparent)();
+	zvalue* (*find_znode)(ztree_t *tree, sds path);
+	void (*add_znode)(ztree_t *tree, sds path, zvalue *value);
+	void (*delete_zndoe)(ztree *tree, sds path);
 };
 
 struct ztree
