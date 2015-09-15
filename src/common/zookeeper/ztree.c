@@ -8,6 +8,7 @@
 #include <time.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 #include "zookeeper.h"
 #include "zmalloc.h"
 #include "sds.h"
@@ -15,6 +16,7 @@
 
 //==============================PRIVATE FUNCTION DECLARE==========================
 static void update_znode_status(znode_status_t *status, int version, int mode);
+static sds add_seq(zvalue_t *value, sds node_name);
 
 static void *pair_dup(const void *pair);
 static void pair_free(void* pair);
@@ -22,8 +24,24 @@ static void v_free(void *v);
 static void *v_dup(const void *v);
 
 static zvalue_t *find_znode(ztree_t *tree, sds path);
-static int add_znode(ztree_t *tree, sds path, zvalue_t *value);
+static int add_znode(ztree_t *tree, sds path, zvalue_t *value, sds return_name);
 static void delete_znode(ztree_t *tree, sds path);
+
+//================================================================================
+static sds add_seq(zvalue_t *value, sds node_name)
+{
+	int seq;
+	sds number;
+
+	pthread_mutex_lock(&value->zvalue_lock);
+	seq = value->seq++;
+	pthread_mutex_unlock(&value->zvalue_lock);
+
+	number = sds_new_ull(seq);
+	node_name = sds_cat_sds(node_name, number);
+	sds_free(number);
+	return node_name;
+}
 
 static void update_znode_status(znode_status_t *status, int version, int mode)
 {
@@ -58,6 +76,7 @@ zvalue_t *create_zvalue(sds data, znode_type_t type, int version)
 	this->child = NULL;
 	this->type = type;
 	this->data = sds_dup(data);
+	this->seq = 1;
 	this->reference = 1;
 	return_value = pthread_mutex_init(&this->zvalue_lock, NULL);
 	assert(return_value == 0);
@@ -136,7 +155,8 @@ static void *v_dup(const void *v)
 //return NULL if this zvalue does not exist. The path format will be like
 ///temp/tmp1:watch/watch1. Before ':' is file path, represent real file stored
 //in this server and behind ':' is created by client whitch is used to
-//synchronize the requests
+//synchronize the requests, if node type is squential, path should be like
+///temp/tmp1:watch/watch-, otherwise, path should not contain '-'
 static zvalue_t *find_znode(ztree_t *tree, sds path)
 {
 	int count, sub_count, i;
@@ -190,12 +210,14 @@ static zvalue_t *find_znode(ztree_t *tree, sds path)
 
 //This function will add znode to ztree success return 0, failed return -1,
 //value in args list should be destroyed by caller
-static int add_znode(ztree_t *tree, sds path, zvalue_t *value)
+//return_name should be long enough to got whole name
+static int add_znode(ztree_t *tree, sds path, zvalue_t *value, sds return_name)
 {
 	sds parent_path, node_name;
 	int len, start = 0, end;
 	zvalue_t *parent_node;
 	map_t *child_map = NULL;
+	char reserve;
 
 	len = sds_len(path);
 	parent_path = sds_dup(path);
@@ -207,10 +229,14 @@ static int add_znode(ztree_t *tree, sds path, zvalue_t *value)
 		child_map->op->put(child_map, parent_path, value);
 		log_write(LOG_DEBUG, "Add znode: The key is %s", parent_path);
 		sds_free(parent_path);
+		if(return_name != NULL)
+			return_name = sds_cpy(return_name, path);
 		return 0;
 	}
 
 	for(end = len - 1; parent_path[end] != '/' && parent_path[end] != ':'; end--);
+	assert(end > 0);
+	reserve = parent_path[end];
 	sds_range(parent_path, start, end - 1);
 	node_name = sds_dup(path);
 	sds_range(node_name, end + 1, -1);
@@ -222,13 +248,26 @@ static int add_znode(ztree_t *tree, sds path, zvalue_t *value)
 		return -1;
 	}
 	child_map = parent_node->child;
+	//change node name if type contain squential
+	if(value->type == PERSISTENT_SQUENTIAL || value->type == EPHEMERAL_SQUENTIAL)
+		node_name = add_seq(parent_node, node_name);
 	child_map->op->put(child_map, node_name, value);
 	log_write(LOG_DEBUG, "Add znode: The dir is %s, the key is %s",
 			parent_path, node_name);
+	if(return_name != NULL)
+	{
+		return_name = sds_cpy(return_name, parent_path);
+		if(reserve == ':')
+			return_name = sds_cat(return_name, ":");
+		else
+			return_name = sds_cat(return_name, "/");
+		return_name = sds_cat(return_name, node_name);
+	}
 
 	destroy_zvalue(parent_node);
 	sds_free(parent_path);
 	sds_free(node_name);
+
 	return 0;
 }
 
@@ -252,6 +291,7 @@ static void delete_znode(ztree_t *tree, sds path)
 	}
 
 	for(end = len - 1; parent_path[end] != '/' && parent_path[end] != ':'; end--);
+	assert(end > 0);
 	sds_range(parent_path, start, end - 1);
 	node_name = sds_dup(path);
 	sds_range(node_name, end + 1, -1);

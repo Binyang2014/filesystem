@@ -54,6 +54,7 @@ struct zvalue
 	enum znode_type type;
 	map_t *child;
 	int reference;
+	int seq;
 	pthread_mutex_t zvalue_lock;
 };
 
@@ -62,7 +63,8 @@ struct ztree;
 struct ztree_op
 {
 	struct zvalue* (*find_znode)(struct ztree *tree, sds path);
-	int (*add_znode)(struct ztree *tree, sds path, struct zvalue *value);
+	int (*add_znode)(struct ztree *tree, sds path, struct zvalue *value, sds
+			return_name);
 	void (*delete_znode)(struct ztree *tree, sds path);
 };
 
