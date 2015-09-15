@@ -57,11 +57,13 @@ struct zvalue
 	pthread_mutex_t zvalue_lock;
 };
 
+struct ztree;
+
 struct ztree_op
 {
-	zvalue* (*find_znode)(ztree_t *tree, sds path);
-	void (*add_znode)(ztree_t *tree, sds path, zvalue *value);
-	void (*delete_zndoe)(ztree *tree, sds path);
+	struct zvalue* (*find_znode)(struct ztree *tree, sds path);
+	int (*add_znode)(struct ztree *tree, sds path, struct zvalue *value);
+	void (*delete_znode)(struct ztree *tree, sds path);
 };
 
 struct ztree
@@ -118,10 +120,10 @@ typedef struct zclient_op zclient_op_t;
 typedef struct zclient zclient_t;
 
 zvalue_t *create_zvalue(sds data, znode_type_t type, int version);
-zvalue_t *create_zvalue_parent(sds data, znode_type, int version);
+zvalue_t *create_zvalue_parent(sds data, znode_type_t type, int version);
 zvalue_t *zvalue_dup(zvalue_t *value);
-void destory_zvalue(zvalue_t *zvalue);
+void destroy_zvalue(zvalue_t *zvalue);
 
 ztree_t *create_ztree(int version);
-void destory_ztree(ztree_t *tree);
+void destroy_ztree(ztree_t *tree);
 #endif
