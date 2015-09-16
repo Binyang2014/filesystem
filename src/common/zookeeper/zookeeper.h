@@ -31,6 +31,9 @@
 #define ZPATH_COUNT 128
 #define ZVALUE_CHILD_COUNT 16
 #define SEQUENCE_MAX 1048576
+//zserver define
+#define RECV_QUEUE_SIZE 128
+#define SEND_QUEUE_SIZE 64
 
 struct znode_status
 {
@@ -79,22 +82,20 @@ struct ztree
 
 struct zserver_op
 {
-	void (*set_znode)();
-	void (*get_znode)();
 	void (*create_parent)();
 	void (*create_znode)();
-	void (*delete_parant)();
 	void (*delete_znode)();
+	void (*set_znode)();
+	void (*get_znode)();
 	void (*notify_watcher)();
-	void (*set_watcher)();
-	void (*remove_watcher)();
+	void (*start)();
+	void (*stop)();
 };
 
 struct zserver
 {
-	int server_id;
 	struct zserver_op *op;
-	struct ztree *tree;
+	struct ztree *ztree;
 	rpc_server_t *rpc_server;
 };
 
@@ -130,4 +131,6 @@ void destroy_zvalue(zvalue_t *zvalue);
 
 ztree_t *create_ztree(int version);
 void destroy_ztree(ztree_t *tree);
+
+zserver_t *create_zserver(int server_id);
 #endif
