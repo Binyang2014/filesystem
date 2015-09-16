@@ -7,6 +7,8 @@ int main()
 	ztree_t *tree;
 	zvalue_t *value;
 	sds data, path, temp;
+	sds *children = NULL;
+	int count, i;
 
 	log_init("", LOG_DEBUG);
 	tree = create_ztree(1);
@@ -77,6 +79,15 @@ int main()
 	destroy_zvalue(value);
 	sds_free(temp);
 
+	//get children
+	path = sds_cpy(path, "/temp/tmp1");
+	children = tree->op->get_children(tree, path, &count);
+	printf("children under /temp/tmp1 are: ");
+	for(i = 0; i < count; i++)
+		printf("%s ", children[i]);
+	printf("\n");
+	sds_free_split_res(children, count);
+	
 	//delete znode
 	path = sds_cpy(path, "/temp/tmp1:watch");
 	tree->op->delete_znode(tree, path);

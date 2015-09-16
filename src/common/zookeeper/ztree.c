@@ -26,6 +26,7 @@ static void *v_dup(const void *v);
 static zvalue_t *find_znode(ztree_t *tree, sds path);
 static int add_znode(ztree_t *tree, sds path, zvalue_t *value, sds return_name);
 static void delete_znode(ztree_t *tree, sds path);
+static sds *get_children(ztree_t *tree, sds path, int *count);
 
 //================================================================================
 static sds add_seq(zvalue_t *value, sds node_name)
@@ -306,6 +307,22 @@ static void delete_znode(ztree_t *tree, sds path)
 	sds_free(node_name);
 }
 
+//This function will return children of given parent path, the path of children
+//will return into a sds array, and it will return NULL if there is no child.
+static sds *get_children(ztree_t *tree, sds path, int *count)
+{
+	zvalue_t *parent_node;
+	map_t *map;
+	sds *path_array;
+
+	parent_node = find_znode(tree, path);
+	if(parent_node == NULL)
+		return NULL;
+	map = parent_node->child;
+	path_array = map->op->get_all_keys(map, count);
+	destroy_zvalue(parent_node);
+	return path_array;
+}
 //================================public functions==============================
 ztree_t *create_ztree(int version)
 {
@@ -318,6 +335,7 @@ ztree_t *create_ztree(int version)
 	this->op->find_znode = find_znode;
 	this->op->add_znode = add_znode;
 	this->op->delete_znode = delete_znode;
+	this->op->get_children = get_children;
 
 	update_znode_status(&this->status, version, ZNODE_CREATE);
 	return this;
