@@ -229,15 +229,15 @@ static int has_next(struct map_iterator *iterator)
 		if(iterator->list == NULL){
 			if(*(iterator->map->list + offset) != NULL){
 				iterator->list = *(iterator->map->list + offset);
-				iterator->iter = list_get_iterator(iterator->list, AL_START_HEAD);
+				iterator->iter = iterator->list->list_ops->list_get_iterator(iterator->list, AL_START_HEAD);
 			}else{
 				continue;
 			}
 		}
-		if(list_has_next(iterator->iter)){
+		if(iterator->list->list_ops->list_has_next(iterator->iter)){
 			return 1;
 		}else{
-			list_release_iterator(iterator->iter);
+			iterator->list->list_ops->list_release_iterator(iterator->iter);
 			iterator->list = NULL;
 		}
 	}
@@ -246,7 +246,7 @@ static int has_next(struct map_iterator *iterator)
 }
 
 static void *next(struct map_iterator *iterator){
-	return ((list_node_t *)list_next(iterator->iter))->next;
+	return ((list_node_t *)iterator->list->list_ops->list_next(iterator->iter))->next;
 }
 
 /* This function will create a map. In the construre, you should provide map
@@ -304,7 +304,8 @@ map_iterator_t *create_map_iterator(map_t *map) {
 	this->map = map;
 	this->dir_no = 0;
 	this->list = *(map->list + this->dir_no);
-	this->iter = this->list->list_ops->list_get_iterator(this->list);
+	this->iter = this->list->list_ops->list_get_iterator(this->list,
+			AL_START_HEAD);
 	this->op = zmalloc(sizeof(map_iterator_op_t));
 	this->op->has_next = has_next;
 	this->op->next = next;
