@@ -31,6 +31,20 @@ typedef struct map {
 	list_t *key_list;
 }map_t;
 
+struct map_iterator {
+	struct map *map;
+	int dir_no;
+	list_t *list;
+	list_iter_t *iter;
+	struct map_iterator_op *op;
+};
+
+struct map_iterator_op {
+	int (*has_next)(struct map_iterator *iterator);
+	void *(*next)(struct map_iterator *iterator);
+};
+
+
 struct map_op {
 	int (*put)(map_t *map, const sds key, void *value);
 	void *(*get)(map_t *map, sds key);
@@ -43,8 +57,13 @@ struct map_op {
 
 typedef struct pair pair_t;
 typedef struct map_op map_op_t;
+typedef struct map_iterator map_iterator_t;
+typedef struct map_iterator_op map_iterator_op_t;
 
 map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
 		void *(*list_dup)(const void *ptr), void (*list_free)(void *ptr));
 void destroy_map(map_t *map);
+map_iterator_t *create_map_iterator(map_t *map);
+void destroy_map_iterator(map_iterator_t *iter);
+
 #endif /* SRC_MAP_H_ */

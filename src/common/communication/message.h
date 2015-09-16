@@ -170,6 +170,7 @@ typedef struct {
 	int source;
 	int tag;
 	uint64_t append_size;
+	char file_name[FILE_NAME_MAX_LENGTH];
 }master_append_file_t;
 
 typedef struct {

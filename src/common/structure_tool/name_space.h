@@ -27,7 +27,7 @@ struct file_node {
 	uint64_t consistent_size;
 	uint64_t file_size;
 	struct name_space_file_location *location;
-
+	FILE *fp;
 };
 
 struct name_space_op {
@@ -37,6 +37,7 @@ struct name_space_op {
 	int (*delete_file)(struct name_space space, sds file_name);
 	int (*file_finish_consistent)(struct name_space *space, sds file_name);
 	int (*file_exists)(struct name_space *space, sds file_name);
+	int (*append_file)(name_space_t *space, sds file_name, uint64_t append_size);
 };
 
 struct name_space {

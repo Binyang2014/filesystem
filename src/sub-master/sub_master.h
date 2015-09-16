@@ -14,8 +14,8 @@
 #include "../common/communication/mpi_rpc_server.h"
 #include "../common/communication/mpi_rpc_client.h"
 
-struct data_server_des {
-
+struct s_m_data_master_des {
+	int data_master_rank;
 };
 
 struct sub_master_op {
@@ -23,6 +23,8 @@ struct sub_master_op {
 };
 
 struct sub_master{
+	char ip[16];
+	int rank;
 	machine_role_t *role;
 	name_space_t *name_space;
 	mpi_rpc_server_t *rpc_server;
@@ -35,5 +37,6 @@ typedef struct data_server_des data_server_des_t;
 typedef struct sub_master sub_master_t;
 typedef struct data_server_des data_server_des_t;
 
+sub_master_t *create_sub_master();
 
 #endif /* SRC_SUB_MASTER_SUB_MASTER_H_ */

@@ -220,7 +220,33 @@ static sds *get_all_keys(map_t *this, int *count)
 		array[index++] = sds_dup((sds)(node->value));
 	key_list->list_ops->list_release_iterator(iter);
 	return array;
+}
 
+static int has_next(struct map_iterator *iterator)
+{
+	int offset = iterator->dir_no;
+	for(; offset < iterator->map->size; offset++){
+		if(iterator->list == NULL){
+			if(*(iterator->map->list + offset) != NULL){
+				iterator->list = *(iterator->map->list + offset);
+				iterator->iter = list_get_iterator(iterator->list, AL_START_HEAD);
+			}else{
+				continue;
+			}
+		}
+		if(list_has_next(iterator->iter)){
+			return 1;
+		}else{
+			list_release_iterator(iterator->iter);
+			iterator->list = NULL;
+		}
+	}
+
+	return 0;
+}
+
+static void *next(struct map_iterator *iterator){
+	return ((list_node_t *)list_next(iterator->iter))->next;
 }
 
 /* This function will create a map. In the construre, you should provide map
@@ -271,6 +297,28 @@ void destroy_map(map_t *this) {
 	list_release(this->key_list);
 	zfree(this->list);
 	zfree(this);
+}
+
+map_iterator_t *create_map_iterator(map_t *map) {
+	map_iterator_t *this = zmalloc(sizeof(*this));
+	this->map = map;
+	this->dir_no = 0;
+	this->list = *(map->list + this->dir_no);
+	this->iter = this->list->list_ops->list_get_iterator(this->list);
+	this->op = zmalloc(sizeof(map_iterator_op_t));
+	this->op->has_next = has_next;
+	this->op->next = next;
+
+	return this;
+}
+
+
+void destroy_map_iterator(map_iterator_t *iter) {
+	zfree(iter->op);
+	if(iter->iter) {
+		iter->list->list_ops->list_release_iterator(iter->iter);
+	}
+	zfree(iter);
 }
 
 void print_map_keys() {

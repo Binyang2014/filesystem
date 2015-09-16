@@ -31,6 +31,9 @@ static void map_list_pair_free(void *value) {
 	zfree(p);
 }
 
+/**
+ * char * to integer
+ */
 static inline int local_atoi(char *c) {
 	int s = 0;
 	char *p = c;
@@ -158,6 +161,16 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 	}
 
 	fclose(fp);
+}
+
+static void allocate_machine_role(machine_role_allocator_t *allocator) {
+	map_t *roles = local_allocator->roles;
+
+	map_iterator_t *iter = create_map_iterator(roles);
+	map_role_value_t *role;
+	while(iter->op->has_next(iter)){
+		role = iter->op->next(iter);
+	}
 }
 
 static void *get_event_handler_param(event_handler_t *event_handler) {
