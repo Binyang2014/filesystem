@@ -32,6 +32,8 @@ void *v_dup(const void *v){
 int main() {
 	//if v_dup or v_free is NULL, it will be shallow copy, make your copy function right
 	map_t *map = create_map(10, v_dup, v_free, pair_dup, pair_free);
+	sds* array;
+	int count, i;
 
 	//put
 	sds s = sds_new("1234");
@@ -41,12 +43,23 @@ int main() {
 	printf("the value we get = %d\n", *t);
 	zfree(t);
 
+	s = sds_cpy(s, "try again");
+	v = 34;
+	map->op->put(map, s, &v);
+
 	//modify
 	v = 2345;
 	map->op->put(map, s, &v);
 	t = map->op->get(map, s);
 	printf("the value we get = %d\n", *t);
 	zfree(t);
+
+	array = map->op->get_all_keys(map, &count);
+	printf("The key in the map is ");
+	for(i = 0; i < count; i++)
+		printf("%s ", array[i]);
+	printf("\n");
+	sds_free_split_res(array, count);
 
 	//delete
 	map->op->del(map, s);

@@ -69,6 +69,14 @@ static uint32_t map_gen_hash_function(const sds key, size_t size) {
 	return (uint32_t)h % size;
 }
 
+static int key_match(void* ptr, void* key)
+{
+	sds to_be_matched = ptr;
+	sds searched = key;
+
+	return !(sds_cmp(to_be_matched, searched));
+}
+
 static pair_t *find(map_t *this, const sds key){
 	uint32_t h = map_gen_hash_function(key, this->size);
 
@@ -101,6 +109,9 @@ static int put(map_t *this, sds key, void *value) {
 
 		l->list_ops->list_add_node_tail(l, (void *)pair);
 		this->current_size++;
+		//change key_list
+		this->key_list->list_ops->list_add_node_tail(this->key_list,
+				sds_dup(pair->key));
 		return 1;
 	}else {
 		if(this->value_free) {
@@ -129,11 +140,20 @@ static int modify_key(map_t *this, sds old_key, sds new_key) {
 	list_t *l = *(this->list + h);
 	list_iter_t *iter = l->list_ops->list_get_iterator(l, AL_START_HEAD);
 	list_node_t *node = l->list_ops->list_next(iter);
+	list_node_t *key_list_node;
 	while(node) {
 		if(sds_cmp(((pair_t *)node->value)->key, old_key) == 0) {
 			l->list_ops->list_remove_node(l, node);
 			sds_free(((pair_t *)node->value)->key);
 			put(this, sds_dup(new_key), node->value);
+
+			//change key_list
+			this->key_list->list_ops->list_add_node_tail(this->key_list,
+					sds_dup(new_key));
+			key_list_node = this->key_list->list_ops->list_search_key(this->key_list,
+						old_key);
+			this->key_list->list_ops->list_del_node(this->key_list,
+					key_list_node);
 
 			l->list_ops->list_release_iterator(iter);
 			if(this->value_dup) {
@@ -163,11 +183,16 @@ static void del(map_t *this, sds key){
 	list_t *l = *(this->list + h);
 	list_iter_t *iter = l->list_ops->list_get_iterator(l, AL_START_HEAD);
 	list_node_t *node = l->list_ops->list_next(iter);
+	list_node_t *key_list_node;
 	while(node) {
 		if(sds_cmp(((pair_t *)node->value)->key, key) == 0) {
 			l->list_ops->list_del_node(l, node);
 			this->current_size--;
 			l->list_ops->list_release_iterator(iter);
+			//change key_list
+			key_list_node = this->key_list->list_ops->list_search_key(this->key_list,
+					key);
+			this->key_list->list_ops->list_del_node(this->key_list, key_list_node);
 			return;
 		}
 		node = l->list_ops->list_next(iter);
@@ -175,40 +200,59 @@ static void del(map_t *this, sds key){
 	l->list_ops->list_release_iterator(iter);
 }
 
-static int has_next(map_iterator_t *iter) {
-	if(iter->dir_no >= iter->map->size) {
-		return 0;
-	}
+/* This function will look up keys in the map and put ervery key into a array.
+ * The return value is a array of sds, user should realse this array by hand by
+ * calling sds_free_split_res method or you can write free mothod by yourself.*/
+static sds *get_all_keys(map_t *this, int *count)
+{
+	list_iter_t *iter;
+	list_node_t *node;
+	int index = 0;
+	sds *array;
+	list_t *key_list = this->key_list;
 
-	if(iter->iter != NULL && iter->list->list_ops->list_has_next(iter->iter)) {
-		return 1;
-	}
-
-	if(iter->iter != NULL) {
-		iter->list->list_ops->list_release_iterator(iter->iter);
-	}
-
-	do{
-		iter->dir_no++;
-		iter->list = *(iter->list + iter->dir_no);
-	}while(iter->list->len > 0);
-
-	if(iter->dir_no >= iter->map->size) {
-		return 0;
-	}
-
-	iter->iter = iter->list->list_ops->list_get_iterator(iter->list, AL_START_HEAD);
-	return 1;
-}
-
-static void *next(map_iterator_t *iter) {
-	if(iter == NULL || iter->iter == NULL) {
+	*count = this->current_size;
+	if(*count == 0)
 		return NULL;
-	}
-
-	return iter->list->list_ops->list_next(iter->iter)->value;
+	array = zmalloc(sizeof(sds) * this->current_size);
+	iter = key_list->list_ops->list_get_iterator(key_list, AL_START_HEAD);
+	while((node = key_list->list_ops->list_next(iter)) != NULL)
+		array[index++] = sds_dup((sds)(node->value));
+	key_list->list_ops->list_release_iterator(iter);
+	return array;
 }
 
+static int has_next(struct map_iterator *iterator)
+{
+	int offset = iterator->dir_no;
+	for(; offset < iterator->map->size; offset++){
+		if(iterator->list == NULL){
+			if(*(iterator->map->list + offset) != NULL){
+				iterator->list = *(iterator->map->list + offset);
+				iterator->iter = list_get_iterator(iterator->list, AL_START_HEAD);
+			}else{
+				continue;
+			}
+		}
+		if(list_has_next(iterator->iter)){
+			return 1;
+		}else{
+			list_release_iterator(iterator->iter);
+			iterator->list = NULL;
+		}
+	}
+
+	return 0;
+}
+
+static void *next(struct map_iterator *iterator){
+	return ((list_node_t *)list_next(iterator->iter))->next;
+}
+
+/* This function will create a map. In the construre, you should provide map
+ * size: the map will have a fixed size. Besides, you should provide four other
+ * functions, to indicate how to dup and free values and pairs. If you use NULL,
+ * dup will simply as assign and free will use system free method if you wish.*/
 map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*value_free)(void *value),
 		void *(*list_dup)(const void *ptr), void (*list_free)(void *ptr)) {
 	int i;
@@ -216,6 +260,9 @@ map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*val
 	map_t *this = (map_t *)(zmalloc(sizeof(map_t)));
 	this->op = zmalloc(sizeof(map_op_t));
 	this->list = (list_t **)zmalloc(sizeof(list_t *) * size);
+	this->key_list = list_create();
+	list_set_free_method(this->key_list, (void (*)(void*))sds_free);
+	list_set_match_method(this->key_list, key_match);
 
 	for(i = 0; i < size; i++) {
 		*(this->list + i) = list_create();
@@ -231,6 +278,7 @@ map_t *create_map(size_t size, void *(*value_dup)(const void *value), void (*val
 	this->op->modify_key = modify_key;
 	this->op->contains = contains;
 	this->op->get_size = get_size;
+	this->op->get_all_keys = get_all_keys;
 
 	this->key_dup = sds_dup;
 	this->key_free = sds_free;
@@ -246,6 +294,7 @@ void destroy_map(map_t *this) {
 	for(i = 0; i < this->size; i++) {
 		list_release(*(this->list + i));
 	}
+	list_release(this->key_list);
 	zfree(this->list);
 	zfree(this);
 }

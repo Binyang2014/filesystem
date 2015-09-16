@@ -30,6 +30,7 @@
 //number of zpath stored in ztree
 #define ZPATH_COUNT 128
 #define ZVALUE_CHILD_COUNT 16
+#define SEQUENCE_MAX 1048576
 
 struct znode_status
 {
@@ -62,10 +63,11 @@ struct ztree;
 
 struct ztree_op
 {
-	struct zvalue* (*find_znode)(struct ztree *tree, sds path);
+	struct zvalue *(*find_znode)(struct ztree *tree, sds path);
 	int (*add_znode)(struct ztree *tree, sds path, struct zvalue *value, sds
 			return_name);
 	void (*delete_znode)(struct ztree *tree, sds path);
+	sds *(*get_children)(struct ztree *tree, sds path, int *count);
 };
 
 struct ztree
