@@ -30,6 +30,7 @@
 //number of zpath stored in ztree
 #define ZPATH_COUNT 128
 #define ZVALUE_CHILD_COUNT 16
+#define SEQUENCE_MAX 1048576
 
 struct znode_status
 {

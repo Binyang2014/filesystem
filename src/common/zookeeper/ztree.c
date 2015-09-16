@@ -33,9 +33,8 @@ static sds add_seq(zvalue_t *value, sds node_name)
 	int seq;
 	sds number;
 
-	pthread_mutex_lock(&value->zvalue_lock);
-	seq = value->seq++;
-	pthread_mutex_unlock(&value->zvalue_lock);
+	//noly one thread execute it, so do not need mutex
+	seq = (value->seq++) % SEQUENCE_MAX;
 
 	number = sds_new_ull(seq);
 	node_name = sds_cat_sds(node_name, number);

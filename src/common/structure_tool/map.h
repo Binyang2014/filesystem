@@ -28,6 +28,7 @@ typedef struct map {
 	void (*key_free)(sds key);
 	void *(*value_dup)(const void *value);
 	void (*value_free)(void *value);
+	list_t *key_list;
 }map_t;
 
 struct map_op {
@@ -37,6 +38,7 @@ struct map_op {
 	int (*modify_key)(map_t *map, sds old_key, sds new_key);
 	size_t (*get_size)(map_t *map);
 	void (*del)(map_t *map, sds key);
+	sds *(*get_all_keys)(map_t *map, int *count);
 };
 
 typedef struct pair pair_t;
