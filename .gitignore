@@ -33,4 +33,8 @@
 Debug/
 .cproject
 .project
+old/
 filesystem
+
+#Ctags
+tags

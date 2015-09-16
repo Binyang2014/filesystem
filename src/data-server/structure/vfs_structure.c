@@ -7,15 +7,50 @@
  * this file implement functions in vfs_structure.h
  */
 #include "vfs_structure.h"
-#include "../../common/map.h"
-#include "../../common/log.h"
-#include "../../common/zmalloc.h"
+#include "map.h"
+#include "log.h"
+#include "zmalloc.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
 static file_op_t* file_op;
 static char* filesystem;
+
+//-------------------------block operations---------------------------
+static uint32_t find_first_free_block(super_block_t* super_block, int p_group_id)
+{
+	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
+	uint32_t blocks_per_group = super_block->s_blocks_per_group,
+			groups_count = super_block->s_groups_count, block_num_in_group, count = 0;
+
+	//if these group not have a free block, find next group
+	while(count < groups_count &&
+			(block_num_in_group = find_first_zero_bit(bitmap, blocks_per_group)) == blocks_per_group)
+	{
+		p_group_id = (p_group_id + 1) % groups_count;
+		bitmap = __get_bitmap_from_gid(super_block, p_group_id);
+		count++;
+	}
+	if(count == groups_count)
+		return INF_UNSIGNED_INT;
+	return block_num_in_group + p_group_id * blocks_per_group;
+}
+
+static uint32_t find_next_free_block(super_block_t* super_block, uint32_t block_num)
+{
+	uint32_t blocks_per_group = super_block->s_blocks_per_group,
+			block_num_in_group = block_num % super_block->s_blocks_per_group;
+	int p_group_id = block_num / blocks_per_group;
+	unsigned long *bitmap = __get_bitmap_from_gid(super_block, p_group_id);
+
+	//can't find free block in this group, go to next group and find first free block
+	if((block_num_in_group = find_next_zero_bit(bitmap, blocks_per_group, block_num_in_group))
+			== blocks_per_group)
+		return find_first_free_block(super_block, p_group_id + 1);
+	return block_num_in_group + p_group_id * blocks_per_group;
+}
+//----------------------------------------------------------------------------
 
 static void init_sb_op(superblock_op_t* s_op)
 {
@@ -48,7 +83,7 @@ static void init_file_op(file_op_t* f_op)
 }
 
 //follows are some functions that will be used by hash table
-static void* hash_table_pair_dup(void* pair)
+static void* hash_table_pair_dup(const void* pair)
 {
 	pair_t *p = zmalloc(sizeof(pair_t));
 	uint32_t* value_t = NULL;
@@ -177,16 +212,60 @@ dataserver_file_t* init_vfs_file(dataserver_sb_t* super_block, dataserver_file_t
 	v_file_buff->f_chunks_arr = arr_table->chunks_arr;
 	v_file_buff->f_op = file_op;
 
-	if(mode == VFS_READ)
+	if(mode == VFS_READ || mode == VFS_DELETE)
 	{
-		if( v_file_buff->super_block->s_op->find_serials_blocks(v_file_buff->super_block, v_file_buff->arr_len,
-				v_file_buff->f_chunks_arr, v_file_buff->f_blocks_arr)==NULL )
+		if(super_block->s_op->find_serials_blocks(super_block, v_file_buff->arr_len,
+				v_file_buff->f_chunks_arr, v_file_buff->f_blocks_arr)== NULL)
 		{
 			err_msg("in init_vfs_file, something wrong");
 			return NULL;
 		}
 		else
+		{
+			int i;
+			for(i = 0; i < v_file_buff->arr_len; i++)
+				if(!__bm_block_set(super_block->s_block, v_file_buff->f_blocks_arr[i]))
+				{
+					log_write(LOG_ERR, "You should not see this imformation,vfs wrong!");
+					return NULL;
+				}
 			return v_file_buff;
+		}
+	}
+	if(mode == VFS_WRITE)
+	{
+		int i, block_num = 0;
+		pthread_mutex_lock(&super_block->s_mutex);
+		for(i = 0; i < v_file_buff->arr_len; i++)
+		{
+			v_file_buff->f_blocks_arr[i] =
+				super_block->s_op->find_a_block_num(super_block,
+						v_file_buff->f_chunks_arr[i]);
+
+			if(v_file_buff->f_blocks_arr[i] == INF_UNSIGNED_INT)
+			{
+				if((block_num = find_next_free_block(super_block->s_block, block_num)) ==
+						INF_UNSIGNED_INT)
+				{
+					log_write(LOG_ERR, "this data server is full");
+					pthread_mutex_unlock(&super_block->s_mutex);
+					return NULL;
+				}
+				__set_block_bm(super_block->s_block, block_num);
+				if(alloc_a_block(super_block, v_file_buff->f_chunks_arr[i], block_num) ==
+						INF_UNSIGNED_INT)
+				{
+					log_write(LOG_ERR, "wrong when allocating a block in hash table");
+					__clear_block_bm(super_block->s_block, block_num);
+					pthread_mutex_unlock(&super_block->s_mutex);
+					return NULL;
+				}
+				v_file_buff->f_blocks_arr[i] = block_num;
+			}
+			super_block->s_block->s_free_blocks_count--;
+		}
+		super_block->s_block->s_last_write_time = time(NULL);
+		pthread_mutex_unlock(&super_block->s_mutex);
 	}
 	return v_file_buff;
 }

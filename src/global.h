@@ -8,7 +8,7 @@
 //about block information
 #define MAX_ALLOC_SIZE (1<<30)
 #define CHUNK_SIZE  0
-#define BLOCK_SIZE (1<<12)
+#define BLOCK_SIZE (1<<20)
 #define N_LOG_BLOCKS_PER_G 4
 
 //some number maybe useful
@@ -18,22 +18,9 @@
 //used by error information
 #define MAXLINE 4096
 
-//following is about message type
-#define COMMON_MSG_HEAD 4
-#define COMMON_MSG_LEN (4096 + COMMON_MSG_HEAD)
+//following is about message length, and only fixed lenght can be defined here
 #define MAX_CMD_MSG_LEN 4096
-#define DATA_MSG_HEAD_LEN 16
-#define MAX_DATA_CONTENT_LEN 4096
-#define MAX_DATA_MSG_LEN (4096 + DATA_MSG_HEAD_LEN)
-
-//following is operation code in message
-#define MSG_READ 0x00
-#define MSG_WRITE 0x01
-#define MSG_ACC 0x02
-//...
-
-//reserved tag when transport message
-#define D_MSG_CMD_TAG 0	//command message should be sent with tag 0
+#define MAX_DATA_CONTENT_LEN (1<<22)
 
 //data server configure about buffer size, just a test, need to be redefined
 #define D_FILE_BSIZE	(1<<8)
@@ -45,10 +32,12 @@
 
 //use for debug
 #define DEBUG 1
+#define RPC_SERVER_DEBUG 1
+//#define MPI_COMMUNICATION_DEBUG 1
 //#define VFS_RW_DEBUG 1
 #define DATASERVER_COMM_DEBUG 1
 #define THREAD_POOL_DEBUG 1
-#define DATASERVER_BUFF_DEBUG 1
+//#define DATASERVER_BUFF_DEBUG 1
 
 //define optional size of file system
 enum TOTAL_SIZE

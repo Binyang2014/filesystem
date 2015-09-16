@@ -3,8 +3,9 @@
  *
  */
 #include "../vfs_structure.h"
-#include "../../../common/zmalloc.h"
-#include "../../../common/log.h"
+#include "../../../common/structure_tool/zmalloc.h"
+#include "../../../common/structure_tool/log.h"
+#include "../../../common/structure_tool/bitmap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,8 +14,8 @@
 
 static uint64_t chunks_arr[10] = {0x345, 0xfff, 0x123456, 0x19203454, 0x12343, 0x12438959, 0x11111111, 0x2222222222222222,
 		0x1243576, 0xff32};
-static char write_buff[4200] = {0};
-static char read_buff[4200] = {0};
+static char write_buff[(2<<20) + 4200] = {0};
+static char read_buff[(2<<20) + 4200] = {0};
 
 void write_file(dataserver_file_t* d_sb, const char* file_path, off_t file_len);
 void read_and_write_to_disk(dataserver_file_t* d_sb, const char* copy_path, off_t file_len);
@@ -58,11 +59,8 @@ void s_hash_test(dataserver_sb_t* d_sb)
 
 void vfs_basic_read_write_test(dataserver_file_t* d_file)
 {
-	int i, arr_len;
+	int i;
 	uint32_t offset;
-	arr_len = d_file->arr_len;
-	for(i = 0; i < arr_len; i++)
-		d_file->f_chunks_arr[i] = chunks_arr[i];
 
 	printf("write to write buffer\n");
 	for(i = 0; i < 10; i++)
@@ -116,7 +114,7 @@ int main()
 	dataserver_sb_t* d_superblock;
 	dataserver_file_t* d_file;
 	vfs_hashtable_t* f_arr;
-	int f_arr_len;
+	int f_arr_len, i;
 
 	log_init("", LOG_DEBUG);
 	d_superblock = vfs_init(MIDDLE, 1);
@@ -130,6 +128,8 @@ int main()
 	f_arr_len = 8;
 
 	f_arr = init_hashtable(f_arr_len);
+	for(i = 0; i < f_arr_len; i++)
+		f_arr->chunks_arr[i] = chunks_arr[i];
 	d_file = init_vfs_file(d_superblock, d_file, f_arr, VFS_WRITE);
 
 	vfs_basic_read_write_test(d_file);
@@ -144,7 +144,8 @@ int main()
 		const char* file_name = "/home/binyang/Videos/Game.of.Thrones.S05E00.A.Day.in.the.Life.720p.HDTV.x264-BATV.mkv";
 		const char* copy_path = "/home/binyang/Documents/Game.of.Thrones.S05E00.A.Day.in.the.Life.720p.HDTV.x264-BATV.mkv";
 		off_t file_len = 0;
-		int chunks_count = 0, rest_counts = 0, i = 1;
+		int chunks_count = 0, rest_counts = 0, i = 1, j = 0;
+		unsigned long* bitmap;
 
 		d_superblock = vfs_init(LARGE, 1);
 		d_superblock->s_op->print_sb_imf(d_superblock);
@@ -156,6 +157,8 @@ int main()
 		f_arr_len = rest_counts == 0 ? chunks_count : chunks_count + 1;
 		d_file = (dataserver_file_t *)zmalloc(sizeof(dataserver_file_t));
 		f_arr = init_hashtable(f_arr_len);
+		for(j = 0; j < f_arr_len; j++)
+			f_arr->chunks_arr[j] = j;
 
 		//write same file twice to see if it can work well
 		while(i > 0)
@@ -164,17 +167,22 @@ int main()
 			init_vfs_file(d_superblock, d_file, f_arr, VFS_WRITE);
 			write_file(d_file, file_name, file_len);
 			d_superblock->s_op->print_sb_imf(d_superblock);
+			bitmap = __get_bitmap_from_gid(d_superblock->s_block, 0);
+			printf("allocate block number is %d\n", bitmap_weight(bitmap,
+						d_superblock->s_block->s_blocks_per_group));
 
 			printf("read file in memory file system and copy to another place\n");
 			init_vfs_file(d_superblock, d_file, f_arr, VFS_READ);
 			read_and_write_to_disk(d_file, copy_path, file_len);
-			d_superblock->s_block->s_last_write_time = time(NULL);
 			d_superblock->s_op->print_sb_imf(d_superblock);
 
 			printf("delete file in memory file system\n");
 			init_vfs_file(d_superblock, d_file, f_arr, VFS_DELETE);
 			delete_file(d_file);
 			d_superblock->s_op->print_sb_imf(d_superblock);
+			bitmap = __get_bitmap_from_gid(d_superblock->s_block, 0);
+			printf("allocate block number is %d\n", bitmap_weight(bitmap,
+						d_superblock->s_block->s_blocks_per_group));
 
 			if(init_vfs_file(d_superblock, d_file, f_arr, VFS_READ) == NULL)
 				printf("delete file success\n");
@@ -198,8 +206,6 @@ void write_file(dataserver_file_t* d_file, const char* file_path, off_t file_len
 	off_t write_len = 0;
 
 	fp = fopen(file_path, "rb");
-	for(i = 0; i < d_file->arr_len; i++)
-		d_file->f_chunks_arr[i] = i;
 
 	printf("begin write large file to data server\n");
 

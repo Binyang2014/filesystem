@@ -15,5 +15,5 @@ ARFLAG = rv
 
 LD = $(CC)
 
-INCLUDE = 
+INCLUDE = -I$(TOPDIR)/src -I$(TOPDIR)/src/common/structure_tool -I$(TOPDIR)/src/common/communication -I$(TOPDIR)/src/common/zookeeper -I$(TOPDIR)/src/data-server/structure -I$(TOPDIR)/src/data-server/server
 CFLAGS = -Wall -g -O0 $(INCLUDE)
