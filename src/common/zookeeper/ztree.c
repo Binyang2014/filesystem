@@ -75,9 +75,13 @@ zvalue_t *create_zvalue(sds data, znode_type_t type, int version)
 		return NULL;
 	this->child = NULL;
 	this->type = type;
-	this->data = sds_dup(data);
+	if(data != NULL)
+		this->data = sds_dup(data);
+	else
+		this->data = NULL;
 	this->seq = 1;
 	this->reference = 1;
+	this->update_znode_status = update_znode_status;
 	return_value = pthread_mutex_init(&this->zvalue_lock, NULL);
 	assert(return_value == 0);
 	update_znode_status(&(this->status), version, ZNODE_CREATE);
@@ -100,6 +104,14 @@ zvalue_t *zvalue_dup(zvalue_t *value)
 	value->reference++;
 	pthread_mutex_unlock(&value->zvalue_lock);
 	return value;
+}
+
+void zstatus_dup(znode_status_t *dst, znode_status_t *src)
+{
+	dst->version = src->version;
+	dst->access_time = src->access_time;
+	dst->modified_time = src->modified_time;
+	dst->created_time = src->created_time;
 }
 
 void destroy_zvalue(zvalue_t *value)
@@ -301,6 +313,9 @@ static void delete_znode(ztree_t *tree, sds path)
 		return;
 	child_map = parent_node->child;
 	child_map->op->del(child_map, node_name);
+	//update parent znode status
+	update_znode_status(&parent_node->status, parent_node->status.version + 1,
+			ZNODE_MODIFY);
 
 	destroy_zvalue(parent_node);
 	sds_free(parent_path);

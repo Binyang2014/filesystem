@@ -23,7 +23,15 @@
 #include "basic_list.h"
 #include "rpc_server.h"
 #include "rpc_client.h"
-
+//zerror
+#define ZOK 0x1
+#define ZWRONG_VERSION 0x2
+#define ZNO_EXISTS 0x4
+#define ZCREATE_WRONG 0x8
+#define ZWRONG_WATCH_FLAG 0x10
+#define ZSET_WATCH_ERROR 0x20
+#define ZNO_ENOUGH_BUFFER 0x40
+//znode create mode
 #define ZNODE_CREATE 0x01
 #define ZNODE_MODIFY 0x02
 #define ZNODE_ACCESS 0x04
@@ -59,6 +67,8 @@ struct zvalue
 	map_t *child;
 	int reference;
 	int seq;
+	void (*update_znode_status)(struct znode_status *status, int version, int
+			mode);
 	pthread_mutex_t zvalue_lock;
 };
 
@@ -124,6 +134,7 @@ typedef struct zserver zserver_t;
 typedef struct zclient_op zclient_op_t;
 typedef struct zclient zclient_t;
 
+void zstatus_dup(znode_status_t *dst, znode_status_t *src);
 zvalue_t *create_zvalue(sds data, znode_type_t type, int version);
 zvalue_t *create_zvalue_parent(sds data, znode_type_t type, int version);
 zvalue_t *zvalue_dup(zvalue_t *value);
