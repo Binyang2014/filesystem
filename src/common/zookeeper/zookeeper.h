@@ -31,17 +31,24 @@
 #define ZWRONG_WATCH_FLAG 0x10
 #define ZSET_WATCH_ERROR 0x20
 #define ZNO_ENOUGH_BUFFER 0x40
+#define ZWRONG_WATCH_TYPE 0x80
+#define ZRET_MSG_TOO_LONG 0x100
 //znode create mode
 #define ZNODE_CREATE 0x01
 #define ZNODE_MODIFY 0x02
 #define ZNODE_ACCESS 0x04
 //number of zpath stored in ztree
 #define ZPATH_COUNT 128
-#define ZVALUE_CHILD_COUNT 16
+#define ZVALUE_CHILD_COUNT 8
 #define SEQUENCE_MAX 1048576
 //zserver define
 #define RECV_QUEUE_SIZE 128
 #define SEND_QUEUE_SIZE 64
+//notice type
+#define NOTICE_CHANGED 0x1
+#define NOTICE_DELETE 0x2
+//watch return message data length
+#define MAX_RET_DATA_LEN 128
 
 struct znode_status
 {
@@ -76,11 +83,11 @@ struct ztree;
 
 struct ztree_op
 {
-	struct zvalue *(*find_znode)(struct ztree *tree, sds path);
-	int (*add_znode)(struct ztree *tree, sds path, struct zvalue *value, sds
+	struct zvalue *(*find_znode)(struct ztree *tree, const sds path);
+	int (*add_znode)(struct ztree *tree, const sds path, struct zvalue *value, sds
 			return_name);
-	void (*delete_znode)(struct ztree *tree, sds path);
-	sds *(*get_children)(struct ztree *tree, sds path, int *count);
+	void (*delete_znode)(struct ztree *tree, const sds path);
+	sds *(*get_children)(struct ztree *tree, const sds path, int *count);
 };
 
 struct ztree
@@ -124,6 +131,21 @@ struct zclient
 	struct zclient_op *op;
 };
 
+struct watch_data
+{
+	int dst;
+	int tag;
+	int watch_type;
+	sds unique_code;//combine with client id and a unique number
+};
+
+//ret data could not exceed 128 bytes
+struct watch_ret_msg
+{
+	int watch_type;
+	char ret_data[MAX_RET_DATA_LEN];
+};
+
 typedef struct znode_status znode_status_t;
 typedef enum znode_type znode_type_t;
 typedef struct zvalue zvalue_t;
@@ -133,10 +155,12 @@ typedef struct zserver_op zserver_op_t;
 typedef struct zserver zserver_t;
 typedef struct zclient_op zclient_op_t;
 typedef struct zclient zclient_t;
+typedef struct watch_data watch_data_t;
+typedef struct watch_ret_msg watch_ret_msg_t;
 
-void zstatus_dup(znode_status_t *dst, znode_status_t *src);
-zvalue_t *create_zvalue(sds data, znode_type_t type, int version);
-zvalue_t *create_zvalue_parent(sds data, znode_type_t type, int version);
+void zstatus_dup(znode_status_t *dst, const znode_status_t *src);
+zvalue_t *create_zvalue(const sds data, znode_type_t type, int version);
+zvalue_t *create_zvalue_parent(const sds data, znode_type_t type, int version);
 zvalue_t *zvalue_dup(zvalue_t *value);
 void destroy_zvalue(zvalue_t *zvalue);
 
