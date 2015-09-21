@@ -9,9 +9,9 @@
 #define SRC_MASTER_MASTER_H_
 #include <mpi.h>
 #include <pthread.h>
-#include "./common/name_space.h"
-#include "./common/communication/mpi_rpc_server.h"
-#include "./common/communication/mpi_rpc_client.h"
+#include "./common/structure_tool/name_space.h"
+#include "./common/communication/rpc_server.h"
+#include "./common/communication/rpc_client.h"
 #include "./common/communication/message.h"
 
 struct sub_master_status {
@@ -35,8 +35,8 @@ struct master {
 	int register_machin_num;
 	name_space_t *name_space;
 	pthread_t *thread;
-	mpi_rpc_server_t *rpc_server;
-	mpi_rpc_client_t *rpc_client;
+	rpc_server_t *rpc_server;
+	rpc_client_t *rpc_client;
 	uint64_t global_id;
 	pthread_mutex_t *mutex_global_id;
 };

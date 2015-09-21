@@ -6,9 +6,9 @@
  */
 
 #include <stdio.h>
-#include "./common/zmalloc.h"
-#include "./common/threadpool.h"
-#include "./common/syn_tool.h"
+#include "./common/structure_tool/zmalloc.h"
+#include "./common/structure_tool/threadpool.h"
+#include "./common/structure_tool/syn_tool.h"
 #include "master.h"
 
 /*--------------------Private Declaration--------------------*/

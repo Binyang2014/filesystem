@@ -10,9 +10,9 @@
 #include <string.h>
 #include <assert.h>
 #include "machine_role.h"
-#include "../common/syn_tool.h"
-#include "../common/threadpool.h"
-#include "../common/zmalloc.h"
+#include "../common/structure_tool/syn_tool.h"
+#include "../common/structure_tool/threadpool.h"
+#include "../common/structure_tool/zmalloc.h"
 #include "../common/communication/message.h"
 
 #define LINE_LENGTH 64
@@ -178,7 +178,10 @@ static void *get_event_handler_param(event_handler_t *event_handler) {
 }
 
 //TODO lock this
-static void get_machine_role(event_handler_t *event_handler) {
+/**
+ * get machine role
+ */
+static void machine_register(event_handler_t *event_handler) {
 	machine_register_role_t *param = get_event_handler_param(event_handler);
 	sds key_ip = sds_new(param->ip);
 	if(strcpy(param->ip, local_allocator) == 0) {
@@ -187,9 +190,12 @@ static void get_machine_role(event_handler_t *event_handler) {
 	}
 	map_role_value_t *result = local_allocator->roles->op->get(local_allocator->roles, key_ip);
 	result->rank = param->source;
-	local_allocator->server->op->send_result(result, param->source, param->tag, sizeof(machine_role_t));
+	//local_allocator->server->op->send_result(result, param->source, param->tag, sizeof(machine_role_t));
 	sds_free(key_ip);
 	local_allocator->register_machine_num++;
+	if(local_allocator->register_machine_num == local_allocator->machine_num){
+		allocate_machine_role(local_allocator);
+	}
 }
 
 void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
@@ -199,7 +205,7 @@ void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 	switch(common_msg.operation_code)
 	{
 		case MACHINE_ROLE_GET_ROLE:
-			event_handler->handler = get_machine_role;
+			event_handler->handler = machine_register;
 			break;
 		default:
 			event_handler->handler = NULL;
@@ -207,6 +213,9 @@ void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 	return event_handler->handler;
 }
 
+/**
+ *
+ */
 machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, char *file_path) {
 	machine_role_allocator_t *this = zmalloc(sizeof(machine_role_allocator_t));
 	strcpy(this->file_path, file_path);
@@ -217,7 +226,7 @@ machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, c
 	this->op = zmalloc(sizeof(machine_role_allocator_op_t));
 
 	this->op->get_net_topology = get_net_topology;
-	this->op->get_machine_role = get_machine_role;
+	this->op->machine_register = machine_register;
 	this->server = create_mpi_rpc_server(10, rank, resolve_handler);
 	return this;
 }

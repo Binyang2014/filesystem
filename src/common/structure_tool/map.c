@@ -246,7 +246,7 @@ static int has_next(struct map_iterator *iterator)
 }
 
 static void *next(struct map_iterator *iterator){
-	return ((list_node_t *)list_next(iterator->iter))->next;
+	return ((list_node_t *)list_next(iterator->iter))->value;
 }
 
 /* This function will create a map. In the construre, you should provide map
