@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	rank = get_mpi_rank();
 
 	if(rank == 0) {
-		rpc_server_t *server = create_rpc_server2(3, 3, 3, 0, resolve_handler);
+		rpc_server_t *server = create_rpc_server2(1, 3, 3, 0, resolve_handler);
 		local_server = server;
 		server->op->server_start(server);
 		printf("Can you see me??\n");

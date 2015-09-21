@@ -41,6 +41,7 @@
 #define ZPATH_COUNT 128
 #define ZVALUE_CHILD_COUNT 8
 #define SEQUENCE_MAX 1048576
+#define MAX_VER_NUM 65535
 //zserver define
 #define RECV_QUEUE_SIZE 128
 #define SEND_QUEUE_SIZE 64
@@ -99,12 +100,6 @@ struct ztree
 
 struct zserver_op
 {
-	void (*create_parent)();
-	void (*create_znode)();
-	void (*delete_znode)();
-	void (*set_znode)();
-	void (*get_znode)();
-	void (*notify_watcher)();
 	void (*start)();
 	void (*stop)();
 };
@@ -139,11 +134,30 @@ struct watch_data
 	sds unique_code;//combine with client id and a unique number
 };
 
+struct zreturn_sim
+{
+	int return_code;
+	char data[MAX_RET_DATA_LEN]
+};
+
+struct zreturn_complex
+{
+	int return_code;
+	char data[MAX_RET_DATA_LEN];
+	struct znode_status status;
+};
+
+struct zreturn_base
+{
+	int return_code;
+};
+
 //ret data could not exceed 128 bytes
 struct watch_ret_msg
 {
 	int watch_type;
 	char ret_data[MAX_RET_DATA_LEN];
+	struct znode_status status;
 };
 
 typedef struct znode_status znode_status_t;
@@ -157,6 +171,9 @@ typedef struct zclient_op zclient_op_t;
 typedef struct zclient zclient_t;
 typedef struct watch_data watch_data_t;
 typedef struct watch_ret_msg watch_ret_msg_t;
+typedef struct zreturn_sim zreturn_sim_t;
+typedef struct zreturn_complex zreturn_complex_t;
+typedef struct zreturn_base zreturn_base_t;
 
 void zstatus_dup(znode_status_t *dst, const znode_status_t *src);
 zvalue_t *create_zvalue(const sds data, znode_type_t type, int version);
@@ -168,4 +185,5 @@ ztree_t *create_ztree(int version);
 void destroy_ztree(ztree_t *tree);
 
 zserver_t *create_zserver(int server_id);
+void destroy_zserver(zserver_t *zserver);
 #endif

@@ -31,12 +31,11 @@ static void server_start(rpc_server_t *server)
 	server->thread_pool->tp_ops->start(server->thread_pool);
 
 	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START");
+	if(server->send_queue != NULL)
+		pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
 
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel) {
-		if(server->send_queue != NULL)
-			pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
-
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
 
 		log_write(LOG_DEBUG, "RPC_SERVER PUT MESSAGE");
@@ -200,6 +199,7 @@ int init_server_stop_handler(event_handler_t *event_handler, void* server,
 		void* common_msg)
 {
 	list_t *list;
+	void *cmd_msg;
 
 	event_handler->special_struct = server;
 	event_handler->event_buffer_list = list_create();
@@ -208,8 +208,10 @@ int init_server_stop_handler(event_handler_t *event_handler, void* server,
 		log_write(LOG_ERR, "error when allocate list");
 		return -1;
 	}
-	list->list_ops->list_add_node_head(list,
-			MSG_COMM_TO_CMD(common_msg));
+	list_set_free_method(list, zfree);
+	cmd_msg = zmalloc(MAX_CMD_MSG_LEN);
+	memcpy(cmd_msg, MSG_COMM_TO_CMD(common_msg), MAX_CMD_MSG_LEN);
+	list->list_ops->list_add_node_head(list, cmd_msg);
 	return 0;
 }
 
