@@ -28,6 +28,7 @@ static list_node_t *list_index(list_t *list, long index);
 static void list_rewind(list_t *list, list_iter_t *li);
 static void list_rewind_tail(list_t *list, list_iter_t *li);
 static void list_rotate(list_t *list);
+static int list_has_next(list_iter_t *iter);
 
 
 static void init_list_ops(list_op_t* list_ops)

@@ -23,10 +23,10 @@ static void pair_free(void* pair);
 static void v_free(void *v);
 static void *v_dup(const void *v);
 
-static zvalue_t *find_znode(ztree_t *tree, sds path);
-static int add_znode(ztree_t *tree, sds path, zvalue_t *value, sds return_name);
-static void delete_znode(ztree_t *tree, sds path);
-static sds *get_children(ztree_t *tree, sds path, int *count);
+static zvalue_t *find_znode(ztree_t *tree, const sds path);
+static int add_znode(ztree_t *tree, const sds path, zvalue_t *value, sds return_name);
+static void delete_znode(ztree_t *tree, const sds path);
+static sds *get_children(ztree_t *tree, const sds path, int *count);
 
 //================================================================================
 static sds add_seq(zvalue_t *value, sds node_name)
@@ -67,7 +67,7 @@ static void update_znode_status(znode_status_t *status, int version, int mode)
 }
 
 //===============================ZVALUE FUNCTIONS==================================
-zvalue_t *create_zvalue(sds data, znode_type_t type, int version)
+zvalue_t *create_zvalue(const sds data, znode_type_t type, int version)
 {
 	int return_value;
 	zvalue_t *this = zmalloc(sizeof(zvalue_t));
@@ -75,9 +75,13 @@ zvalue_t *create_zvalue(sds data, znode_type_t type, int version)
 		return NULL;
 	this->child = NULL;
 	this->type = type;
-	this->data = sds_dup(data);
+	if(data != NULL)
+		this->data = sds_dup(data);
+	else
+		this->data = NULL;
 	this->seq = 1;
 	this->reference = 1;
+	this->update_znode_status = update_znode_status;
 	return_value = pthread_mutex_init(&this->zvalue_lock, NULL);
 	assert(return_value == 0);
 	update_znode_status(&(this->status), version, ZNODE_CREATE);
@@ -85,7 +89,7 @@ zvalue_t *create_zvalue(sds data, znode_type_t type, int version)
 	return this;
 }
 
-zvalue_t *create_zvalue_parent(sds data, znode_type_t type, int version)
+zvalue_t *create_zvalue_parent(const sds data, znode_type_t type, int version)
 {
 	zvalue_t *this = create_zvalue(data, type, version);
 	if(this == NULL)
@@ -100,6 +104,14 @@ zvalue_t *zvalue_dup(zvalue_t *value)
 	value->reference++;
 	pthread_mutex_unlock(&value->zvalue_lock);
 	return value;
+}
+
+void zstatus_dup(znode_status_t *dst, const znode_status_t *src)
+{
+	dst->version = src->version;
+	dst->access_time = src->access_time;
+	dst->modified_time = src->modified_time;
+	dst->created_time = src->created_time;
 }
 
 void destroy_zvalue(zvalue_t *value)
@@ -157,7 +169,7 @@ static void *v_dup(const void *v)
 //in this server and behind ':' is created by client whitch is used to
 //synchronize the requests, if node type is squential, path should be like
 ///temp/tmp1:watch/watch-, otherwise, path should not contain '-'
-static zvalue_t *find_znode(ztree_t *tree, sds path)
+static zvalue_t *find_znode(ztree_t *tree, const sds path)
 {
 	int count, sub_count, i;
 	sds file_path, zvalue_path;
@@ -211,7 +223,7 @@ static zvalue_t *find_znode(ztree_t *tree, sds path)
 //This function will add znode to ztree success return 0, failed return -1,
 //value in args list should be destroyed by caller
 //return_name should be long enough to got whole name
-static int add_znode(ztree_t *tree, sds path, zvalue_t *value, sds return_name)
+static int add_znode(ztree_t *tree, const sds path, zvalue_t *value, sds return_name)
 {
 	sds parent_path, node_name;
 	int len, start = 0, end;
@@ -271,7 +283,7 @@ static int add_znode(ztree_t *tree, sds path, zvalue_t *value, sds return_name)
 	return 0;
 }
 
-static void delete_znode(ztree_t *tree, sds path)
+static void delete_znode(ztree_t *tree, const sds path)
 {
 	sds parent_path, node_name;
 	int len, start = 0, end;
@@ -301,6 +313,9 @@ static void delete_znode(ztree_t *tree, sds path)
 		return;
 	child_map = parent_node->child;
 	child_map->op->del(child_map, node_name);
+	//update parent znode status
+	update_znode_status(&parent_node->status, parent_node->status.version + 1,
+			ZNODE_MODIFY);
 
 	destroy_zvalue(parent_node);
 	sds_free(parent_path);
@@ -309,7 +324,7 @@ static void delete_znode(ztree_t *tree, sds path)
 
 //This function will return children of given parent path, the path of children
 //will return into a sds array, and it will return NULL if there is no child.
-static sds *get_children(ztree_t *tree, sds path, int *count)
+static sds *get_children(ztree_t *tree, const sds path, int *count)
 {
 	zvalue_t *parent_node;
 	map_t *map;

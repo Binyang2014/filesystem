@@ -75,6 +75,14 @@
 #define C_D_WRITE_BLOCK_CODE 4001
 #define C_D_READ_BLOCK_CODE 4002
 
+//Zookeeper message code
+#define ZOO_CREATE_CODE 5001
+#define ZOO_CREATE_PARENT_CODE 5002
+#define ZOO_GET_CODE 5003
+#define ZOO_SET_CODE 5004
+#define ZOO_EXISTS_CODE 5005
+#define ZOO_DELETE_CODE 5006
+
 //Server stop code
 //every handler should achieve this function
 #define SERVER_STOP 9000
@@ -377,6 +385,15 @@ typedef struct block{
 }block_t;
 
 /*-------------------DATA_SERVER MESSAGE STRUCTURE END----------------*/
+
+/*----------------------ZOO KEEPER MESSAGE----------------------------*/
+typedef struct{
+	uint16_t operation_code;
+	uint16_t treansfer_version;
+
+	uint8_t data[MAX_CMD_MSG_LEN - 4];
+}zoo_create_znode_t;
+/*--------------------ZOO KEEPER MESSAGE END--------------------------*/
 
 /*-------------------COMMON MESSAGE FUNCTIONS-------------------------*/
 void common_msg_dup(void *dest, void *source);
