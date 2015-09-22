@@ -98,10 +98,12 @@ struct ztree
 	struct znode_status status;
 };
 
+struct zserver;
 struct zserver_op
 {
-	void (*start)();
-	void (*stop)();
+	void (*zserver_start)(struct zserver *zserver);
+	void (*zserver_stop)(struct zserver *zserver);
+	void (*zput_request)(struct zserver *zserver, common_msg_t *common_msg);
 };
 
 struct zserver
@@ -137,13 +139,19 @@ struct watch_data
 struct zreturn_sim
 {
 	int return_code;
-	char data[MAX_RET_DATA_LEN]
+	char data[MAX_RET_DATA_LEN];
 };
 
 struct zreturn_complex
 {
 	int return_code;
 	char data[MAX_RET_DATA_LEN];
+	struct znode_status status;
+};
+
+struct zreturn_mid
+{
+	int return_code;
 	struct znode_status status;
 };
 
@@ -174,6 +182,7 @@ typedef struct watch_ret_msg watch_ret_msg_t;
 typedef struct zreturn_sim zreturn_sim_t;
 typedef struct zreturn_complex zreturn_complex_t;
 typedef struct zreturn_base zreturn_base_t;
+typedef struct zreturn_mid zreturn_mid_t;
 
 void zstatus_dup(znode_status_t *dst, const znode_status_t *src);
 zvalue_t *create_zvalue(const sds data, znode_type_t type, int version);

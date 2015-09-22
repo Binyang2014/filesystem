@@ -21,6 +21,7 @@
 #define ANY_SOURCE -1
 #define ANY_TAG -1
 #define CMD_TAG 0
+#define WATCH_TAG 500
 #define IGNORE_LENGTH -1
 
 //length of some type of messages
@@ -424,6 +425,8 @@ typedef struct {
 	uint16_t watch_flag;
 	uint16_t watch_code;
 
+	uint16_t unique_tag;
+
 	uint8_t path[ZOO_PATH_MAX_LEN];
 }zoo_exists_znode_t;
 
@@ -432,6 +435,8 @@ typedef struct {
 	uint16_t transfer_version;
 	uint16_t watch_flag;
 	uint16_t watch_code;
+
+	uint16_t unique_tag;
 
 	uint8_t path[ZOO_PATH_MAX_LEN];
 }zoo_get_znode_t;

@@ -2,7 +2,7 @@ TOPDIR = ../../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = ztree.o
+object = ztree.o zserver.o
 target = $(TOPDIR)/lib/libcommon.a
 
 $(target): $(object)

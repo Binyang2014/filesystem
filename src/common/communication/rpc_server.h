@@ -36,7 +36,9 @@ struct rpc_server {
 
 struct rpc_server_op {
 	void (*server_start)(struct rpc_server *server);
+	void (*server_start2)(struct rpc_server *server);
 	void (*server_stop)(struct rpc_server *server);
+	void (*server_stop2)(struct rpc_server *server);
 	int (*send_result)(void *param, int source, int tag, int len,
 			msg_type_t type);
 	void (*send_to_queue)(struct rpc_server *server, void* param, int dst, int tag,

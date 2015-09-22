@@ -18,7 +18,10 @@
 
 /*--------------------Private Declaration---------------------*/
 static void server_start(rpc_server_t *server);
+static void server_start2(rpc_server_t *server);
+static void server_stop_send_queue(rpc_server_t *server);
 static void server_stop(rpc_server_t *server);
+static void server_stop2(rpc_server_t *server);
 static int send_result(void *param, int dst, int tag, int len, msg_type_t type);
 static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag,
 		int len);
@@ -43,6 +46,24 @@ static void server_start(rpc_server_t *server)
 		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
 	}
 	//no more message need to send
+	server_stop_send_queue(server);
+}
+
+static void server_start2(rpc_server_t *server)
+{
+	server->thread_pool->tp_ops->start(server->thread_pool);
+
+	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START");
+	if(server->send_queue != NULL)
+		pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
+}
+
+static void server_stop(rpc_server_t *server) {
+	server->server_thread_cancel = 1;
+}
+
+static void server_stop_send_queue(rpc_server_t *server)
+{
 	if(server->send_queue != NULL)
 	{
 		while(!server->send_queue->queue->basic_queue_op->is_empty(server->send_queue->queue))
@@ -53,8 +74,10 @@ static void server_start(rpc_server_t *server)
 	}
 }
 
-static void server_stop(rpc_server_t *server) {
-	server->server_thread_cancel = 1;
+static void server_stop2(rpc_server_t *server)
+{
+	server_stop_send_queue(server);
+	server->server_commit_cancel = 1;
 }
 
 //only data message and ans message need len
@@ -116,8 +139,9 @@ static void* send_msg_from_queue(void* server)
 	while(1)
 	{
 		send_queue->op->syn_queue_pop(send_queue, rpc_send_msg);
-		send_msg(rpc_send_msg->msg, rpc_send_msg->dst, rpc_send_msg->tag,
-				rpc_send_msg->length);
+		log_write(LOG_DEBUG, "return msg is %d", *(int*)rpc_send_msg->msg);
+		//send_msg(rpc_send_msg->msg, rpc_send_msg->dst, rpc_send_msg->tag,
+		//		rpc_send_msg->length);
 		zfree(rpc_send_msg->msg);
 		rpc_send_msg->msg = NULL;
 	}
@@ -158,7 +182,9 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size,
 
 	this->op = zmalloc(sizeof(rpc_server_op_t));
 	this->op->server_start = server_start;
+	this->op->server_start2 = server_start2;
 	this->op->server_stop = server_stop;
+	this->op->server_stop2 = server_stop2;
 	this->op->send_result = send_result;
 	this->op->send_to_queue = send_to_queue;
 	this->op->recv_reply = recv_reply;
