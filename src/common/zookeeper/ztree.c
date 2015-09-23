@@ -116,6 +116,8 @@ void zstatus_dup(znode_status_t *dst, const znode_status_t *src)
 
 void destroy_zvalue(zvalue_t *value)
 {
+	if(value == NULL)
+		return;
 	pthread_mutex_lock(&value->zvalue_lock);
 	if(--value->reference == 0)
 	{
@@ -125,7 +127,11 @@ void destroy_zvalue(zvalue_t *value)
 		//you should make true that no more refences on this zvalue add its' child
 		if(value->child != NULL)
 			destroy_map(value->child);
+		value->data = NULL;
+		value->reference = -1;
+		value->child = NULL;
 		zfree(value);
+		value = NULL;
 	}
 	else
 	{
@@ -203,6 +209,11 @@ static zvalue_t *find_znode(ztree_t *tree, const sds path)
 	sub_args = sds_split_len(zvalue_path, sds_len(zvalue_path), "/", 1, &sub_count);
 	sds_free_split_res(args, count);
 
+	if(sub_path == NULL)
+	{
+		sds_free_split_res(sub_args, sub_count);
+		return NULL;
+	}
 	for(i = 0; i < sub_count; i++)
 	{
 		if(sub_node != NULL)

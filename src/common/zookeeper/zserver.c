@@ -39,7 +39,8 @@ static int add_watcher(zserver_t *zserver, const sds path, sds watch_data);
 //changed happened, so notice associate clients
 static int notify_watcher(zserver_t *zserver, const sds path, int notice_type);
 //notice child
-static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type);
+static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type,
+		zvalue_t *watch_node);
 
 //resolve message function
 static void *resolve_handler(event_handler_t *event_handler, void *msg_queue);
@@ -60,7 +61,18 @@ static void zserver_stop(zserver_t *zserver);
 //=====================IMPLEMENT PRIVATE FUNCTIONS======================
 
 //=======================ABOUT WATCHER FUNCTIONS========================
-static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type)
+static void print_watch(watch_ret_msg_t* ret_msg)
+{
+	log_write(LOG_DEBUG, "watch type is %d, return data is %s",
+			ret_msg->watch_type, ret_msg->ret_data);
+	log_write(LOG_DEBUG, "The status is: version: %d, create time: %llu, modified time: %llu, access time: %llu",
+			ret_msg->status.version, ret_msg->status.created_time,
+			ret_msg->status.modified_time, ret_msg->status.access_time);
+	
+}
+
+static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type,
+		zvalue_t *watch_node)
 {
 	sds data;
 	sds *information;
@@ -92,6 +104,10 @@ static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type)
 		return ZRET_MSG_TOO_LONG;
 	}
 	strcpy(ret_msg->ret_data, watch_data.unique_code);
+	zstatus_dup(&ret_msg->status, &watch_node->status);
+	//for debug
+	print_watch(ret_msg);
+
 	rpc_server->op->send_to_queue(rpc_server, ret_msg, watch_data.dst,
 			watch_data.tag, sizeof(watch_ret_msg_t));
 	sds_free(watch_data.unique_code);
@@ -104,9 +120,15 @@ static int add_watcher(zserver_t *zserver, const sds path, sds watch_data)
 	sds watch_path;
 	zvalue_t *value;
 	ztree_t *ztree;
+	int i;
 
 	watch_path = sds_dup(path);
-	watch_path = sds_cat(watch_path, "/watch");
+	//maybe source is like /tmp/test1
+	for(i = sds_len(watch_path) - 1; i >= 0 && watch_path[i] != ':'; i--);
+	if(i < 0)
+		watch_path = sds_cat(watch_path, ":watch");
+	else
+		watch_path = sds_cat(watch_path, "/watch");
 	ztree = zserver->ztree;
 	value = ztree->op->find_znode(ztree, watch_path);
 	if(value == NULL)
@@ -133,13 +155,21 @@ static int add_watcher(zserver_t *zserver, const sds path, sds watch_data)
 static int notify_watcher(zserver_t *zserver, const sds path, int notice_type)
 {
 	sds watch_path, watcher, *watch_child;
-	zvalue_t *value;
+	zvalue_t *value, *watch_value;
 	ztree_t *ztree;
 	int count, i;
 
-	watch_path = sds_dup(path);
-	watch_path = sds_cat(watch_path, "/watch");
 	ztree = zserver->ztree;
+	watch_value = ztree->op->find_znode(ztree, path);
+	if(watch_value == NULL)
+		return ZNO_EXISTS;
+
+	watch_path = sds_dup(path);
+	for(i = sds_len(watch_path) - 1; i >= 0 && watch_path[i] != ':'; i--);
+	if(i < 0)
+		watch_path = sds_cat(watch_path, ":watch");
+	else
+		watch_path = sds_cat(watch_path, "/watch");
 	value = ztree->op->find_znode(ztree, watch_path);
 	if(value == NULL)
 	{
@@ -152,11 +182,11 @@ static int notify_watcher(zserver_t *zserver, const sds path, int notice_type)
 	for(i = 0; i < count; i++)
 	{
 		watcher = sds_cpy(watcher, watch_path);
-		watcher = sds_cat(watch_path, "/");
-		watcher = sds_cat(watch_path, watch_child[i]);
+		watcher = sds_cat(watcher, "/");
+		watcher = sds_cat(watcher, watch_child[i]);
 		value = ztree->op->find_znode(ztree, watcher);
 		//notice this child
-		if(notice_child(zserver, value, notice_type) != ZOK)
+		if(notice_child(zserver, value, notice_type, watch_value) != ZOK)
 		{
 			destroy_zvalue(value);
 			continue;
@@ -167,7 +197,7 @@ static int notify_watcher(zserver_t *zserver, const sds path, int notice_type)
 
 	sds_free_split_res(watch_child, count);
 	sds_free(watcher);
-	destroy_zvalue(value);
+	destroy_zvalue(watch_value);
 	sds_free(watch_path);
 	return ZOK;
 }
@@ -247,7 +277,7 @@ static int set_znode(zserver_t *zserver, const sds path, const sds data, int ver
 	zvalue = ztree->op->find_znode(ztree, path);
 	if(zvalue == NULL)
 		return ZNO_EXISTS;
-	if(version == -1)
+	if(version == -1 || version == zvalue->status.version)
 	{
 		old_data = zvalue->data;
 		zvalue->data = sds_dup(data);
@@ -258,18 +288,8 @@ static int set_znode(zserver_t *zserver, const sds path, const sds data, int ver
 		destroy_zvalue(zvalue);
 		return ZOK;
 	}
-	if(zvalue->status.version != version)
-	{
-		destroy_zvalue(zvalue);
-		return ZWRONG_VERSION;
-	}
-	old_data = zvalue->data;
-	zvalue->data = sds_dup(data);
-	zvalue->update_znode_status(&zvalue->status, (zvalue->status.version + 1) %
-			MAX_VER_NUM, ZNODE_MODIFY);
-	sds_free(old_data);
 	destroy_zvalue(zvalue);
-	return ZOK;
+	return ZWRONG_VERSION;
 }
 
 static int exists_znode(zserver_t *zserver, const sds path, znode_status_t
@@ -327,6 +347,37 @@ static int get_znode(zserver_t *zserver, const sds path, sds return_data,
 	return ZOK;
 }
 
+//============================FOR DEBUG==================================
+static void printf_sim(zreturn_sim_t *zreturn)
+{
+	log_write(LOG_DEBUG, "return code is %d, return value is %s",
+			zreturn->return_code, zreturn->data);
+}
+
+static void printf_base(zreturn_base_t *zreturn)
+{
+	log_write(LOG_DEBUG, "return code is %d",
+			zreturn->return_code);
+}
+
+static void printf_complex(zreturn_complex_t *zreturn)
+{
+	log_write(LOG_DEBUG, "return code is %d, return value is %s",
+			zreturn->return_code, zreturn->data);
+	log_write(LOG_DEBUG, "The status is: version: %d, create time: %llu, modified time: %llu, access time: %llu",
+			zreturn->status.version, zreturn->status.created_time,
+			zreturn->status.modified_time, zreturn->status.access_time);
+}
+
+static void printf_mid(zreturn_mid_t *zreturn)
+{
+	log_write(LOG_DEBUG, "return code is %d",
+			zreturn->return_code);
+	log_write(LOG_DEBUG, "The status is: version: %d, create time: %llu, modified time: %llu, access time: %llu",
+			zreturn->status.version, zreturn->status.created_time,
+			zreturn->status.modified_time, zreturn->status.access_time);
+}
+
 //==========================RESOLVE HANDLER==============================
 static int init_znode_handler(event_handler_t *event_handler, zserver_t
 		*zserver, void* common_msg)
@@ -344,7 +395,7 @@ static int init_znode_handler(event_handler_t *event_handler, zserver_t
 	list_set_free_method(list, zfree);
 	msg = zmalloc(sizeof(common_msg_t));
 	common_msg_dup(msg, common_msg);
-	list->list_ops->list_add_node_head(list, common_msg);
+	list->list_ops->list_add_node_head(list, msg);
 	return 0;
 }
 
@@ -373,6 +424,7 @@ static void create_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_sim_t));
+	printf_sim(zreturn);
 
 	sds_free(path);
 	sds_free(data);
@@ -406,6 +458,7 @@ static void create_parent_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_sim_t));
+	printf_sim(zreturn);
 
 	sds_free(path);
 	sds_free(data);
@@ -428,11 +481,15 @@ static void delete_znode_handler(event_handler_t *event_handler)
 
 	source = common_msg->source;
 	path = sds_new((const char *)zmsg->path);
-	return_code =  delete_znode(zserver, path, zmsg->version);
+	if(zmsg->version == (uint16_t)-1)
+		return_code =  delete_znode(zserver, path, -1);
+	else
+		return_code =  delete_znode(zserver, path, zmsg->version);
 
 	zreturn->return_code = return_code;
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_base_t));
+	printf_base(zreturn);
 
 	sds_free(path);
 	zfree(zreturn);
@@ -454,12 +511,16 @@ static void set_znode_handler(event_handler_t *event_handler)
 	source = common_msg->source;
 	path = sds_new((const char *)zmsg->path);
 	data = sds_new((const char *)zmsg->data);
-	return_code = set_znode(zserver, path, data, zmsg->version);
+	if(zmsg->version == (uint16_t)-1)
+		return_code = set_znode(zserver, path, data, -1);
+	else
+		return_code = set_znode(zserver, path, data, zmsg->version);
 
 	zreturn->return_code = return_code;
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_base_t));
+	printf_base(zreturn);
 
 	sds_free(path);
 	sds_free(data);
@@ -483,8 +544,13 @@ static void get_znode_handler(event_handler_t *event_handler)
 	source = common_msg->source;
 	path = sds_new((const char *)zmsg->path);
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	sprintf(string, "%d %d %d %d", source, WATCH_TAG, zmsg->watch_flag, zmsg->watch_code);
-	watch_data = sds_new(string);
+	if(zmsg->watch_flag != 0)
+	{
+		sprintf(string, "%d %d %d %d", source, WATCH_TAG, zmsg->watch_flag, zmsg->watch_code);
+		watch_data = sds_new(string);
+	}
+	else
+		watch_data = NULL;
 	return_code = get_znode(zserver, path, return_data,
 			&zreturn->status, watch_data);
 
@@ -495,6 +561,7 @@ static void get_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_complex_t));
+	printf_complex(zreturn);
 
 	sds_free(path);
 	sds_free(return_data);
@@ -518,14 +585,20 @@ static void exists_znode_handler(event_handler_t *event_handler)
 
 	source = common_msg->source;
 	path = sds_new((const char *)zmsg->path);
-	sprintf(string, "%d %d %d %d", source, WATCH_TAG, zmsg->watch_flag, zmsg->watch_code);
-	watch_data = sds_new(string);
+	if(zmsg->watch_flag != 0)
+	{
+		sprintf(string, "%d %d %d %d", source, WATCH_TAG, zmsg->watch_flag, zmsg->watch_code);
+		watch_data = sds_new(string);
+	}
+	else
+		watch_data = NULL;
 	return_code = exists_znode(zserver, path, &zreturn->status, watch_data);
 
 	zreturn->return_code = return_code;
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_mid_t));
+	printf_mid(zreturn);
 
 	sds_free(path);
 	sds_free(watch_data);

@@ -70,6 +70,7 @@ static void server_stop_send_queue(rpc_server_t *server)
 			usleep(50);
 		pthread_cancel(server->qsend_tid);
 		pthread_join(server->qsend_tid, NULL);
+		pthread_mutex_unlock(server->send_queue->queue_mutex);
 		log_write(LOG_DEBUG, "send queue thread has been canceled");
 	}
 }
@@ -139,7 +140,6 @@ static void* send_msg_from_queue(void* server)
 	while(1)
 	{
 		send_queue->op->syn_queue_pop(send_queue, rpc_send_msg);
-		log_write(LOG_DEBUG, "return msg is %d", *(int*)rpc_send_msg->msg);
 		//send_msg(rpc_send_msg->msg, rpc_send_msg->dst, rpc_send_msg->tag,
 		//		rpc_send_msg->length);
 		zfree(rpc_send_msg->msg);
@@ -210,10 +210,10 @@ void destroy_rpc_server(rpc_server_t *server)
 	while(server->server_commit_cancel != 1);
 	//wait client receive ack message
 	usleep(500);
+	destroy_thread_pool(server->thread_pool);
 	destroy_syn_queue(server->request_queue);
 	if(server->send_queue != NULL)
 		destroy_syn_queue(server->send_queue);
-	destroy_thread_pool(server->thread_pool);
 	zfree(server->op);
 	zfree(server->recv_buff);
 	zfree(server->send_buff);

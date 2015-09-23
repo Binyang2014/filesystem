@@ -409,7 +409,7 @@ typedef struct {
 }zoo_delete_znode_t;
 
 typedef struct {
-	uint16_t operatoin_code;
+	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t version;
 	uint16_t unique_tag;

@@ -40,7 +40,7 @@
 //number of zpath stored in ztree
 #define ZPATH_COUNT 128
 #define ZVALUE_CHILD_COUNT 8
-#define SEQUENCE_MAX 1048576
+#define SEQUENCE_MAX 512
 #define MAX_VER_NUM 65535
 //zserver define
 #define RECV_QUEUE_SIZE 128
