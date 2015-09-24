@@ -47,8 +47,12 @@
 //notice type
 #define NOTICE_CHANGED 0x1
 #define NOTICE_DELETE 0x2
-//watch return message data length
+//max return message data length
 #define MAX_RET_DATA_LEN 128
+//max watch code
+#define MAX_WATCH_CODE 65535
+//zclient define
+#define ZCLIENT_RECV_QUEUE_SIZE 32
 
 struct znode_status
 {
@@ -128,6 +132,7 @@ struct zclient
 	rpc_client_t *rpc_client;
 	void *send_buff;
 	void *recv_buff;
+	syn_queue_t *recv_queue;
 
 	list_t *watch_list;
 	uint16_t unique_watch_num;
@@ -173,6 +178,13 @@ struct watch_ret_msg
 	struct znode_status status;
 };
 
+struct watch_node
+{
+	int watch_type;
+	uint16_t watch_code;
+	void* (*watch_handler)(void *);
+};
+
 typedef struct znode_status znode_status_t;
 typedef enum znode_type znode_type_t;
 typedef struct zvalue zvalue_t;
@@ -188,6 +200,8 @@ typedef struct zreturn_sim zreturn_sim_t;
 typedef struct zreturn_complex zreturn_complex_t;
 typedef struct zreturn_base zreturn_base_t;
 typedef struct zreturn_mid zreturn_mid_t;
+typedef void *(*watch_handler_t)(void *);
+typedef struct watch_node watch_node_t;
 
 void zstatus_dup(znode_status_t *dst, const znode_status_t *src);
 zvalue_t *create_zvalue(const sds data, znode_type_t type, int version);
