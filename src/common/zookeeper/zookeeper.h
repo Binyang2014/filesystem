@@ -113,7 +113,6 @@ struct zserver
 	rpc_server_t *rpc_server;
 };
 
-
 struct zclient_op
 {
 	void (*set_data)();
@@ -126,6 +125,13 @@ struct zclient
 {
 	int client_id;
 	struct zclient_op *op;
+
+	rpc_client_t *rpc_client;
+	void *send_buff;
+	void *recv_buff;
+
+	list_t *watch_list;
+	uint16_t unique_watch_num;
 };
 
 struct watch_data
@@ -195,4 +201,7 @@ void destroy_ztree(ztree_t *tree);
 
 zserver_t *create_zserver(int server_id);
 void destroy_zserver(zserver_t *zserver);
+
+zclient_t *create_zclient(int client_id);
+void destroy_zclient(zclient_t *zclient);
 #endif
