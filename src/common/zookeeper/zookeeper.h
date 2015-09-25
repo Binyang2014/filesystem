@@ -37,7 +37,7 @@
 #define ZNODE_MODIFY 0x02
 #define ZNODE_ACCESS 0x04
 //number of zpath stored in ztree
-#define ZPATH_COUNT 128
+#define ZPATH_COUNT 32
 #define ZVALUE_CHILD_COUNT 8
 #define SEQUENCE_MAX 512
 #define MAX_VER_NUM 65535
@@ -116,17 +116,25 @@ struct zserver
 	rpc_server_t *rpc_server;
 };
 
+struct zclient;
 struct zclient_op
 {
-	void (*set_data)();
-	void (*get_data)();
-	void (*create_znode)();
-	void (*delete_znode)();
+	int (*create_znode)(struct zclient*, const sds, const sds, enum  znode_type, sds);
+	int (*create_parent)(struct zclient*, const sds, const sds, enum znode_type, sds);
+	int (*delete_znode)(struct zclient*, const sds, int);
+	int (*set_znode)(struct zclient*, const sds, const sds, int);
+	int (*get_znode)(struct zclient*, const sds, sds, struct znode_status*, int,
+			void*(*)(void*), void*);
+	int (*exists_znode)(struct zclient*, const sds, struct znode_status*, int,
+			void*(*)(void*), void*);
+	void (*start_zclient)(struct zclient*);
+	void (*stop_zclient)(struct zclient*);
 };
 
 struct zclient
 {
 	int client_id;
+	int client_stop;
 	struct zclient_op *op;
 
 	rpc_client_t *rpc_client;
@@ -136,6 +144,8 @@ struct zclient
 
 	list_t *watch_list;
 	uint16_t unique_watch_num;
+	pthread_t watch_tid;
+	pthread_t recv_watch_tid;
 };
 
 struct watch_data
@@ -183,6 +193,7 @@ struct watch_node
 	int watch_type;
 	uint16_t watch_code;
 	void* (*watch_handler)(void *);
+	void* args;
 };
 
 typedef struct znode_status znode_status_t;

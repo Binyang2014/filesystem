@@ -40,9 +40,6 @@ static void server_start(rpc_server_t *server)
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel) {
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
-
-		log_write(LOG_DEBUG, "RPC_SERVER PUT MESSAGE");
-
 		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
 	}
 	//no more message need to send
@@ -131,12 +128,18 @@ static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag,
 	rpc_send_msg->msg = NULL;
 }
 
+static void clean_up(void *rpc_send_msg)
+{
+	zfree(rpc_send_msg);
+}
+
 static void* send_msg_from_queue(void* server)
 {
 	rpc_server_t *rpc_server = (rpc_server_t *)server;
 	syn_queue_t *send_queue = rpc_server->send_queue;
 	rpc_send_msg_t *rpc_send_msg = zmalloc(sizeof(rpc_send_msg_t));
 
+	pthread_cleanup_push(clean_up, rpc_send_msg);
 	while(1)
 	{
 		send_queue->op->syn_queue_pop(send_queue, rpc_send_msg);
@@ -146,7 +149,7 @@ static void* send_msg_from_queue(void* server)
 		rpc_send_msg->msg = NULL;
 	}
 
-	zfree(rpc_send_msg);
+	pthread_cleanup_pop(0);
 	return NULL;
 }
 
