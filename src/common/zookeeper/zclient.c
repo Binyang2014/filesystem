@@ -350,9 +350,10 @@ static void stop_zclient(zclient_t *zclient)
 	zfree(watch_ret_msg);
 }
 //============================PUBLIC INTERFACES============================
-void init_zclient(zclient_t *zclient, int target, int tag)
+void set_zclient(zclient_t *zclient, int target, int tag)
 {
-	zclient->rpc_client = create_rpc_client(zclient->client_id, target, tag);
+	zclient->rpc_client->target = target;
+	zclient->rpc_client->tag = tag;
 }
 
 zclient_t *create_zclient(int client_id)
@@ -371,6 +372,7 @@ zclient_t *create_zclient(int client_id)
 	list_set_match_method(this->watch_list, watch_node_match);
 	this->recv_queue = alloc_syn_queue(ZCLIENT_RECV_QUEUE_SIZE,
 			sizeof(watch_ret_msg_t));
+	this->rpc_client = create_rpc_client(client_id, -1, -1);
 
 	this->op = zmalloc(sizeof(zclient_op_t));
 	this->op->create_znode = create_znode;

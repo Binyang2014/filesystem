@@ -155,6 +155,7 @@ typedef struct {
 	uint16_t transfer_version;
 	int source;
 	int tag;
+	int reserved;
 }stop_server_msg_t;
 
 /*-------------------MASTER MESSAGE StRUCTURE------------------*/

@@ -1,10 +1,10 @@
 TOPDIR = ../../../..
 LIBDIR = $(TOPDIR)/lib
 LIB = $(LIBDIR)/libcommon.a
-TEST_PROGRAM = ztree_test zserver_test
+TEST_PROGRAM = ztree_test zserver_test zclient_test
 
 include $(TOPDIR)/GlobalMakefile
-test_obj = ztree_test.o zserver_test.o
+test_obj = ztree_test.o zserver_test.o zclient_test.o
 
 all_test:: $(TEST_PROGRAM)
 
@@ -12,6 +12,9 @@ ztree_test: ztree_test.o $(LIB)
 	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -o $@
 
 zserver_test: zserver_test.o $(LIB)
+	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -o $@
+
+zclient_test: zclient_test.o $(LIB)
 	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -o $@
 
 include $(TOPDIR)/GlobalRules

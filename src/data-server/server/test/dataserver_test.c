@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
 	data_server_t* dataserver;
 	write_c_to_d_t w_msg;
 	read_c_to_d_t r_msg;
-	char data_msg[16];
+	char data_msg[20];
 
 	log_init("", LOG_DEBUG);
 	mpi_init_with_thread(&argc, &argv);
@@ -83,7 +83,7 @@ int main(int argc, char* argv[])
 
 		//send message to stop data server
 		client = create_rpc_client(id, 0, 13);
-		stop_server_msg = zmalloc(sizeof(stop_server_msg_t));
+		stop_server_msg = zmalloc(sizeof(MAX_CMD_MSG_LEN));
 		stop_server_msg->operation_code = SERVER_STOP;
 		stop_server_msg->source = 1;
 		stop_server_msg->tag = 13;

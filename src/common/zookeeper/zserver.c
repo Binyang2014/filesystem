@@ -106,7 +106,9 @@ static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type,
 	strcpy(ret_msg->ret_data, watch_data.unique_code);
 	zstatus_dup(&ret_msg->status, &watch_node->status);
 	//for debug
+#ifdef ZSERVER_DEBUG
 	print_watch(ret_msg);
+#endif
 
 	rpc_server->op->send_to_queue(rpc_server, ret_msg, watch_data.dst,
 			watch_data.tag, sizeof(watch_ret_msg_t));
@@ -174,6 +176,7 @@ static int notify_watcher(zserver_t *zserver, const sds path, int notice_type)
 	if(value == NULL)
 	{
 		sds_free(watch_path);
+		destroy_zvalue(watch_value);
 		return ZOK;
 	}
 	watch_child = ztree->op->get_children(ztree, watch_path, &count);
@@ -424,7 +427,9 @@ static void create_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_sim_t));
+#ifdef ZSERVER_DEBUG
 	printf_sim(zreturn);
+#endif
 
 	sds_free(path);
 	sds_free(data);
@@ -458,7 +463,9 @@ static void create_parent_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_sim_t));
+#ifdef ZSERVER_DEBUG
 	printf_sim(zreturn);
+#endif
 
 	sds_free(path);
 	sds_free(data);
@@ -489,7 +496,9 @@ static void delete_znode_handler(event_handler_t *event_handler)
 	zreturn->return_code = return_code;
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_base_t));
+#ifdef ZERVER_DEBUG
 	printf_base(zreturn);
+#endif
 
 	sds_free(path);
 	zfree(zreturn);
@@ -520,7 +529,9 @@ static void set_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_base_t));
+#ifdef ZSERVER_DEBUG
 	printf_base(zreturn);
+#endif
 
 	sds_free(path);
 	sds_free(data);
@@ -561,7 +572,9 @@ static void get_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_complex_t));
+#ifdef ZERVER_DEBUG
 	printf_complex(zreturn);
+#endif
 
 	sds_free(path);
 	sds_free(return_data);
@@ -598,7 +611,9 @@ static void exists_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_mid_t));
+#ifdef ZERVER_DEBUG
 	printf_mid(zreturn);
+#endif
 
 	sds_free(path);
 	sds_free(watch_data);

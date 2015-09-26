@@ -91,11 +91,12 @@ int main(int argc, char* argv[])
 		{
 			result = client->recv_buff;
 			printf("rpc test result = %d\n", result->result);
+			zfree(result);
 		}
 		zfree(msg);
 
 		//send message to stop server
-		stop_server_msg = zmalloc(sizeof(stop_server_msg_t));
+		stop_server_msg = zmalloc(MAX_CMD_MSG_LEN);
 		stop_server_msg->operation_code = SERVER_STOP;
 		stop_server_msg->source = 1;
 		stop_server_msg->tag = 1;

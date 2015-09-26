@@ -228,4 +228,5 @@ void destroy_zserver(zserver_t *zserver);
 
 zclient_t *create_zclient(int client_id);
 void destroy_zclient(zclient_t *zclient);
+void set_zclient(zclient_t *zclient, int target, int tag);
 #endif
