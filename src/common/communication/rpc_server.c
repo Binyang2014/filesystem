@@ -143,8 +143,8 @@ static void* send_msg_from_queue(void* server)
 	while(1)
 	{
 		send_queue->op->syn_queue_pop(send_queue, rpc_send_msg);
-		//send_msg(rpc_send_msg->msg, rpc_send_msg->dst, rpc_send_msg->tag,
-		//		rpc_send_msg->length);
+		send_msg(rpc_send_msg->msg, rpc_send_msg->dst, rpc_send_msg->tag,
+				rpc_send_msg->length);
 		zfree(rpc_send_msg->msg);
 		rpc_send_msg->msg = NULL;
 	}

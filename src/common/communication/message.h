@@ -78,6 +78,7 @@
 
 //Zookeeper message code
 #define ZOO_PATH_MAX_LEN 256
+#define ZOO_MAX_DATA_LEN 128
 #define ZOO_CREATE_CODE 5001
 #define ZOO_CREATE_PARENT_CODE 5002
 #define ZOO_GET_CODE 5003
@@ -396,8 +397,8 @@ typedef struct {
 	uint16_t znode_type;
 	uint16_t unique_tag;
 
-	uint8_t path[ZOO_PATH_MAX_LEN];
-	uint8_t data[MAX_CMD_MSG_LEN - ZOO_PATH_MAX_LEN - 8];
+	char path[ZOO_PATH_MAX_LEN];
+	char data[ZOO_MAX_DATA_LEN];
 }zoo_create_znode_t;
 
 typedef struct {
@@ -406,7 +407,7 @@ typedef struct {
 	uint16_t version;
 	uint16_t unique_tag;
 
-	uint8_t path[ZOO_PATH_MAX_LEN];
+	char path[ZOO_PATH_MAX_LEN];
 }zoo_delete_znode_t;
 
 typedef struct {
@@ -415,8 +416,8 @@ typedef struct {
 	uint16_t version;
 	uint16_t unique_tag;
 
-	uint8_t path[ZOO_PATH_MAX_LEN];
-	uint8_t data[MAX_CMD_MSG_LEN - ZOO_PATH_MAX_LEN - 8];
+	char path[ZOO_PATH_MAX_LEN];
+	char data[ZOO_MAX_DATA_LEN];
 }zoo_set_znode_t;
 
 //watch return message will send with an unique code
@@ -428,7 +429,7 @@ typedef struct {
 
 	uint16_t unique_tag;
 
-	uint8_t path[ZOO_PATH_MAX_LEN];
+	char path[ZOO_PATH_MAX_LEN];
 }zoo_exists_znode_t;
 
 typedef struct {
@@ -439,7 +440,7 @@ typedef struct {
 
 	uint16_t unique_tag;
 
-	uint8_t path[ZOO_PATH_MAX_LEN];
+	char path[ZOO_PATH_MAX_LEN];
 }zoo_get_znode_t;
 /*--------------------ZOO KEEPER MESSAGE END--------------------------*/
 

@@ -48,7 +48,7 @@ static void update_znode_status(znode_status_t *status, int version, int mode)
 	if(version > 0)
 		status->version = version;
 	else
-		(status->version = status->version) % MAX_VER_NUM;
+		status->version = (status->version % MAX_VER_NUM);
 	switch(mode)
 	{
 		case ZNODE_CREATE:

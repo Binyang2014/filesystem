@@ -90,6 +90,7 @@ static void add_to_watch_list(zclient_t *zclient, int watch_type, int watch_code
 	watch_node->watch_type = watch_type;
 	watch_node->watch_code = watch_code;
 	watch_node->watch_handler = watch_handler;
+	watch_node->args = args;
 	watch_list->list_ops->list_add_node_tail(watch_list, watch_node);
 }
 
@@ -129,15 +130,15 @@ static int create_parent(zclient_t *zclient, const sds path, const sds data, zno
 	zreturn_sim_t *zreturn;
 
 	rpc_client = zclient->rpc_client;
-	create_msg = zclient->send_buff;
+	create_msg = (zoo_create_znode_t *)zclient->send_buff;
 	zreturn = (zreturn_sim_t *)zclient->recv_buff;
 
 	//construct command message and let rpc client to excuse it
 	create_msg->operation_code = ZOO_CREATE_PARENT_CODE;
 	create_msg->znode_type = type;
 	create_msg->unique_tag = rpc_client->tag;
-	strcpy((char *)create_msg->path, path);
-	strcpy((char *)create_msg->data, data);
+	strcpy(create_msg->path, path);
+	strcpy(create_msg->data, data);
 
 	//recv zsever return and put it into recv buffer
 	rpc_client->op->set_send_buff(rpc_client, create_msg);
@@ -163,7 +164,7 @@ static int delete_znode(zclient_t *zclient, const sds path, int version)
 	delete_msg->operation_code = ZOO_DELETE_CODE;
 	delete_msg->version = version;
 	delete_msg->unique_tag = rpc_client->tag;
-	strcpy((char *)delete_msg->path, path);
+	strcpy(delete_msg->path, path);
 
 	//recv zsever return and put it into recv buffer
 	rpc_client->op->set_send_buff(rpc_client, delete_msg);
@@ -188,8 +189,8 @@ static int set_znode(zclient_t *zclient, const sds path, const sds data, int
 	set_msg->operation_code = ZOO_SET_CODE;
 	set_msg->version = version;
 	set_msg->unique_tag = rpc_client->tag;
-	strcpy((char *)set_msg->path, path);
-	strcpy((char *)set_msg->data, data);
+	strcpy(set_msg->path, path);
+	strcpy(set_msg->data, data);
 
 	//recv zsever return and put it into recv buffer
 	rpc_client->op->set_send_buff(rpc_client, set_msg);
@@ -216,7 +217,7 @@ static int get_znode(zclient_t *zclient, const sds path, sds return_data,
 	get_msg->watch_flag = watch_flag;
 	get_msg->watch_code = get_watch_num(zclient);
 	get_msg->unique_tag = rpc_client->tag;
-	strcpy((char *)get_msg->path, path);
+	strcpy(get_msg->path, path);
 
 	//recv zsever return and put it into recv buffer
 	rpc_client->op->set_send_buff(rpc_client, get_msg);
@@ -227,9 +228,10 @@ static int get_znode(zclient_t *zclient, const sds path, sds return_data,
 	if(zreturn->return_code & ZOK)
 	{
 		sds_cpy(return_data, zreturn->data);
-		zstatus_dup(status, &zreturn->status);
+		if(status != NULL)
+			zstatus_dup(status, &zreturn->status);
 	}
-	if(!(zreturn->return_code & ZSET_WATCH_ERROR))
+	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR))
 		add_to_watch_list(zclient, watch_flag, get_msg->watch_code,
 				watch_handler, args);
 
@@ -252,16 +254,16 @@ static int exists_znode(zclient_t *zclient, const sds path, znode_status_t
 	exists_msg->watch_flag = watch_flag;
 	exists_msg->watch_code = get_watch_num(zclient);
 	exists_msg->unique_tag = rpc_client->tag;
-	strcpy((char *)exists_msg->path, path);
+	strcpy(exists_msg->path, path);
 
 	//recv zsever return and put it into recv buffer
 	rpc_client->op->set_send_buff(rpc_client, exists_msg);
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_mid_t));
 
-	if(zreturn->return_code & ZOK)
+	if(status != NULL && (zreturn->return_code & ZOK))
 		zstatus_dup(status, &zreturn->status);
-	if(!(zreturn->return_code & ZSET_WATCH_ERROR))
+	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR))
 		add_to_watch_list(zclient, watch_flag, exists_msg->watch_code,
 				watch_handler, args);
 
@@ -364,7 +366,7 @@ zclient_t *create_zclient(int client_id)
 	this->rpc_client = NULL;
 	this->client_id = client_id;
 	this->client_stop = 0;
-	this->send_buff = zmalloc(sizeof(MAX_CMD_MSG_LEN));
+	this->send_buff = zmalloc(MAX_CMD_MSG_LEN);
 	this->recv_buff = zmalloc(sizeof(zreturn_complex_t));
 	this->unique_watch_num = 1;
 	this->watch_list = list_create();
