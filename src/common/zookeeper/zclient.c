@@ -46,6 +46,8 @@ static int get_znode(zclient_t *zclient, const sds path, sds return_data,
 //get to know if the znode exist and add watcher for this znode
 static int exists_znode(zclient_t *zclient, const sds path, znode_status_t
 		*status, int watch_flag, watch_handler_t watch_handler, void *args);
+//get all children in this path
+static int get_children(zclient_t *zclient, const sds path, sds return_data);
 
 //there will be a thread to handle watch event
 static void *handle_watch_event(void *args);
@@ -238,6 +240,33 @@ static int get_znode(zclient_t *zclient, const sds path, sds return_data,
 	return zreturn->return_code;
 }
 
+static int get_children(zclient_t *zclient, const sds path, sds return_data)
+{
+	rpc_client_t *rpc_client;
+	zoo_get_children_t *get_children_msg;
+	zreturn_sim_t *zreturn;
+
+	rpc_client = zclient->rpc_client;
+	get_children_msg = zclient->send_buff;
+	zreturn = (zreturn_sim_t *)zclient->recv_buff;
+
+	//construct command message and let rpc client to excuse it
+	get_children_msg->operation_code = ZOO_GET_CHILDREN_CODE;
+	get_children_msg->unique_tag = rpc_client->tag;
+	strcpy(get_children_msg->path, path);
+
+	//recv zsever return and put it into recv buffer
+	rpc_client->op->set_send_buff(rpc_client, get_children_msg);
+	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
+	recv_msg(zreturn, rpc_client->target, rpc_client->tag,
+			sizeof(zreturn_sim_t));
+
+	if(zreturn->return_code & ZOK)
+		sds_cpy(return_data, zreturn->data);
+
+	return zreturn->return_code;
+}
+
 static int exists_znode(zclient_t *zclient, const sds path, znode_status_t
 		*status, int watch_flag, watch_handler_t watch_handler, void *args)
 {
@@ -383,6 +412,7 @@ zclient_t *create_zclient(int client_id)
 	this->op->set_znode = set_znode;
 	this->op->get_znode = get_znode;
 	this->op->exists_znode = exists_znode;
+	this->op->get_children = get_children;
 	this->op->start_zclient = start_zclient;
 	this->op->stop_zclient = stop_zclient;
 

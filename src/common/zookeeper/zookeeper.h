@@ -32,6 +32,7 @@
 #define ZNO_ENOUGH_BUFFER 0x20
 #define ZWRONG_WATCH_TYPE 0x40
 #define ZRET_MSG_TOO_LONG 0x80
+#define ZNO_CHILDREN 0x100
 //znode create mode
 #define ZNODE_CREATE 0x01
 #define ZNODE_MODIFY 0x02
@@ -127,6 +128,7 @@ struct zclient_op
 			void*(*)(void*), void*);
 	int (*exists_znode)(struct zclient*, const sds, struct znode_status*, int,
 			void*(*)(void*), void*);
+	int (*get_children)(struct zclient*, const sds, sds);
 	void (*start_zclient)(struct zclient*);
 	void (*stop_zclient)(struct zclient*);
 };

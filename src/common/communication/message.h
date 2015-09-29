@@ -82,9 +82,10 @@
 #define ZOO_CREATE_CODE 5001
 #define ZOO_CREATE_PARENT_CODE 5002
 #define ZOO_GET_CODE 5003
-#define ZOO_SET_CODE 5004
-#define ZOO_EXISTS_CODE 5005
-#define ZOO_DELETE_CODE 5006
+#define ZOO_GET_CHILDREN_CODE 5004
+#define ZOO_SET_CODE 5005
+#define ZOO_EXISTS_CODE 5006
+#define ZOO_DELETE_CODE 5007
 
 //Server stop code
 //every handler should achieve this function
@@ -442,6 +443,15 @@ typedef struct {
 
 	char path[ZOO_PATH_MAX_LEN];
 }zoo_get_znode_t;
+
+typedef struct {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+
+	uint16_t unique_tag;
+
+	char path[ZOO_PATH_MAX_LEN];
+}zoo_get_children_t;
 /*--------------------ZOO KEEPER MESSAGE END--------------------------*/
 
 /*-------------------COMMON MESSAGE FUNCTIONS-------------------------*/

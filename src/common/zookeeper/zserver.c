@@ -31,6 +31,8 @@ static int set_znode(zserver_t *zserver, const sds path, const sds data, int ver
 //get znode data and can add watcher for this znode
 static int get_znode(zserver_t *zserver, const sds path, sds return_data,
 		znode_status_t *status, sds watch_data);
+//get znode children
+static int get_children(zserver_t *zserver, sds path, sds return_data);
 //get to know if the znode exist and can add watcher for this znode
 static int exists_znode(zserver_t *zserver, const sds path, znode_status_t
 		*status, sds watch_data);
@@ -53,6 +55,7 @@ static void delete_znode_handler(event_handler_t *event_handler);
 static void set_znode_handler(event_handler_t *event_handler);
 static void get_znode_handler(event_handler_t *event_handler);
 static void exists_znode_handler(event_handler_t *event_handler);
+static void get_children_handler(event_handler_t *event_handler);
 
 static void zput_request(zserver_t *zserver, common_msg_t *common_msg);
 static void zserver_start(zserver_t *zserver);
@@ -89,8 +92,11 @@ static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type,
 	watch_data.dst = atoi(information[0]);
 	watch_data.tag = atoi(information[1]);
 	watch_data.watch_type = atoi(information[2]);
-	if(watch_data.watch_type && notice_type == 0)
+	if((watch_data.watch_type & notice_type) == 0)
+	{
+		sds_free_split_res(information, count);
 		return ZWRONG_WATCH_TYPE;
+	}
 	watch_data.unique_code = sds_dup(information[3]);
 	sds_free_split_res(information, count);
 
@@ -350,6 +356,27 @@ static int get_znode(zserver_t *zserver, const sds path, sds return_data,
 	return ZOK;
 }
 
+static int get_children(zserver_t *zserver, sds path, sds return_data)
+{
+	ztree_t *ztree;
+	int count, i;
+	sds *children = NULL;
+
+	ztree = zserver->ztree;
+	children = ztree->op->get_children(ztree, path, &count);
+	if(children == NULL)
+		return ZNO_CHILDREN;
+	return_data = sds_cpy(return_data, children[0]);
+
+	for(i = 1; i < count; i++)
+	{
+		return_data = sds_cat(return_data, " ");
+		return_data = sds_cat(return_data, children[i]);
+	}
+	sds_free_split_res(children, count);
+	return ZOK;
+}
+
 //============================FOR DEBUG==================================
 static void printf_sim(zreturn_sim_t *zreturn)
 {
@@ -544,8 +571,7 @@ static void get_znode_handler(event_handler_t *event_handler)
 	sds path, return_data, watch_data;
 	zserver_t *zserver = event_handler->special_struct;
 	list_t *list = event_handler->event_buffer_list;
-	common_msg_t* common_msg = list_node_value(list->list_ops->list_index(list,
-				0));
+	common_msg_t *common_msg = list_node_value(list->list_ops->list_index(list, 0));
 	zoo_get_znode_t *zmsg = (void *)MSG_COMM_TO_CMD(common_msg);
 	int return_code, source;
 	zreturn_complex_t *zreturn = zmalloc(sizeof(zreturn_complex_t));
@@ -579,6 +605,39 @@ static void get_znode_handler(event_handler_t *event_handler)
 	sds_free(path);
 	sds_free(return_data);
 	sds_free(watch_data);
+	zfree(zreturn);
+	list_release(list);
+}
+
+static void get_children_handler(event_handler_t *event_handler)
+{
+	sds path, return_data;
+	zserver_t *zserver = event_handler->special_struct;
+	list_t *list = event_handler->event_buffer_list;
+	common_msg_t *common_msg = list_node_value(list->list_ops->list_index(list, 0));
+	zoo_get_children_t *zmsg = (void*)MSG_COMM_TO_CMD(common_msg);
+	int return_code, source;
+	zreturn_sim_t *zreturn = zmalloc(sizeof(zreturn_sim_t));
+	rpc_server_t *rpc_server = zserver->rpc_server;
+
+	source = common_msg->source;
+	path = sds_new((const char*)zmsg->path);
+	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
+	return_code = get_children(zserver, path, return_data);
+
+	zreturn->return_code = return_code;
+	memset(zreturn->data, 0, sizeof(zreturn->data));
+	if(return_code == ZOK)
+		memcpy(zreturn->data, return_data, sds_len(return_data));
+
+	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
+			zmsg->unique_tag, sizeof(zreturn_sim_t));
+#ifdef ZSERVER_DEBUG
+	printf_sim(zreturn);
+#endif
+
+	sds_free(path);
+	sds_free(return_data);
 	zfree(zreturn);
 	list_release(list);
 }
@@ -640,6 +699,10 @@ static void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 		case ZOO_GET_CODE:
 			init_znode_handler(event_handler, local_zserver, &common_msg);
 			event_handler->handler = get_znode_handler;
+			break;
+		case ZOO_GET_CHILDREN_CODE:
+			init_znode_handler(event_handler, local_zserver, &common_msg);
+			event_handler->handler = get_children_handler;
 			break;
 		case ZOO_SET_CODE:
 			init_znode_handler(event_handler, local_zserver, &common_msg);

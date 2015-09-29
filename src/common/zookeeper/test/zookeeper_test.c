@@ -2,8 +2,8 @@
 #include <unistd.h>
 #include "zookeeper.h"
 #include "zmalloc.h"
-#include "mpi_communication.h"
 #include "log.h"
+#include "mpi_communication.h"
 
 static zserver_t *zserver;
 static rpc_server_t *local_server;
@@ -136,20 +136,27 @@ int main(int argc, char *argv[])
 			printf("retrun data is %s\n", return_data);
 
 		path = sds_cpy(path, "/data/research.bat");
-		data = sds_cpy(data, "This is first test!!!");
-		ret_num = zclient->op->set_znode(zclient, path, data, -1);
-		if(ret_num != ZOK)
-			printf("something wrong happens\n");
-		else
-			printf("set ok wait for watch event\n");
-
-		path = sds_cpy(path, "/data/research.bat");
 		ret_num = zclient->op->exists_znode(zclient, path, NULL,
 				2, watch_handler_delete, NULL);
 		if(ret_num != ZOK)
 			printf("something wrong happens\n");
 		else
 			printf("exist ok\n");
+
+		path = sds_cpy(path, "/data/research.bat:watch");
+		ret_num = zclient->op->get_children(zclient, path, return_data);
+		if(ret_num != ZOK)
+			printf("something wrong happens\n");
+		else
+			printf("children is %s\n", return_data);
+
+		path = sds_cpy(path, "/data/research.bat");
+		data = sds_cpy(data, "This is first test!!!");
+		ret_num = zclient->op->set_znode(zclient, path, data, -1);
+		if(ret_num != ZOK)
+			printf("something wrong happens\n");
+		else
+			printf("set ok wait for watch event\n");
 
 		path = sds_cpy(path, "/data/research.bat");
 		data = sds_cpy(data, "This is first test!!!!!!!!!");

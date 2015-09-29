@@ -345,6 +345,8 @@ static sds *get_children(ztree_t *tree, const sds path, int *count)
 	if(parent_node == NULL)
 		return NULL;
 	map = parent_node->child;
+	if(map == NULL)
+		return NULL;
 	path_array = map->op->get_all_keys(map, count);
 	destroy_zvalue(parent_node);
 	return path_array;
