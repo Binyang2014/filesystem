@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 	rank = get_mpi_rank();
 
 	if(rank == 0) {
-		rpc_server_t *server = create_rpc_server2(3, 3, 3, 0, resolve_handler);
+		rpc_server_t *server = create_rpc_server2(1, 3, 3, 0, resolve_handler);
 		local_server = server;
 		server->op->server_start(server);
 		printf("Can you see me??\n");
@@ -91,11 +91,12 @@ int main(int argc, char* argv[])
 		{
 			result = client->recv_buff;
 			printf("rpc test result = %d\n", result->result);
+			zfree(result);
 		}
 		zfree(msg);
 
 		//send message to stop server
-		stop_server_msg = zmalloc(sizeof(stop_server_msg_t));
+		stop_server_msg = zmalloc(MAX_CMD_MSG_LEN);
 		stop_server_msg->operation_code = SERVER_STOP;
 		stop_server_msg->source = 1;
 		stop_server_msg->tag = 1;

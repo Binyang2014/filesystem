@@ -193,6 +193,9 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			zfree(head_msg);
 			break;
 
+		case COMMAND_WITHOUT_RETURN:
+			break;
+
 		case STOP_SERVER:
 			acc_msg = zmalloc(sizeof(acc_msg_t));
 			recv_acc_msg(acc_msg, client->target, client->tag);

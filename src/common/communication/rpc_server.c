@@ -18,7 +18,10 @@
 
 /*--------------------Private Declaration---------------------*/
 static void server_start(rpc_server_t *server);
+static void server_start2(rpc_server_t *server);
+static void server_stop_send_queue(rpc_server_t *server);
 static void server_stop(rpc_server_t *server);
+static void server_stop2(rpc_server_t *server);
 static int send_result(void *param, int dst, int tag, int len, msg_type_t type);
 static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag,
 		int len);
@@ -31,31 +34,48 @@ static void server_start(rpc_server_t *server)
 	server->thread_pool->tp_ops->start(server->thread_pool);
 
 	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START");
+	if(server->send_queue != NULL)
+		pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
 
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel) {
-		if(server->send_queue != NULL)
-			pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
-
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
-
-		log_write(LOG_DEBUG, "RPC_SERVER PUT MESSAGE");
-
 		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
 	}
 	//no more message need to send
+	server_stop_send_queue(server);
+}
+
+static void server_start2(rpc_server_t *server)
+{
+	server->thread_pool->tp_ops->start(server->thread_pool);
+
+	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START");
+	if(server->send_queue != NULL)
+		pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
+}
+
+static void server_stop(rpc_server_t *server) {
+	server->server_thread_cancel = 1;
+}
+
+static void server_stop_send_queue(rpc_server_t *server)
+{
 	if(server->send_queue != NULL)
 	{
 		while(!server->send_queue->queue->basic_queue_op->is_empty(server->send_queue->queue))
 			usleep(50);
 		pthread_cancel(server->qsend_tid);
 		pthread_join(server->qsend_tid, NULL);
+		pthread_mutex_unlock(server->send_queue->queue_mutex);
 		log_write(LOG_DEBUG, "send queue thread has been canceled");
 	}
 }
 
-static void server_stop(rpc_server_t *server) {
-	server->server_thread_cancel = 1;
+static void server_stop2(rpc_server_t *server)
+{
+	server_stop_send_queue(server);
+	server->server_commit_cancel = 1;
 }
 
 //only data message and ans message need len
@@ -108,12 +128,18 @@ static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag,
 	rpc_send_msg->msg = NULL;
 }
 
+static void clean_up(void *rpc_send_msg)
+{
+	zfree(rpc_send_msg);
+}
+
 static void* send_msg_from_queue(void* server)
 {
 	rpc_server_t *rpc_server = (rpc_server_t *)server;
 	syn_queue_t *send_queue = rpc_server->send_queue;
 	rpc_send_msg_t *rpc_send_msg = zmalloc(sizeof(rpc_send_msg_t));
 
+	pthread_cleanup_push(clean_up, rpc_send_msg);
 	while(1)
 	{
 		send_queue->op->syn_queue_pop(send_queue, rpc_send_msg);
@@ -123,7 +149,7 @@ static void* send_msg_from_queue(void* server)
 		rpc_send_msg->msg = NULL;
 	}
 
-	zfree(rpc_send_msg);
+	pthread_cleanup_pop(0);
 	return NULL;
 }
 
@@ -159,7 +185,9 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size,
 
 	this->op = zmalloc(sizeof(rpc_server_op_t));
 	this->op->server_start = server_start;
+	this->op->server_start2 = server_start2;
 	this->op->server_stop = server_stop;
+	this->op->server_stop2 = server_stop2;
 	this->op->send_result = send_result;
 	this->op->send_to_queue = send_to_queue;
 	this->op->recv_reply = recv_reply;
@@ -185,10 +213,10 @@ void destroy_rpc_server(rpc_server_t *server)
 	while(server->server_commit_cancel != 1);
 	//wait client receive ack message
 	usleep(500);
+	destroy_thread_pool(server->thread_pool);
 	destroy_syn_queue(server->request_queue);
 	if(server->send_queue != NULL)
 		destroy_syn_queue(server->send_queue);
-	destroy_thread_pool(server->thread_pool);
 	zfree(server->op);
 	zfree(server->recv_buff);
 	zfree(server->send_buff);
@@ -200,6 +228,7 @@ int init_server_stop_handler(event_handler_t *event_handler, void* server,
 		void* common_msg)
 {
 	list_t *list;
+	void *cmd_msg;
 
 	event_handler->special_struct = server;
 	event_handler->event_buffer_list = list_create();
@@ -208,8 +237,10 @@ int init_server_stop_handler(event_handler_t *event_handler, void* server,
 		log_write(LOG_ERR, "error when allocate list");
 		return -1;
 	}
-	list->list_ops->list_add_node_head(list,
-			MSG_COMM_TO_CMD(common_msg));
+	list_set_free_method(list, zfree);
+	cmd_msg = zmalloc(MAX_CMD_MSG_LEN);
+	memcpy(cmd_msg, MSG_COMM_TO_CMD(common_msg), MAX_CMD_MSG_LEN);
+	list->list_ops->list_add_node_head(list, cmd_msg);
 	return 0;
 }
 

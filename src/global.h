@@ -19,7 +19,7 @@
 #define MAXLINE 4096
 
 //following is about message length, and only fixed lenght can be defined here
-#define MAX_CMD_MSG_LEN 4096
+#define MAX_CMD_MSG_LEN 1024
 #define MAX_DATA_CONTENT_LEN (1<<22)
 
 //data server configure about buffer size, just a test, need to be redefined

@@ -28,27 +28,32 @@
 #define ZWRONG_VERSION 0x2
 #define ZNO_EXISTS 0x4
 #define ZCREATE_WRONG 0x8
-#define ZWRONG_WATCH_FLAG 0x10
-#define ZSET_WATCH_ERROR 0x20
-#define ZNO_ENOUGH_BUFFER 0x40
-#define ZWRONG_WATCH_TYPE 0x80
-#define ZRET_MSG_TOO_LONG 0x100
+#define ZSET_WATCH_ERROR 0x10
+#define ZNO_ENOUGH_BUFFER 0x20
+#define ZWRONG_WATCH_TYPE 0x40
+#define ZRET_MSG_TOO_LONG 0x80
+#define ZNO_CHILDREN 0x100
 //znode create mode
 #define ZNODE_CREATE 0x01
 #define ZNODE_MODIFY 0x02
 #define ZNODE_ACCESS 0x04
 //number of zpath stored in ztree
-#define ZPATH_COUNT 128
+#define ZPATH_COUNT 32
 #define ZVALUE_CHILD_COUNT 8
-#define SEQUENCE_MAX 1048576
+#define SEQUENCE_MAX 512
+#define MAX_VER_NUM 65535
 //zserver define
 #define RECV_QUEUE_SIZE 128
 #define SEND_QUEUE_SIZE 64
 //notice type
 #define NOTICE_CHANGED 0x1
 #define NOTICE_DELETE 0x2
-//watch return message data length
+//max return message data length
 #define MAX_RET_DATA_LEN 128
+//max watch code
+#define MAX_WATCH_CODE 65535
+//zclient define
+#define ZCLIENT_RECV_QUEUE_SIZE 32
 
 struct znode_status
 {
@@ -97,16 +102,12 @@ struct ztree
 	struct znode_status status;
 };
 
+struct zserver;
 struct zserver_op
 {
-	void (*create_parent)();
-	void (*create_znode)();
-	void (*delete_znode)();
-	void (*set_znode)();
-	void (*get_znode)();
-	void (*notify_watcher)();
-	void (*start)();
-	void (*stop)();
+	void (*zserver_start)(struct zserver *zserver);
+	void (*zserver_stop)(struct zserver *zserver);
+	void (*zput_request)(struct zserver *zserver, common_msg_t *common_msg);
 };
 
 struct zserver
@@ -116,19 +117,37 @@ struct zserver
 	rpc_server_t *rpc_server;
 };
 
-
+struct zclient;
 struct zclient_op
 {
-	void (*set_data)();
-	void (*get_data)();
-	void (*create_znode)();
-	void (*delete_znode)();
+	int (*create_znode)(struct zclient*, const sds, const sds, enum  znode_type, sds);
+	int (*create_parent)(struct zclient*, const sds, const sds, enum znode_type, sds);
+	int (*delete_znode)(struct zclient*, const sds, int);
+	int (*set_znode)(struct zclient*, const sds, const sds, int);
+	int (*get_znode)(struct zclient*, const sds, sds, struct znode_status*, int,
+			void*(*)(void*), void*);
+	int (*exists_znode)(struct zclient*, const sds, struct znode_status*, int,
+			void*(*)(void*), void*);
+	int (*get_children)(struct zclient*, const sds, sds);
+	void (*start_zclient)(struct zclient*);
+	void (*stop_zclient)(struct zclient*);
 };
 
 struct zclient
 {
 	int client_id;
+	int client_stop;
 	struct zclient_op *op;
+
+	rpc_client_t *rpc_client;
+	void *send_buff;
+	void *recv_buff;
+	syn_queue_t *recv_queue;
+
+	list_t *watch_list;
+	uint16_t unique_watch_num;
+	pthread_t watch_tid;
+	pthread_t recv_watch_tid;
 };
 
 struct watch_data
@@ -139,11 +158,44 @@ struct watch_data
 	sds unique_code;//combine with client id and a unique number
 };
 
+struct zreturn_sim
+{
+	int return_code;
+	char data[MAX_RET_DATA_LEN];
+};
+
+struct zreturn_complex
+{
+	int return_code;
+	char data[MAX_RET_DATA_LEN];
+	struct znode_status status;
+};
+
+struct zreturn_mid
+{
+	int return_code;
+	struct znode_status status;
+};
+
+struct zreturn_base
+{
+	int return_code;
+};
+
 //ret data could not exceed 128 bytes
 struct watch_ret_msg
 {
 	int watch_type;
 	char ret_data[MAX_RET_DATA_LEN];
+	struct znode_status status;
+};
+
+struct watch_node
+{
+	int watch_type;
+	uint16_t watch_code;
+	void* (*watch_handler)(void *);
+	void* args;
 };
 
 typedef struct znode_status znode_status_t;
@@ -157,6 +209,12 @@ typedef struct zclient_op zclient_op_t;
 typedef struct zclient zclient_t;
 typedef struct watch_data watch_data_t;
 typedef struct watch_ret_msg watch_ret_msg_t;
+typedef struct zreturn_sim zreturn_sim_t;
+typedef struct zreturn_complex zreturn_complex_t;
+typedef struct zreturn_base zreturn_base_t;
+typedef struct zreturn_mid zreturn_mid_t;
+typedef void *(*watch_handler_t)(void *);
+typedef struct watch_node watch_node_t;
 
 void zstatus_dup(znode_status_t *dst, const znode_status_t *src);
 zvalue_t *create_zvalue(const sds data, znode_type_t type, int version);
@@ -168,4 +226,9 @@ ztree_t *create_ztree(int version);
 void destroy_ztree(ztree_t *tree);
 
 zserver_t *create_zserver(int server_id);
+void destroy_zserver(zserver_t *zserver);
+
+zclient_t *create_zclient(int client_id);
+void destroy_zclient(zclient_t *zclient);
+void set_zclient(zclient_t *zclient, int target, int tag);
 #endif

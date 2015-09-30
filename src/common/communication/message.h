@@ -21,6 +21,7 @@
 #define ANY_SOURCE -1
 #define ANY_TAG -1
 #define CMD_TAG 0
+#define WATCH_TAG 500
 #define IGNORE_LENGTH -1
 
 //length of some type of messages
@@ -76,12 +77,15 @@
 #define C_D_READ_BLOCK_CODE 4002
 
 //Zookeeper message code
+#define ZOO_PATH_MAX_LEN 256
+#define ZOO_MAX_DATA_LEN 128
 #define ZOO_CREATE_CODE 5001
 #define ZOO_CREATE_PARENT_CODE 5002
 #define ZOO_GET_CODE 5003
-#define ZOO_SET_CODE 5004
-#define ZOO_EXISTS_CODE 5005
-#define ZOO_DELETE_CODE 5006
+#define ZOO_GET_CHILDREN_CODE 5004
+#define ZOO_SET_CODE 5005
+#define ZOO_EXISTS_CODE 5006
+#define ZOO_DELETE_CODE 5007
 
 //Server stop code
 //every handler should achieve this function
@@ -90,7 +94,7 @@
 #define MSG_COMM_TO_CMD(p_common_msg) ((int8_t*)(p_common_msg) + COMMON_MSG_HEAD)
 
 //reply message type and it not complete
-typedef enum{
+typedef enum {
 	ACC,
 	DATA,
 	ANS,
@@ -127,7 +131,7 @@ typedef struct {
 }machine_role_t;
 
 /*------------------------COMMON MESSAGE-----------------------*/
-typedef struct{
+typedef struct {
 	int source;
 	uint16_t operation_code;
 	uint16_t transfer_version;
@@ -135,24 +139,25 @@ typedef struct{
 }common_msg_t;
 
 /*----------------------ACCEPT AESSAGE-------------------------*/
-typedef struct{
+typedef struct {
 	uint32_t op_status;
 	uint32_t reserved;
 }acc_msg_t;
 
 /*-----------------------MESSAGE HEAD--------------------------*/
-typedef struct{
+typedef struct {
 	uint32_t len;
 	uint32_t op_status;//status of last message
 	uint64_t options;
 }head_msg_t;
 
 /*----------------------STOP SERVER MESSAGE---------------------*/
-typedef struct{
+typedef struct {
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	int source;
 	int tag;
+	int reserved;
 }stop_server_msg_t;
 
 /*-------------------MASTER MESSAGE StRUCTURE------------------*/
@@ -283,7 +288,7 @@ typedef struct block_location{
 /*
  * data server send heart beat to master
  */
-typedef struct d_server_heart_beat{
+typedef struct d_server_heart_beat {
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	int id;
@@ -325,7 +330,7 @@ typedef struct c_d_block_data{
  */
 
 //read message from client to data server
-typedef struct{
+typedef struct {
 	//64 bits
 	uint16_t operation_code;
 	uint16_t transfer_version;
@@ -341,7 +346,7 @@ typedef struct{
 }read_c_to_d_t;
 
 //read and write use this message
-typedef struct{
+typedef struct {
 	uint32_t len;//data len in this package
 	uint32_t offset;//form the beginning chunks
 
@@ -353,7 +358,7 @@ typedef struct{
 }msg_data_t;
 
 //origin write operation, do not support insert
-typedef struct{
+typedef struct {
 	//64 bits
 	uint16_t operation_code;
 	uint16_t transfer_version;
@@ -369,7 +374,7 @@ typedef struct{
 //you can use this structure to insert text to a file
 //if a message can not contain enough block_ids, you can send a serials messages
 // and the seqno and tail is useful for this condition.
-typedef struct{
+typedef struct {
 	uint16_t operation_code;
 	uint16_t unique_tag;
 
@@ -387,12 +392,66 @@ typedef struct block{
 /*-------------------DATA_SERVER MESSAGE STRUCTURE END----------------*/
 
 /*----------------------ZOO KEEPER MESSAGE----------------------------*/
-typedef struct{
+typedef struct {
 	uint16_t operation_code;
-	uint16_t treansfer_version;
+	uint16_t transfer_version;
+	uint16_t znode_type;
+	uint16_t unique_tag;
 
-	uint8_t data[MAX_CMD_MSG_LEN - 4];
+	char path[ZOO_PATH_MAX_LEN];
+	char data[ZOO_MAX_DATA_LEN];
 }zoo_create_znode_t;
+
+typedef struct {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t version;
+	uint16_t unique_tag;
+
+	char path[ZOO_PATH_MAX_LEN];
+}zoo_delete_znode_t;
+
+typedef struct {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t version;
+	uint16_t unique_tag;
+
+	char path[ZOO_PATH_MAX_LEN];
+	char data[ZOO_MAX_DATA_LEN];
+}zoo_set_znode_t;
+
+//watch return message will send with an unique code
+typedef struct {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t watch_flag;
+	uint16_t watch_code;
+
+	uint16_t unique_tag;
+
+	char path[ZOO_PATH_MAX_LEN];
+}zoo_exists_znode_t;
+
+typedef struct {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t watch_flag;
+	uint16_t watch_code;
+
+	uint16_t unique_tag;
+
+	char path[ZOO_PATH_MAX_LEN];
+}zoo_get_znode_t;
+
+typedef struct {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+
+	uint16_t unique_tag;
+
+	char path[ZOO_PATH_MAX_LEN];
+}zoo_get_children_t;
 /*--------------------ZOO KEEPER MESSAGE END--------------------------*/
 
 /*-------------------COMMON MESSAGE FUNCTIONS-------------------------*/
