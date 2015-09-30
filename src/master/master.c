@@ -37,6 +37,9 @@ static uint64_t static_get_global_id(master_t *master, uint64_t num) {
 	return result;
 }
 
+/**
+ * Thread pool handler parameter
+ */
 static void *get_event_handler_param(event_handler_t *event_handler) {
 	return event_handler->event_buffer_list->head->value;
 }
@@ -113,8 +116,6 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 
 /*
  * allocate necessary space
- * get net work topology from configure file
- * parse machine group
  * receive register information from other machines
  *
  */

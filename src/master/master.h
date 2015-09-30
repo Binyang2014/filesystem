@@ -18,6 +18,7 @@ struct sub_master_status {
 	char ip[16];
 	int status;
 	int rank;
+	unsigned long int free_block; // free block
 };
 
 struct master_sub_masters {
