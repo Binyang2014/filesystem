@@ -115,7 +115,7 @@ static int create_znode(zclient_t *zclient, const sds path, const sds data,
 	strcpy((char *)create_msg->data, data);
 
 	//recv zsever return and put it into recv buffer
-	rpc_client->op->set_send_buff(rpc_client, create_msg);
+	rpc_client->op->set_send_buff(rpc_client, create_msg, sizeof(zoo_create_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_sim_t));
 	if(zreturn->return_code & ZOK)
@@ -143,7 +143,7 @@ static int create_parent(zclient_t *zclient, const sds path, const sds data, zno
 	strcpy(create_msg->data, data);
 
 	//recv zsever return and put it into recv buffer
-	rpc_client->op->set_send_buff(rpc_client, create_msg);
+	rpc_client->op->set_send_buff(rpc_client, create_msg, sizeof(zoo_create_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_sim_t));
 	if(zreturn->return_code & ZOK)
@@ -169,7 +169,7 @@ static int delete_znode(zclient_t *zclient, const sds path, int version)
 	strcpy(delete_msg->path, path);
 
 	//recv zsever return and put it into recv buffer
-	rpc_client->op->set_send_buff(rpc_client, delete_msg);
+	rpc_client->op->set_send_buff(rpc_client, delete_msg, sizeof(zoo_delete_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_base_t));
 
@@ -195,7 +195,7 @@ static int set_znode(zclient_t *zclient, const sds path, const sds data, int
 	strcpy(set_msg->data, data);
 
 	//recv zsever return and put it into recv buffer
-	rpc_client->op->set_send_buff(rpc_client, set_msg);
+	rpc_client->op->set_send_buff(rpc_client, set_msg, sizeof(zoo_set_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_base_t));
 
@@ -222,7 +222,7 @@ static int get_znode(zclient_t *zclient, const sds path, sds return_data,
 	strcpy(get_msg->path, path);
 
 	//recv zsever return and put it into recv buffer
-	rpc_client->op->set_send_buff(rpc_client, get_msg);
+	rpc_client->op->set_send_buff(rpc_client, get_msg, sizeof(zoo_get_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag,
 			sizeof(zreturn_complex_t));
@@ -256,7 +256,7 @@ static int get_children(zclient_t *zclient, const sds path, sds return_data)
 	strcpy(get_children_msg->path, path);
 
 	//recv zsever return and put it into recv buffer
-	rpc_client->op->set_send_buff(rpc_client, get_children_msg);
+	rpc_client->op->set_send_buff(rpc_client, get_children_msg, sizeof(zoo_get_children_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag,
 			sizeof(zreturn_sim_t));
@@ -286,7 +286,7 @@ static int exists_znode(zclient_t *zclient, const sds path, znode_status_t
 	strcpy(exists_msg->path, path);
 
 	//recv zsever return and put it into recv buffer
-	rpc_client->op->set_send_buff(rpc_client, exists_msg);
+	rpc_client->op->set_send_buff(rpc_client, exists_msg, sizeof(zoo_exists_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_mid_t));
 
@@ -366,8 +366,10 @@ static void stop_zclient(zclient_t *zclient)
 	watch_ret_msg = zmalloc(sizeof(watch_ret_msg_t));
 	zclient->client_stop = 1;
 	strcpy(watch_ret_msg->ret_data, "-1");
-	send_msg(watch_ret_msg, zclient->client_id, WATCH_TAG,
-			sizeof(watch_ret_msg_t));
+	usleep(500);
+	if(!zclient_stop_commit)
+		send_msg(watch_ret_msg, zclient->client_id, WATCH_TAG,
+				sizeof(watch_ret_msg_t));
 	while(!zclient_stop_commit);
 	pthread_join(zclient->recv_watch_tid, NULL);
 

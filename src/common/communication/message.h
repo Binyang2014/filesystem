@@ -463,7 +463,7 @@ uint16_t get_operation_code(common_msg_t* msg);
 
 /*------------------------MESSAGE FUNCTIONS---------------------------*/
 //You can choose MPI or sockets from send message
-void send_cmd_msg(void* msg, int dst, int tag);
+int send_cmd_msg(void* msg, int dst, uint32_t len);
 //this function should be modified later
 void send_data_msg(void* msg, int dst, int tag, uint32_t len);
 void send_msg(void* msg, int dst, int tag, int len);

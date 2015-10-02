@@ -178,7 +178,7 @@ int main(int argc, char *argv[])
 		stop_server_msg->source = 1;
 		stop_server_msg->tag = 13;
 		zclient->rpc_client->op->set_send_buff(zclient->rpc_client,
-				stop_server_msg);
+				stop_server_msg, sizeof(stop_server_msg_t));
 		zclient->rpc_client->op->execute(zclient->rpc_client, STOP_SERVER);
 
 		sds_free(path);

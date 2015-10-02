@@ -15,7 +15,6 @@ typedef struct {
 	uint16_t transfer_version;
 	int source;
 	int tag;
-	char rest[4084];
 }test_rpc_t;
 
 typedef struct {
@@ -78,13 +77,13 @@ int main(int argc, char* argv[])
 		destroy_rpc_server(server);
 	}else {
 		rpc_client_t *client = create_rpc_client(rank, 0, 1);
-		test_rpc_t *msg = zmalloc(4096);
+		test_rpc_t *msg = zmalloc(sizeof(test_rpc_t));
 		stop_server_msg_t* stop_server_msg = NULL;
 
 		msg->code = 1;
 		msg->source = 1;
 		msg->tag = 1;
-		client->op->set_send_buff(client, msg);
+		client->op->set_send_buff(client, msg, sizeof(test_rpc_t));
 		if(client->op->execute(client, COMMAND_WITH_RETURN) < 0)
 			printf("execute wrong\n");
 		else
@@ -96,11 +95,11 @@ int main(int argc, char* argv[])
 		zfree(msg);
 
 		//send message to stop server
-		stop_server_msg = zmalloc(MAX_CMD_MSG_LEN);
+		stop_server_msg = zmalloc(sizeof(stop_server_msg_t));
 		stop_server_msg->operation_code = SERVER_STOP;
 		stop_server_msg->source = 1;
 		stop_server_msg->tag = 1;
-		client->op->set_send_buff(client, stop_server_msg);
+		client->op->set_send_buff(client, stop_server_msg, sizeof(stop_server_msg_t));
 		if(client->op->execute(client, STOP_SERVER) < 0)
 			printf("something wrong\n");
 		else
