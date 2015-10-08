@@ -109,6 +109,14 @@ enum machine_role{
 	DATA_SERVER
 };
 
+/*-------------------------POSITION----------------------*/
+typedef struct{
+	uint64_t start;
+	uint64_t end;
+};
+/*-------------------------POSITION----------------------*/
+
+
 /*-------------------------ROLE ALLOCATOR----------------------*/
 typedef struct {
 	uint16_t operation_code;
