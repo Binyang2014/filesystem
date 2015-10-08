@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
 		//It can write to data server
 		init_w_struct(&w_msg);
 		printf("sending message to data server\n");
-		client->op->set_send_buff(client, &w_msg);
+		client->op->set_send_buff(client, &w_msg, sizeof(write_c_to_d_t));
 		init_data_structure(data_msg);
 		client->op->set_second_send_buff(client, data_msg, 16);
 		if(client->op->execute(client, WRITE_C_TO_D) < 0)
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
 		//I will test read function
 		client = create_rpc_client(id, 0, 13);
 		init_r_structure(&r_msg);
-		client->op->set_send_buff(client, &r_msg);
+		client->op->set_send_buff(client, &r_msg, sizeof(read_c_to_d_t));
 		memset(data_msg, 0, sizeof(data_msg));
 		client->op->set_recv_buff(client, data_msg, 16);
 		if(client->op->execute(client, READ_C_TO_D) < 0)
@@ -87,7 +87,7 @@ int main(int argc, char* argv[])
 		stop_server_msg->operation_code = SERVER_STOP;
 		stop_server_msg->source = 1;
 		stop_server_msg->tag = 13;
-		client->op->set_send_buff(client, stop_server_msg);
+		client->op->set_send_buff(client, stop_server_msg, sizeof(stop_server_msg_t));
 		if(client->op->execute(client, STOP_SERVER) < 0)
 			log_write(LOG_ERR, "stop server wrong");
 		else

@@ -15,7 +15,7 @@
 static int execute(rpc_client_t *client, execute_type_t exe_type);
 static void set_recv_buff(rpc_client_t* client, void* buff , uint32_t
 		recv_buff_len);
-static void set_send_buff(rpc_client_t* client, void* buff);
+static void set_send_buff(rpc_client_t* client, void* buff, uint32_t);
 static void set_second_send_buff(rpc_client_t* client, void* buff, uint32_t
 		second_send_buff_len);
 static void recv_data(rpc_client_t* client, uint32_t len);
@@ -112,7 +112,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 		log_write(LOG_ERR, "client has not been provided command message");
 		return -1;
 	}
-	send_cmd_msg(client->send_buff, client->target, CMD_TAG);
+	send_cmd_msg(client->send_buff, client->target, client->send_buff_len);
 	switch(exe_type)
 	{
 		case READ_C_TO_D:
@@ -206,7 +206,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				return -1;
 			}
 			//send this message again to let server stop
-			send_cmd_msg(client->send_buff, client->target, CMD_TAG);
+			send_cmd_msg(client->send_buff, client->target, client->send_buff_len);
 			recv_acc_msg(acc_msg, client->target, client->tag);
 			if(acc_msg->op_status != ACC_OK)
 			{
@@ -255,9 +255,10 @@ static void set_recv_buff(struct rpc_client* client, void* buff , uint32_t
 	client->recv_buff_len = recv_buff_len;
 }
 
-static void set_send_buff(struct rpc_client* client, void* buff)
+static void set_send_buff(struct rpc_client* client, void* buff, uint32_t send_buff_len)
 {
 	client->send_buff = buff;
+	client->send_buff_len = send_buff_len;
 }
 
 static void set_second_send_buff(struct rpc_client* client, void* buff, uint32_t
