@@ -65,11 +65,10 @@
 #define DATA_MASTER_HEART_BEAT_CODE 2002
 
 //Data-Master should deal with
-#define CREATE_FILE_CODE 3001
+#define CREATE_TEMP_FILE_CODE 3001
 #define DATA_SERVER_HEART_BEAT_CODE 3002
-#define READ_FILE_CODE 3003
-#define WRITE_FILE_CODE 3004
-#define APPEND_FILE_CODE 3005
+#define READ_TEMP_FILE_CODE 3003
+#define APPEND_TEMP_FILE_CODE 3004
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -109,12 +108,12 @@ enum machine_role{
 	DATA_SERVER
 };
 
-/*-------------------------POSITION----------------------*/
+/*-------------------------POSITION START----------------------*/
 typedef struct{
 	uint64_t start;
 	uint64_t end;
-};
-/*-------------------------POSITION----------------------*/
+}position_des_t;
+/*-------------------------POSITION E N D----------------------*/
 
 
 /*-------------------------ROLE ALLOCATOR----------------------*/

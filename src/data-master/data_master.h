@@ -15,8 +15,8 @@ struct data_master{
 	int rank;
 	sds visual_ip;
 	size_t group_size;		//size
-	name_space_t *namespace; //size
-	storage_machine_sta_t *storage_ms; //size
+	name_space_t *namespace;
+	list_t *storage_machine_l;
 	unsigned long free_size;
 };
 
