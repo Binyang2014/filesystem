@@ -115,6 +115,26 @@ static int file_exists(struct name_space *space, sds file_name) {
 	return find(space, file_name) != NULL;
 }
 
+list_t *get_file_location(name_space_t *space, sds file_name){
+	file_node_t *node = find(space, file_name);
+
+	assert(node != NULL);
+
+	return node->position;
+}
+
+void set_file_location(name_space_t *space, sds file_name, list_t *list){
+	file_node_t *node = find(space, file_name);
+
+	assert(node != NULL);
+
+	if(node->position == NULL){
+		node->position = list;
+	}else{
+		//node->position->list_ops->list_
+	}
+}
+
 
 /*--------------------API Implementation-------------------*/
 name_space_t *create_name_space(size_t size) {
