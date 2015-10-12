@@ -170,6 +170,7 @@ typedef struct {
 /*-------------------MASTER MESSAGE StRUCTURE------------------*/
 #define FILE_NAME_MAX_LENGTH 255
 
+/*
 typedef struct {
 	uint16_t operation_code;
 	uint16_t transfer_version;
@@ -224,7 +225,7 @@ typedef struct {
 }master_global_id_ans_t;
 
 
-/*-------------------SUB_MASTER MESSAGE STRCTURE--------------------*/
+//-------------------SUB_MASTER MESSAGE STRCTURE--------------------
 
 typedef struct {
 	uint16_t operation_code;
@@ -259,7 +260,9 @@ typedef struct {
 	int result_code;
 }s_m_delete_temporary_file_ans_t;
 
-/*-------------------SUB_MASTER MESSAGE STRCTURE END-----------------*/
+//-------------------SUB_MASTER MESSAGE STRCTURE END-----------------
+
+*/
 
 /*-------------------DATA_MASTER MESSAGE STRUCTURE-------------------*/
 /*
@@ -285,13 +288,6 @@ typedef struct answer_confirm{
 	int result;
 }answer_confirm_t;
 
-typedef struct block_location{
-	uint32_t server_id;
-	uint32_t write_len;
-	uint64_t global_id;
-	uint64_t block_seq;
-}block_location;
-
 /*
  * data server send heart beat to master
  */
@@ -314,6 +310,12 @@ typedef struct c_d_block_data{
 	block_location block_info;
 	int8_t data[BLOCK_SIZE];
 }c_d_block_data_t;
+
+typedef struct c_d_create_cmd{
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}c_d_create_t;
 
 /*-------------------DATA_MASTER MESSAGE STRUCTURE END----------------*/
 

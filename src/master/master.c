@@ -44,6 +44,7 @@ static void *get_event_handler_param(event_handler_t *event_handler) {
 	return event_handler->event_buffer_list->head->value;
 }
 
+/*
 static void create_persistent_file(event_handler_t *event_handler) {
 	master_create_file_t *create_file = get_event_handler_param(event_handler);
 	master_create_file_ans_t *result = zmalloc(sizoef(*result));
@@ -53,6 +54,7 @@ static void create_persistent_file(event_handler_t *event_handler) {
 	sds_free(name);
 	zfree(result);
 }
+*/
 
 static void allocate_append_space() {
 
@@ -63,7 +65,7 @@ static void allocate_append_space() {
  * check if the file is totally consistent to the disk
  * if so delete
  * else consistent it and delete
- */
+
 static void delete_system_file(event_handler_t *event_handler) {
 	master_deleter_system_file_t *delete_file = get_event_handler_param(event_handler);
 	master_deleter_system_file_ans_t *result = zmalloc(sizoef(*result));
@@ -71,11 +73,13 @@ static void delete_system_file(event_handler_t *event_handler) {
 	local_master->rpc_server->op->send_result(result, delete_file->source, delete_file->tag, sizeof(*result));
 	zfree(result);
 }
+*/
 
 static void sub_master_heart_blood(event_handler_t *event_handler) {
 
 }
 
+/*
 static void sub_master_ask_global_id(event_handler_t *event_handler) {
 	sub_master_ask_global_id_t *ask = get_event_handler_param(event_handler);
 	master_global_id_ans_t *result = zmalloc(sizeof(*result));
@@ -96,6 +100,7 @@ static void append_file(event_handler_t *event_handler) {
 	result->result_code = local_master->name_space->op->append_file(local_master->name_space, t->file_name, t->append_size);
 
 }
+*/
 
 static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	common_msg_t common_msg;
@@ -104,7 +109,7 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	switch(common_msg.operation_code)
 	{
 		case MASTER_CREATE_PERSISTENT_FILE:
-			event_handler->handler = create_persistent_file;
+			//event_handler->handler = create_persistent_file;
 			break;
 		default:
 			event_handler->handler = NULL;

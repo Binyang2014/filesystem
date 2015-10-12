@@ -10,14 +10,16 @@
 #include <stddef.h>
 #include "../common/structure_tool/name_space.h"
 #include "../common/communication/message.h"
+#include "../common/structure_tool/basic_list.h"
 
 struct data_master{
 	int rank;
 	sds visual_ip;
 	size_t group_size;		//size
 	name_space_t *namespace;
-	list_t *storage_machine_l;
-	unsigned long free_size;
+	basic_queue_t *storage_q;
+	uint64_t free_size;
+	uint64_t global_id;
 };
 
 struct data_master_op{
