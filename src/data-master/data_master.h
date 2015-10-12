@@ -11,6 +11,7 @@
 #include "../common/structure_tool/name_space.h"
 #include "../common/communication/message.h"
 #include "../common/structure_tool/basic_list.h"
+#include "../common/communication/rpc_server.h"
 
 struct data_master{
 	int rank;
@@ -20,6 +21,7 @@ struct data_master{
 	basic_queue_t *storage_q;
 	uint64_t free_size;
 	uint64_t global_id;
+	rpc_server_t *rpc_server;
 };
 
 struct data_master_op{

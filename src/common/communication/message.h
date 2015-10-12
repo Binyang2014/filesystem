@@ -110,6 +110,7 @@ enum machine_role{
 
 /*-------------------------POSITION START----------------------*/
 typedef struct{
+	int rank;
 	uint64_t start;
 	uint64_t end;
 }position_des_t;
@@ -300,11 +301,14 @@ typedef struct d_server_heart_beat {
 /**
  * client send write cmd request to data server
  */
-typedef struct c_d_write_cmd{
+typedef struct c_d_append_cmd{
+	int source;
+	int tag;
 	uint16_t operation_code;
 	uint16_t transfer_version;
-	int block_num;
-}c_d_cmd_t;
+	uint64_t write_size;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}c_d_append_t;
 
 typedef struct c_d_block_data{
 	block_location block_info;
@@ -312,6 +316,8 @@ typedef struct c_d_block_data{
 }c_d_block_data_t;
 
 typedef struct c_d_create_cmd{
+	int source;
+	int tag;
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
