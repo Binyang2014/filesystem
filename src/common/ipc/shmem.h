@@ -24,9 +24,11 @@
 #define OWRITE 0002
 #define OEXCUTE 0001
 
+#define COMMON_KEY 8317
+
 struct shmem_head
 {
-	int shm_length;
+	size_t shm_length;
 };
 
 #define MAX_SHM_SIZE (MAX_DATA_CONTENT_LEN + sizeof(struct shmem_head))
@@ -36,15 +38,22 @@ struct shmem
 	int shmid;
 	uint32_t key;
 	void *addr;
-	sem_t *sem;
+	sem_t *f_sem;
+	sem_t *e_sem;
+	size_t size;
 };
 
 struct shmem *create_shm(uint32_t key, size_t size, int flag);
-int get_shm(struct shmem *shmem);
-void *attach_shm(struct shmem *shmem, int flag);
-void detach_shm(void *addr);
+struct shmem *get_shm(uint32_t key, int flag);
+void *attach_shm(struct shmem *shmem);
+void detach_shm(struct shmem *shmem);
 void destroy_shm(struct shmem *shmem);
 
+int send_to_shm(struct shmem *shmem, void *data, size_t data_len);
+int recv_shm_with_len(struct shmem *shmem, void *data, size_t data_len);
+int recv_from_shm(struct shmem *shmem, void *data);
+
 typedef struct shmem shmem_t;
+typedef struct shmem_head shmem_head_t;
 
 #endif
