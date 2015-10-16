@@ -39,6 +39,17 @@
 #define THREAD_POOL_DEBUG 1
 //#define DATASERVER_BUFF_DEBUG 1
 
+//define for file access mode
+#define RUSR 0400
+#define WUSR 0200
+#define XUSR 0100
+#define RGRP 0040
+#define WGRP 0020
+#define XGRP 0010
+#define ROTH 0004
+#define WOTH 0002
+#define XOTH 0001
+
 //define optional size of file system
 enum TOTAL_SIZE
 {
@@ -50,5 +61,6 @@ enum TOTAL_SIZE
 };
 
 typedef enum TOTAL_SIZE total_size_t;
+typedef unsigned short f_mode_t;
 
 #endif
