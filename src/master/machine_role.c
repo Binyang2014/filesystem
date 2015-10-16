@@ -43,6 +43,14 @@ static inline int local_atoi(char *c) {
 	return s;
 }
 
+/**
+ * get key value
+ * @type if type = 0 comment line
+ * 		 else if type = 1 blank line
+ * 		 else param line
+ * @key save key
+ * @value save value
+ */
 static inline void get_param(char *p, char *key, char *value, int *line_type) {
 	int index = 0;
 
@@ -72,6 +80,10 @@ static inline void get_param(char *p, char *key, char *value, int *line_type) {
 	}
 }
 
+/**
+ * get key and value
+ * skip blank and comment line
+ */
 static void inline get_line_param(FILE *fp, char *buf, char *key, char *value) {
 	int type = 0;
 	do {
@@ -81,41 +93,42 @@ static void inline get_line_param(FILE *fp, char *buf, char *key, char *value) {
 	}while(0 == type || 1 == type);
 }
 
+/**
+ * get param and translate it into integer
+ */
 static void inline read_conf_int(FILE *fp, char *buf, char *key, char *value, int *v) {
 	get_line_param(fp, buf, key, value);
 	*v = local_atoi(value);
 }
 
+/**
+ * get param and translate it into string
+ */
 static void inline read_conf_str(FILE *fp, char *buf, char *key, char *value, char *v) {
 	get_line_param(fp, buf, key, value);
 	strcpy(v, value);
 }
 
-static inline map_role_value_t *create_sub_master_role() {
+static inline map_role_value_t *create_role(char *master_ip, char *ip, machine_role_e type){
 	map_role_value_t *role = zmalloc(sizeof(*role));
-	//strcpy(role->master_ip, master_ip);
-	role->type = SUB_MASTER;
+	role->type = type;
+	strcpy(role->master_ip, master_ip);
+	strcpy(role->ip, ip);
 	return role;
 }
 
-static inline map_role_value_t *create_data_master_role(char *sub_master_ip) {
-	map_role_value_t *role = zmalloc(sizeof(*role));
-	strcpy(role->sub_master_ip, sub_master_ip);
-	role->type = DATA_MASTER;
-	return role;
+static inline map_role_value_t *create_data_master_role(char *master_ip, char *ip) {
+	return create_role(master_ip, ip, DATA_MASTER);
 }
 
-static inline map_role_value_t *create_data_server_role(char *sub_master_ip, char *data_master_ip) {
-	map_role_value_t *role = zmalloc(sizeof(*role));
-	strcpy(role->sub_master_ip, sub_master_ip);
-	strcpy(role->data_master_ip, data_master_ip);
-	role->type = DATA_SERVER;
-	return role;
+static inline map_role_value_t *create_data_server_role(char *master_ip, char *ip) {
+	return create_role(master_ip, ip, DATA_SERVER);
 }
 
 static void get_net_topology(machine_role_allocator_t *allocator) {
 	FILE *fp = fopen(allocator->file_path, "r");
 
+	//verify file exists
 	assert(fp != NULL);
 
 	char buf[LINE_LENGTH] = {};
@@ -125,37 +138,23 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 	char ip[LINE_LENGTH] = {};
 	int current_group_type = 0;
 	int current_group_size = 0;
-	char current_sub_master[LINE_LENGTH] = {};
-	char current_data_master[LINE_LENGTH] = {};
+	char current_master[LINE_LENGTH] = {};
 	int group_num = 0;
 
-	read_conf_str(fp, buf, key, value, allocator->master_ip);
+	//read group number
 	read_conf_int(fp, buf, key, value, &group_num);
 
-	read_conf_int(fp, buf, key, value, &current_group_type);
-	read_conf_int(fp, buf, key, value, &current_group_size);
-
-	while(current_group_size--) {
-		get_line_param(fp, buf, key, value);
-		map_key = sds_new(value);
-		allocator->roles->op->put(allocator->roles, map_key, create_sub_master_role());
-		sds_free(map_key);
-	}
-
-	group_num--;
 	while(group_num--) {
-		read_conf_int(fp, buf, key, value, &current_group_type);
 		read_conf_int(fp, buf, key, value, &current_group_size);
-		read_conf_str(fp, buf, key, value, current_sub_master);
-		read_conf_str(fp, buf, key, value, current_sub_master);
-		map_key = sds_new(current_sub_master);
-		allocator->roles->op->put(allocator->roles, map_key, create_data_master_role(current_sub_master));
+		read_conf_str(fp, buf, key, value, current_master);
+		map_key = sds_new(value);
+		allocator->roles->op->put(allocator->roles, map_key, create_data_master_role(current_master, value));
 		sds_free(map_key);
 
 		while(current_group_size--) {
 			get_line_param(fp, buf, key, value);
 			map_key = sds_new(value);
-			allocator->roles->op->put(allocator->roles, map_key, create_data_server_role(current_sub_master, current_data_master));
+			allocator->roles->op->put(allocator->roles, map_key, create_data_server_role(current_master, value));
 			sds_free(map_key);
 		}
 	}
@@ -163,14 +162,25 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 	fclose(fp);
 }
 
+/**
+ * distribute the machine role
+ */
 static void allocate_machine_role(machine_role_allocator_t *allocator) {
 	map_t *roles = local_allocator->roles;
 
 	map_iterator_t *iter = create_map_iterator(roles);
 	map_role_value_t *role;
+	map_role_value_t *master_role;
 	while(iter->op->has_next(iter)){
 		role = iter->op->next(iter);
+		sds master_ip = sds_new(role->master_ip);
+		master_role = roles->op->get(master_ip);
+		role->master_rank = master_role->rank;
+		allocator->server->op->send_result(role, allocator->rank, 1, sizeof(*role), ANS);
+		sds_free(master_ip);
 	}
+
+	destroy_map_iterator(iter);
 }
 
 static void *get_event_handler_param(event_handler_t *event_handler) {
@@ -183,19 +193,18 @@ static void *get_event_handler_param(event_handler_t *event_handler) {
  */
 static void machine_register(event_handler_t *event_handler) {
 	machine_register_role_t *param = get_event_handler_param(event_handler);
+	map_role_value_t *role = zmalloc(sizeof(*role));
+
 	sds key_ip = sds_new(param->ip);
-	if(strcpy(param->ip, local_allocator) == 0) {
-		local_allocator->master_rank = param->source;
-		return;
-	}
-	map_role_value_t *result = local_allocator->roles->op->get(local_allocator->roles, key_ip);
-	result->rank = param->source;
-	//local_allocator->server->op->send_result(result, param->source, param->tag, sizeof(machine_role_t));
-	sds_free(key_ip);
+	strcpy(role->ip, param->ip); //copy role ip
+	role->rank = param->source; //copy role rank
+	role->type = param->role_type;
+	local_allocator->roles->op->put(local_allocator->roles, key_ip, role);
 	local_allocator->register_machine_num++;
 	if(local_allocator->register_machine_num == local_allocator->machine_num){
 		allocate_machine_role(local_allocator);
 	}
+	sds_free(key_ip);
 }
 
 void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {

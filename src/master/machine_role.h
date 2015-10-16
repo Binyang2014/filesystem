@@ -15,16 +15,15 @@
 
 struct map_role_value {
 	char master_ip[16];
-	char sub_master_ip[16];
-	char data_master_ip[16];
-	enum machine_role type;
+	char ip[16];
+	machine_role_e type;
+	int master_rank;
 	int rank;
 };
 
 struct machine_role_allocator {
+	int rank;
 	char file_path[255];
-	char master_ip[16];
-	int master_rank;
 	size_t register_machine_num;
 	size_t machine_num; //machine number
 	rpc_server_t *server;
