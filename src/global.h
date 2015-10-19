@@ -50,6 +50,14 @@
 #define WOTH 0002
 #define XOTH 0001
 
+//define file open mode
+#define RDONLY 0001
+#define WRONLY 0002
+#define RDWR 0004
+#define APPEND 0010
+#define CREATE_TEMP 0020
+#define CREATE_PERSIST 0040
+
 //define optional size of file system
 enum TOTAL_SIZE
 {
@@ -62,5 +70,6 @@ enum TOTAL_SIZE
 
 typedef enum TOTAL_SIZE total_size_t;
 typedef unsigned short f_mode_t;
+typedef unsigned short open_mode_t;
 
 #endif

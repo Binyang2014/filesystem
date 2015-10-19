@@ -322,7 +322,7 @@ typedef struct c_d_read_cmd{
 }c_d_read_t;
 
 typedef struct c_d_block_data{
-	block_location block_info;
+	//block_location block_info;
 	int8_t data[BLOCK_SIZE];
 }c_d_block_data_t;
 

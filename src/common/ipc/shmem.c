@@ -84,6 +84,13 @@ void destroy_shm(shmem_t *shmem)
 	zfree(shmem);
 }
 
+void shm_free(struct shmem *shmem)
+{
+	sem_close(shmem->e_sem);
+	sem_close(shmem->f_sem);
+	zfree(shmem);
+}
+
 int send_to_shm(shmem_t *shmem, void *data, size_t data_len)
 {
 	void *addr = shmem->addr;
