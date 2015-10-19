@@ -59,14 +59,14 @@ struct file_ret_msg
 struct openfile_msg
 {
 	uint16_t operation_code;
-	char file_path[MAX_FILE_PATH];
+	char file_path[MAX_FILE_PATH + 1];
 	open_mode_t open_mode;
 };
 
 struct createfile_msg
 {
 	uint16_t operation_code;
-	char file_path[MAX_FILE_PATH];
+	char file_path[MAX_FILE_PATH + 1];
 	open_mode_t open_mode;
 	f_mode_t mode;
 };

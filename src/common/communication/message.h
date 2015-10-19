@@ -66,9 +66,10 @@
 
 //Data-Master should deal with
 #define CREATE_TEMP_FILE_CODE 3001
-#define DATA_SERVER_HEART_BEAT_CODE 3002
-#define READ_TEMP_FILE_CODE 3003
-#define APPEND_TEMP_FILE_CODE 3004
+#define CREATE_PERSIST_FILE_CODE 3002
+#define DATA_SERVER_HEART_BEAT_CODE 3003
+#define READ_TEMP_FILE_CODE 3004
+#define APPEND_TEMP_FILE_CODE 3005
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -273,10 +274,10 @@ typedef struct {
 typedef struct client_create_file{
 	uint16_t operation_code;
 	uint16_t transfer_version;
-	uint32_t reserved;
-	uint64_t file_size;
+	uint16_t file_mode;
+	uint16_t reserved;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}client_create_file;
+}client_create_file_t;
 
 typedef struct client_read_file{
 	uint16_t operation_code;
@@ -284,7 +285,7 @@ typedef struct client_read_file{
 	uint32_t reserved;
 	uint64_t file_size;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}client_read_file;
+}client_read_file_t;
 
 typedef struct answer_confirm{
 	int result;
