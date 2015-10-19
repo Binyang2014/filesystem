@@ -101,12 +101,12 @@ typedef enum {
 	HEAD
 }msg_type_t;
 
-enum machine_role{
+typedef enum machine_role{
 	MASTER,
 	SUB_MASTER,
 	DATA_MASTER,
 	DATA_SERVER
-};
+}machine_role_e;
 
 /*-------------------------POSITION START----------------------*/
 typedef struct{
@@ -120,10 +120,11 @@ typedef struct{
 /*-------------------------ROLE ALLOCATOR----------------------*/
 typedef struct {
 	uint16_t operation_code;
-	uint16_t transfer_version;//use to idetify specific message
+	uint16_t transfer_version; //use to idetify specific message
 	int source;
 	int tag;
 	char ip[20];
+	machine_role_e role_type;
 }machine_register_role_t;
 
 typedef struct {
@@ -309,6 +310,16 @@ typedef struct c_d_append_cmd{
 	uint64_t write_size;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }c_d_append_t;
+
+typedef struct c_d_read_cmd{
+	int source;
+	int tag;
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint64_t read_offset;
+	uint64_t read_size;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}c_d_read_t;
 
 typedef struct c_d_block_data{
 	block_location block_info;

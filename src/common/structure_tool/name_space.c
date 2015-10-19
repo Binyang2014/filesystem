@@ -131,7 +131,8 @@ void set_file_location(name_space_t *space, sds file_name, list_t *list){
 	if(node->position == NULL){
 		node->position = list;
 	}else{
-		//node->position->list_ops->list_
+		list_t *list_head = node->position;
+		list_head->list_ops->list_merge_list(list_head, list);
 	}
 }
 

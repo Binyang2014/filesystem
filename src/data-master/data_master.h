@@ -25,7 +25,7 @@ struct data_master{
 };
 
 struct data_master_op{
-	int (*machine_register)();
+	int (*machine_register)(storage_machine_sta_t *machine_sta);
 	void (*create_temp_file)(char *name);
 	void (*append_temp_file)();
 	void (*read_temp_file)();

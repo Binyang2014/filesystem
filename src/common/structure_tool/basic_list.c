@@ -29,6 +29,7 @@ static void list_rewind(list_t *list, list_iter_t *li);
 static void list_rewind_tail(list_t *list, list_iter_t *li);
 static void list_rotate(list_t *list);
 static int list_has_next(list_iter_t *iter);
+static list_t *list_merge_list(list_t *list_head, list_t *list_tail);
 
 
 static void init_list_ops(list_op_t* list_ops)
@@ -52,6 +53,7 @@ static void init_list_ops(list_op_t* list_ops)
 	list_ops->list_rewind_tail = list_rewind_tail;
 	list_ops->list_rotate = list_rotate;
 	list_ops->list_search_key = list_search_key;
+	list_ops->list_merge_list = list_merge_list;
 }
 
 /* Create a new list. The created list can be freed with
@@ -403,6 +405,14 @@ static list_node_t *list_next(list_iter_t *iter)
 static int list_has_next(list_iter_t *iter) {
 	return iter->next != NULL;
 }
+
+static list_t *list_merge_list(list_t *list_head, list_t *list_tail){
+	list_head->len += list_tail->len;
+	list_head->tail->next = list_tail;
+	list_head->tail = list_tail->tail;
+	return list_head;
+}
+
 
 /* Duplicate the whole list. On out of memory NULL is returned.
  * On success a copy of the original list is returned.

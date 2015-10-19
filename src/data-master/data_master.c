@@ -170,11 +170,23 @@ static void append_temp_file(event_handler_t *event_handler){
 	//TODO free function
 	list_release(list);
 
+	//send write result to client
 	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->tag, size * sizeof(position_des_t), ANS);
+
 	zfree(pos_arrray);
+	//set location
+	local_master->namespace->op->set_file_location(local_master->namespace, file_name, list);
+	local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size);
 }
 
 static void read_temp_file(event_handler_t *event_handler){
+	c_d_read_t *c_cmd = get_event_handler_param(event_handler);
+	sds file_name = sds_new(c_cmd->file_name);
+	assert(local_master->namespace->op->file_exists(local_master->namespace, file_name));
+
+	list_t *list = local_master->namespace->op->get_file_location(local_master->namespace, file_name);
+
+
 	//test whether file exists
 	//get file position
 	//send result to client
@@ -194,10 +206,10 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 			event_handler->handler = create_temp_file;
 			break;
 		case APPEND_TEMP_FILE_CODE:
-			event_handler->handler = create_temp_file;
+			event_handler->handler = append_temp_file;
 			break;
 		case READ_TEMP_FILE_CODE:
-			event_handler->handler = create_temp_file;
+			event_handler->handler = read_temp_file;
 			break;
 		default:
 			event_handler->handler = NULL;
