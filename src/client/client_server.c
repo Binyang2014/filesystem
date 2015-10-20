@@ -9,8 +9,8 @@
 #include "message.h"
 
 static int code_transfer(uint32_t op_status);
-static void f_create();
-static int f_open();
+static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg);
+static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg);
 
 static int code_transfer(uint32_t op_status)
 {
@@ -48,6 +48,15 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	zfree(rpc_client->recv_buff);
 }
 
+//open a exist file
+static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
+{
+	rpc_client_t *rpc_client = NULL;
+	client_open_file_t *client_open_file = NULL;
+	shmem_t *shmem = NULL;
+	file_ret_msg ret_msg;
+}
+
 //create file client server and need to know data-master id and tag
 fclient_t *create_fclient(int client_id, int target, int tag)
 {
@@ -63,6 +72,8 @@ fclient_t *create_fclient(int client_id, int target, int tag)
 		zfree(fclient);
 		return NULL;
 	}
+	fclient->zclient = create_zclient(client_id);
+	set_zclient(fclient->zclient, target, tag);
 	fclient->fclient_ops = zmalloc(sizeof(fclient_ops_t));
 	fclient->fclient_ops->f_create = f_create;
 

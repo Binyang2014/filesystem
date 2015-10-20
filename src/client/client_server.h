@@ -7,8 +7,10 @@
 #ifndef CLIENT_SERVER_H_
 #define CLIENT_SERVER_H_
 
+#include "zookeeper.h"
 #include "client_struct.h"
 #include "rpc_client.h"
+#include "basic_list.h"
 #include "shmem.h"
 
 struct fclient;
@@ -25,7 +27,9 @@ struct fclient
 {
 	rpc_client_t *rpc_client;
 	shmem_t *shmem;
+	zclient_t *zclient;
 	struct fclient_ops *fclient_ops;
+	list_t *file_list;
 };
 
 typedef struct fclient fclient_t;

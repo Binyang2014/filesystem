@@ -26,7 +26,7 @@ static void consistent_persistent_file();
 static void merge_file();
 static void read_disk_file();
 
-static int open_file(const char *path, open_mode_t open_mode)
+static int open_file(const char *path, open_mode_t open_mode, int *fd)
 {
 	openfile_msg_t openfile_msg;
 	file_ret_msg_t file_ret_msg;
@@ -48,12 +48,15 @@ static int open_file(const char *path, open_mode_t open_mode)
 	}
 	//get return code
 	recv_from_shm(shmem, &file_ret_msg);
+	*fd = file_ret_msg.fd;
 	pthread_mutex_unlock(shm_mutex);
 	sds_free(openfile_msg.file_path);
+
 	return file_ret_msg.ret_code;
 }
 
-static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode)
+static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode,
+		int *fd)
 {
 	createfile_msg_t create_msg;
 	file_ret_msg_t file_ret_msg;
@@ -76,8 +79,10 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode)
 	}
 	//get return code
 	recv_from_shm(shmem, &file_ret_msg);
+	*fd = file_ret_msg.fd;
 	pthread_mutex_unlock(shm_mutex);
 	sds_free(create_msg.file_path);
+
 	return file_ret_msg.ret_code;
 }
 
@@ -96,35 +101,10 @@ void close_client()
 	shm_free(shmem);
 }
 
-opened_file_t *f_open(const char *path, open_mode_t open_mode, ...)
+int f_open(const char *path, open_mode_t open_mode, ...)
 {
-	opened_file_t *file;
+	int fd;
 
-	file = zmalloc(sizeof(opened_file_t));
-	if(!file)
-		return NULL;
-	switch(open_mode & 017)
-	{
-		case RDONLY:
-			file->f_stat = F_RDONLY;
-			break;
-
-		case WRONLY:
-			file->f_stat = F_WRONLY;
-			break;
-
-		case RDWR:
-			file->f_stat = F_RDWD;
-			break;
-
-		case APPEND:
-			file->f_stat = F_APPEND;
-			break;
-
-		default:
-			zfree(file);
-			return NULL;
-	}
 	if( (open_mode & 0020) || (open_mode & 0040) )
 	{
 		va_list vl;
@@ -133,20 +113,14 @@ opened_file_t *f_open(const char *path, open_mode_t open_mode, ...)
 		va_start(vl, open_mode);
 		mode = va_arg(vl, f_mode_t);
 		va_end(vl);
-		if(create_file(path, open_mode, mode) != 0)
-		{
-			zfree(file);
-			return NULL;
-		}
+		if(create_file(path, open_mode, mode, &fd) != 0)
+			return -1;
 	}
 	else
 	{
-		if(open_file(path, open_mode) != 0)
-		{
-			zfree(file);
-			return NULL;
-		}
+		if(open_file(path, open_mode, &fd) != 0)
+			return -1;
 	}
 
-	return file;
+	return fd;
 }

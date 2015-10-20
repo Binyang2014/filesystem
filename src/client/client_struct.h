@@ -48,12 +48,14 @@ struct opened_file
 {
 	struct file_info f_info;
 	int position;
+	int fd;
 	enum file_stat f_stat;
 };
 
 struct file_ret_msg
 {
 	int ret_code;
+	int fd;
 };
 
 struct openfile_msg
