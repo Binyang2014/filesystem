@@ -34,6 +34,7 @@ struct fclient
 	struct fclient_ops *fclient_ops;
 	list_t *file_list;
 	unsigned long *bitmap;
+	int data_master_id;
 };
 
 typedef struct fclient fclient_t;

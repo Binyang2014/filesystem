@@ -29,6 +29,8 @@
 #define COMMON_MSG_LEN (MAX_CMD_MSG_LEN + COMMON_MSG_HEAD)
 #define DATA_MSG_HEAD_LEN 16
 #define MAX_DATA_MSG_LEN (MAX_DATA_CONTENT_LEN + DATA_MSG_HEAD_LEN)
+#define DATA_SERVER_NUM 32
+#define MAX_COUNT_CID_RET MAX_COUNT_CID_R
 
 //caculate how many chunks ids can a meesage carries just for read and write
 //messages
@@ -68,9 +70,10 @@
 //Data-Master should deal with
 #define CREATE_TEMP_FILE_CODE 3001
 #define CREATE_PERSIST_FILE_CODE 3002
-#define DATA_SERVER_HEART_BEAT_CODE 3003
-#define READ_TEMP_FILE_CODE 3004
-#define APPEND_TEMP_FILE_CODE 3005
+#define OPEN_FILE_CODE 3003
+#define DATA_SERVER_HEART_BEAT_CODE 3004
+#define READ_TEMP_FILE_CODE 3005
+#define APPEND_TEMP_FILE_CODE 3006
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -272,7 +275,7 @@ typedef struct {
 /*
  * structure instruction of create file
  */
-typedef struct client_create_file{
+typedef struct client_create_file {
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t file_mode;
@@ -280,7 +283,27 @@ typedef struct client_create_file{
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_create_file_t;
 
-typedef struct client_read_file{
+typedef struct client_open_file {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	int reserved;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_open_file_t;
+
+typedef struct file_ret {
+	uint64_t file_size;
+	uint64_t offset;
+
+	uint16_t op_status;
+	uint16_t data_server_num;
+	uint32_t chunks_num;
+
+	uint16_t data_server_arr[DATA_SERVER_NUM];
+
+	uint64_t chunks_id_arr[MAX_COUNT_CID_RET];
+}file_ret_t
+
+typedef struct client_read_file {
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint32_t reserved;
@@ -288,7 +311,7 @@ typedef struct client_read_file{
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_read_file_t;
 
-typedef struct answer_confirm{
+typedef struct answer_confirm {
 	int result;
 }answer_confirm_t;
 

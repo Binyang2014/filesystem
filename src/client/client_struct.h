@@ -23,6 +23,7 @@
 #define FCREATE_OP 0001
 #define FOPEN_OP 0002
 
+//==============ABOUT FILE LIST STRUCTURE=============
 struct data_node
 {
 	int data_server_num;
@@ -34,6 +35,7 @@ struct file_info
 	sds file_path;
 	size_t file_len;
 	list_t *data_nodes;
+	size_t file_offset;
 };
 
 struct opened_file
@@ -42,14 +44,17 @@ struct opened_file
 	int position;
 	int fd;
 	open_mode_t open_mode;
+	int version;
 };
 
+//======================ABOUT FILE RETURE MESSAGE=================
 struct file_ret_msg
 {
 	int ret_code;
 	int fd;
 };
 
+//====================ABOUT FILE OPERATION MESSAGE================
 struct openfile_msg
 {
 	uint16_t operation_code;

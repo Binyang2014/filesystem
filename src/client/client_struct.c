@@ -18,6 +18,8 @@ opened_file_t *create_file(const char *file_path, int positon, open_mode_t
 	open_file->f_info->data_nodes = list_create();
 	list_set_free_method(open_file->f_info->data_nodes, zfree);
 	open_file->f_info->file_path = sds_new(file_path);
+	open_file->f_info->file_offset = 0;
+	open_file->version = 0;
 
 	return open_file;
 }
