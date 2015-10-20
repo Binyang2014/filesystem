@@ -12,6 +12,9 @@
 #include "rpc_client.h"
 #include "basic_list.h"
 #include "shmem.h"
+#include "bitmap.h"
+
+#define MAX_FD_NUMBER 1024
 
 struct fclient;
 
@@ -30,6 +33,7 @@ struct fclient
 	zclient_t *zclient;
 	struct fclient_ops *fclient_ops;
 	list_t *file_list;
+	unsigned long *bitmap;
 };
 
 typedef struct fclient fclient_t;

@@ -23,14 +23,6 @@
 #define FCREATE_OP 0001
 #define FOPEN_OP 0002
 
-enum file_stat
-{
-	F_RDONLY,
-	F_WRONLY,
-	F_RDWR,
-	F_APPEND
-};
-
 struct data_node
 {
 	int data_server_num;
@@ -41,7 +33,7 @@ struct file_info
 {
 	sds file_path;
 	size_t file_len;
-	list_t data_nodes;
+	list_t *data_nodes;
 };
 
 struct opened_file
@@ -49,7 +41,7 @@ struct opened_file
 	struct file_info f_info;
 	int position;
 	int fd;
-	enum file_stat f_stat;
+	open_mode_t open_mode;
 };
 
 struct file_ret_msg
@@ -73,7 +65,6 @@ struct createfile_msg
 	f_mode_t mode;
 };
 
-typedef enum file_stat file_stat_t;
 typedef struct data_node data_node_t;
 typedef struct file_info file_info_t;
 typedef struct opened_file opened_file_t;
@@ -81,4 +72,7 @@ typedef struct createfile_msg create_msg_t;
 typedef struct openfile_msg openfile_msg_t;
 typedef struct file_ret_msg file_ret_msg_t;
 
+opened_file_t *create_file(const char *file_path, int position, open_mode_t
+		open_mode);
+void free_file(opened_file_t *opened_file);
 #endif

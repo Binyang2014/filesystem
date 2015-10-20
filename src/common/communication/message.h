@@ -49,6 +49,7 @@
 #define READ_FAIL 7003
 #define WRITE_FAIL 7004
 #define INIT_WRITE_FAIL 7005
+#define FILE_NOT_EXIST 7006
 #define ACC_IGNORE 7111
 
 //Mater should deal with
