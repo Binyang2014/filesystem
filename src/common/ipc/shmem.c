@@ -134,3 +134,23 @@ int recv_from_shm(struct shmem *shmem, void *data)
 	sem_post(shmem->e_sem);
 	return 0;
 }
+
+void wait_esem(shmem_t *shmem)
+{
+	sem_wait(shmem->e_sem);
+}
+
+void post_esem(shmem_t *shmem)
+{
+	sem_post(shmem->e_sem);
+}
+
+void wait_fsem(shmem_t *shmem)
+{
+	sem_wait(shmem->f_sem);
+}
+
+void post_fsem(shmem_t *shmem)
+{
+	sem_post(shmem->f_sem);
+}

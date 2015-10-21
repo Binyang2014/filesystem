@@ -73,7 +73,7 @@
 #define OPEN_FILE_CODE 3003
 #define DATA_SERVER_HEART_BEAT_CODE 3004
 #define READ_TEMP_FILE_CODE 3005
-#define APPEND_TEMP_FILE_CODE 3006
+#define APPEND_FILE_CODE 3006
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -279,14 +279,15 @@ typedef struct client_create_file {
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t file_mode;
-	uint16_t reserved;
+	uint16_t unique_tag;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_create_file_t;
 
 typedef struct client_open_file {
 	uint16_t operation_code;
 	uint16_t transfer_version;
-	int reserved;
+	uint16_t unique_tag;
+	uint16_t reserved;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_open_file_t;
 
@@ -308,9 +309,21 @@ typedef struct client_read_file {
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint32_t reserved;
+
 	uint64_t file_size;
+	uint64_t offset;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_read_file_t;
+
+typedef struct client_append_file {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t unique_tag;
+	uint16_t reserved;
+
+	uint64_t write_size;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_append_file_t;
 
 typedef struct answer_confirm {
 	int result;
@@ -325,40 +338,10 @@ typedef struct d_server_heart_beat {
 	int id;
 }d_server_heart_beat_t;
 
-/**
- * client send write cmd request to data server
- */
-typedef struct c_d_append_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint64_t write_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_append_t;
-
-typedef struct c_d_read_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint64_t read_offset;
-	uint64_t read_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_read_t;
-
 typedef struct c_d_block_data{
 	//block_location block_info;
 	int8_t data[BLOCK_SIZE];
 }c_d_block_data_t;
-
-typedef struct c_d_create_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_create_t;
 
 /*-------------------DATA_MASTER MESSAGE STRUCTURE END----------------*/
 

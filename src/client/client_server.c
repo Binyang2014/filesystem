@@ -10,12 +10,20 @@
 #include "message.h"
 
 static int get_fd(fclient_t *fclient);
-static void init_create_msg(client_create_file_t *, createfile_msg_t *);
-static void init_open_msg(client_open_file_t *, openfile_msg_t *);
-static void init_file_struct(opened_file_t *opened_file, file_ret_t *file_ret);
+static void init_create_msg(client_create_file_t *, const createfile_msg_t *);
+static void init_open_msg(client_open_file_t *, const openfile_msg_t *);
+static void init_append_msg(client_append_file_t *client_append_file, const
+		writefile_msg_t *writefile_msg, const opened_file_t *opened_file);
+static void init_file_struct(opened_file_t *opened_file, const file_ret_t *file_ret);
 static int code_transfer(uint32_t op_status);
+
+static int write_lock();
+static int read_lock();
+
 static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg);
-static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg);
+static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg);
+static void f_append(fclient_t *fclient, writefile_msg_t *writefile_msg);
+static void f_read(fclient *fclient, readfile_msg_t *readfile_msg);
 
 //=======================UTILITY FUNCTIONS======================
 static int code_transfer(uint32_t op_status)
@@ -40,7 +48,7 @@ static int get_fd(fclient_t *fclient)
 }
 
 static void init_create_msg(client_create_file_t
-		*client_create_file, createfile_msg_t *createfile_msg)
+		*client_create_file, const createfile_msg_t *createfile_msg)
 {
 	if(createfile_msg->open_mode == CREATE_TEMP)
 		client_create_file->operation_code = CREATE_TEMP_FILE_CODE;
@@ -50,14 +58,22 @@ static void init_create_msg(client_create_file_t
 	strcpy(client_create_file->file_name, createfile_msg->file_path);
 }
 
-static void init_open_msg(client_open_file_t *client_open_file, openfile_msg_t
+static void init_open_msg(client_open_file_t *client_open_file, const openfile_msg_t
 		*openfile_msg)
 {
 	client_open_file->operation_code = OPEN_FILE_CODE;
 	strcpy(client_open_file->file_name, openfile_msg->file_path);
 }
 
-static void init_file_struct(opened_file_t *opened_file, file_ret_t *file_ret)
+static void init_append_msg(client_append_file_t *client_append_file, const
+		writefile_msg_t *writefile_msg, const opened_file_t *opened_file)
+{
+	client_append_file->operation_code = APPEND_FILE_CODE;
+	strcpy(client_op_file->file_name, opened_file->file_info->file_path);
+	client_append_file->write_size = writefile_msg->data_len;
+}
+
+static void init_file_struct(opened_file_t *opened_file, const file_ret_t *file_ret)
 {
 	int dataserver_num, chunks_num, index = 0;
 	int i, j;
@@ -98,6 +114,7 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	rpc_client = fclient->rpc_client;
 	client_create_file = zmalloc(sizeof(client_create_file_t));
 	init_create_msg(client_create_file, createfile_msg);
+	client_create_msg->unique_tag = rpc_client->tag;
 
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_create_file,
@@ -138,7 +155,7 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 }
 
 //open a exist file
-static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
+static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 {
 	rpc_client_t *rpc_cilent = NULL;
 	client_open_file_t *cilent_open_file = NULL;
@@ -154,6 +171,7 @@ static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	rpc_client = fclient->rpc_client;
 	client_open_file = zmalloc(sizeof(client_open_file_t));
 	init_open_msg(client_open_file, openfile_msg);
+	client_open_msg->unique_tag = rpc_client->tag;
 
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_open_file,
@@ -192,6 +210,44 @@ static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	zfree(rpc_client->recv_buff);
 }
 
+//write data to data_server, only support append now
+static void f_append(fclient_t *fclient, writefile_msg_t *writefile_msg, int fd)
+{
+	rpc_client_t *rpc_cilent = NULL;
+	client_append_file_t *cilent_append_file = NULL;
+	shmem_t *shmem = NULL;
+	opened_file_t *opened_file = NULL;
+	list_t *file_list = NULL;
+	zcient_t *zclient = NULL;
+	sds path, return_data;
+
+	log_write(LOG_DEBUG, "append a file to store data");
+	//1.find right structure
+	file_list = fclient->file_list;
+	opened_file = file_list->list_ops->list_search_key(file_list, &fd)->value;
+
+	//2.construct client_create_file message
+	rpc_client = fclient->rpc_client;
+	client_append_file = zmalloc(sizeof(client_append_file_t));
+	init_append_msg(client_open_file, writefile_msg, opened_file);
+	client_append_msg->unique_tag = rpc_client->tag;
+
+	//3.send create message to data master
+	rpc_client->op->set_send_buff(rpc_client, client_open_file,
+			sizeof(client_open_file_t));
+	if(rpc_client->op->execute(rpc_client, COMMAND_WITH_RETURN) < 0)
+		ret_msg.ret_code = FSERVER_ERR;
+
+	//4.create write lock on this server
+
+	//5.copy data from shared memory and send to dataserver
+
+	//6.copy result to share memory
+
+	zfree(client_create_file);
+	zfree(rpc_client->recv_buff);
+}
+
 //create file client server and need to know data-master id and tag
 fclient_t *create_fclient(int client_id, int target, int tag)
 {
@@ -217,6 +273,7 @@ fclient_t *create_fclient(int client_id, int target, int tag)
 	//init file list
 	fclient->file_list = list_create();
 	list_set_free_method(fclient->file_list, free_file);
+	list_set_match_method(fclient->file_list, match_file);
 
 	fclient->fclient_ops = zmalloc(sizeof(fclient_ops_t));
 	fclient->fclient_ops->f_create = f_create;

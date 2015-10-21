@@ -11,6 +11,19 @@ static void free_data_node(data_node_t *data_node)
 	zfree(data_node);
 }
 
+static int match_data(void *ptr, void *key)
+{
+	opened_file_t *opened_file;
+	int *fd;
+
+	opened_file = ptr;
+	fd = key;
+	if(opened_file->fd == *fd)
+		return 1;
+	else
+		return 0;
+}
+
 opened_file_t *create_file(const char *file_path, int positon, open_mode_t
 		open_mode)
 {

@@ -71,6 +71,12 @@ struct createfile_msg
 	f_mode_t mode;
 };
 
+struct writefile_msg
+{
+	uint16_t operation_code;
+	size_t data_len;
+};
+
 typedef struct data_node data_node_t;
 typedef struct file_info file_info_t;
 typedef struct opened_file opened_file_t;
@@ -81,4 +87,5 @@ typedef struct file_ret_msg file_ret_msg_t;
 opened_file_t *create_file(const char *file_path, int position, open_mode_t
 		open_mode);
 void free_file(opened_file_t *opened_file);
+int match_file(void *ptr, void *key);
 #endif
