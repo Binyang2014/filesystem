@@ -29,7 +29,7 @@
 #define COMMON_MSG_LEN (MAX_CMD_MSG_LEN + COMMON_MSG_HEAD)
 #define DATA_MSG_HEAD_LEN 16
 #define MAX_DATA_MSG_LEN (MAX_DATA_CONTENT_LEN + DATA_MSG_HEAD_LEN)
-#define DATA_SERVER_NUM 32
+#define DATA_SERVER_NUM 16
 #define MAX_COUNT_CID_RET MAX_COUNT_CID_R
 
 //caculate how many chunks ids can a meesage carries just for read and write
@@ -295,10 +295,11 @@ typedef struct file_ret {
 	uint64_t offset;
 
 	uint16_t op_status;
-	uint16_t data_server_num;
+	uint16_t dataserver_num;
 	uint32_t chunks_num;
 
 	uint16_t data_server_arr[DATA_SERVER_NUM];
+	uint16_t data_server_cnum[DATA_SERVER_NUM];
 
 	uint64_t chunks_id_arr[MAX_COUNT_CID_RET];
 }file_ret_t

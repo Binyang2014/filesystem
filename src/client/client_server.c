@@ -12,6 +12,7 @@
 static int get_fd(fclient_t *fclient);
 static void init_create_msg(client_create_file_t *, createfile_msg_t *);
 static void init_open_msg(client_open_file_t *, openfile_msg_t *);
+static void init_file_struct(opened_file_t *opened_file, file_ret_t *file_ret);
 static int code_transfer(uint32_t op_status);
 static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg);
 static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg);
@@ -56,6 +57,27 @@ static void init_open_msg(client_open_file_t *client_open_file, openfile_msg_t
 	strcpy(client_open_file->file_name, openfile_msg->file_path);
 }
 
+static void init_file_struct(opened_file_t *opened_file, file_ret_t *file_ret)
+{
+	int dataserver_num, chunks_num, index = 0;
+	int i, j;
+	list_t *data_nodes = opened_file->file_info.data_nodes;
+	data_node_t *data_node;
+
+	dataserver_num = file_ret->dataserver_num;
+	chunks_num = file_ret->chunks_num;
+	opened_file->file_info.file_len = file_ret->file_size;
+	opened_file->file_info.file_offset = file_ret->offset;
+	for(i = 0; i < dataserver_num; i++)
+	{
+		data_node = zmalloc(sizeof(data_node_t));
+		data_node->data_server_id = file_ret->data_server_arr[i];
+		data_node->chunks_id = zmalloc(sizeof(uint64_t) * file_ret->chunks_num);
+		for(j = 0; j < data_server_cnum[i], j++)
+			data_node->chunks_id[j] = file_ret->chunks_id_arr[index++];
+		data_nodes->list_ops->list_add_node_tail(data_nodes, data_node);
+	}
+}
 //===============================ACTUAL OPERATIONS=============================
 //this function is going to finish file create operation, there will be message
 //passing between client and server, after it will add a open file structure to
@@ -67,7 +89,7 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	shmem_t *shmem = NULL;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
-	zcient_t zclient = NULL;
+	zcient_t *zclient = NULL;
 	sds path, data;
 	file_ret_msg ret_msg;
 
@@ -85,7 +107,8 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 
 	//create znode on server
 	path = sds_new(createfile_msg->file_path);
-	data = sds_new("ver 1")
+	//have not used data structure now
+	data = sds_new("msg:")
 	zclient = fcient->zclient;
 	if(zcilent->op->create_parent(zcient, path, data, PERSISTENT,
 				NULL) != ZOK)
@@ -93,9 +116,18 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	sds_free(path);
 	sds_free(data);
 
+	//create opened_file structure and add it to list
+	file_list = fclient->file_list;
+	opened_file = create_file(createfile_msg->file_path, 0,
+			createfile_msg->open_mode);
+	opened_file->fd = get_fd(fclient);
+	opened_file->file_info.file_len = 0;
+
+	file_list->list_ops->list_add_node_tail(file_list, opened_file);
+
 	//copy result to share memory
 	shmem = fclient->shmem;
-	ret_msg.fd = get_fd(fclient);
+	ret_msg.fd = opened_file->fd;
 	if(ret_msg.ret_code != FSERVER_ERR)
 		ret_msg.ret_code = code_transfer(((acc_msg_t
 						*)rpc_client->recv_buff)->op_status);
@@ -103,15 +135,6 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 
 	zfree(client_create_file);
 	zfree(rpc_client->recv_buff);
-
-	//create opened_file structure and add it to list
-	file_list = fclient->file_list;
-	opened_file = create_file(createfile_msg->file_path, 0,
-			createfile_msg->open_mode);
-	opened_file->fd = ret_msg.fd;
-	opened_file->file_info.file_len = 0;
-
-	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 }
 
 //open a exist file
@@ -122,8 +145,9 @@ static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	shmem_t *shmem = NULL;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
-	zcient_t zclient = NULL;
+	zcient_t *zclient = NULL;
 	sds path, return_data;
+	znode_status_t zstatus;
 
 	log_write(LOG_DEBUG, "open a file to store data");
 	//construct client_create_file message
@@ -137,36 +161,35 @@ static int f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	if(rpc_client->op->execute(rpc_client, COMMAND_WITH_RETURN) < 0)
 		ret_msg.ret_code = FSERVER_ERR;
 
-	//create znode on server
+	//get znode informamtion on server
 	path = sds_new(createfile_msg->file_path);
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	zclient = fcient->zclient;
-	if(zcilent->op->get_znode(zclient, path, return_data, NULL, 0,
+	if(zcilent->op->get_znode(zclient, path, return_data, &zstatus, 0,
 				NULL, NULL) != ZOK)
 		ret_msg.ret_code = FSERVER_ERR;
 	sds_free(path);
+	sds_free(return_data);
+
+	//create opened_file structure and add it to list
+	file_list = fclient->file_list;
+	opened_file = create_file(openfile_msg->file_path, 0,
+			openfile_msg->open_mode);
+	opened_file->fd = get_fd(fclient);
+	init_file_struct(opened_file, rpc_client->recv_buff);
+	opened_file->version = zstatus.version;
+
+	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 
 	//copy result to share memory
 	shmem = fclient->shmem;
-	ret_msg.fd = get_fd(fclient);
+	ret_msg.fd = opened_file->fd;
 	if(ret_msg.ret_code != FSERVER_ERR)
-		ret_msg.ret_code = code_transfer(((acc_msg_t
-						*)rpc_client->recv_buff)->op_status);
+		ret_msg.ret_code = code_transfer(file_ret->op_status);
 	shmem->send_to_shm(shmem, &ret_msg, sizeof(file_ret_msg));
 
 	zfree(client_create_file);
 	zfree(rpc_client->recv_buff);
-
-	//create opened_file structure and add it to list
-	//use ret message
-	file_list = fclient->file_list;
-	opened_file = create_file(openfile_msg->file_path, 0,
-			openfile_msg->open_mode);
-	opened_file->fd = ret_msg.fd;
-	opened_file->file_info.file_len = 0;
-	sds_free(return_data);
-
-	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 }
 
 //create file client server and need to know data-master id and tag

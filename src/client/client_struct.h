@@ -26,8 +26,9 @@
 //==============ABOUT FILE LIST STRUCTURE=============
 struct data_node
 {
-	int data_server_num;
-	size_t data_len;
+	int data_server_id;
+	int chunks_num;
+	uint64_t *chunks_id;
 };
 
 struct file_info
