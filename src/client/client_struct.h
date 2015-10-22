@@ -75,6 +75,7 @@ struct writefile_msg
 {
 	uint16_t operation_code;
 	size_t data_len;
+	int times;
 };
 
 typedef struct data_node data_node_t;

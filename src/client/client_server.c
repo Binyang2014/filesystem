@@ -4,6 +4,7 @@
  * This file will implement functions define in clinet_server.h
  */
 #include <string.h>
+#include <pthread.h>
 #include "log.h"
 #include "client_server.h"
 #include "zmalloc.h"
@@ -17,8 +18,14 @@ static void init_append_msg(client_append_file_t *client_append_file, const
 static void init_file_struct(opened_file_t *opened_file, const file_ret_t *file_ret);
 static int code_transfer(uint32_t op_status);
 
-static int write_lock();
-static int read_lock();
+static int add_write_lock(zclient_t *zclient, const char *file_path,
+		pthread_mutex_t *mutex);
+static int add_read_lock(zclient_t *zclient, const char *file_path);
+static void *watch_handler_delete(void *args);
+
+
+static int append_data(fclient_t *fclient, writefile_msg_t *writefile_msg,
+		file_ret_t *file_ret);
 
 static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg);
 static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg);
@@ -94,6 +101,83 @@ static void init_file_struct(opened_file_t *opened_file, const file_ret_t *file_
 		data_nodes->list_ops->list_add_node_tail(data_nodes, data_node);
 	}
 }
+
+static int add_write_lock(zclient_t *zclient, const char *file_path,
+		pthread_mutex_t *mutex, sds lock_name)
+{
+	sds path, data, return_data, return_name;
+	sds *children;
+	int ret_num, count, i;
+	char *begin;
+
+	path = sds_new(file_path);
+	path = sds_cat(path, ":lock/write-");
+	data = sds_new("This is a write lock");
+	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
+	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
+	ret_num = zclient->op->create_znode(zclient, path, data,
+			EPHEMERAL_SQUENTIAL, return_name);
+	//copy lock name
+	lock_name = sds_cpy(lock_name, return_name);
+	path = sds_cpy(path, file_path);
+	path = sds_cat(path, ":lock");
+	ret_num = zclient->op->get_children(zclient, path, return_data);
+	children = sds_split_len(return_data, strlen(return_data), " ", 1, &count);
+	//no more other lock
+	if(count == 1)
+		pthread_mutex_unlock(mutex);
+	//there are other locks
+	else
+	{
+		begin = return_name + strlen(return_name);
+		while(*begin != '/')
+			begin--;
+		begin = begin + 1;
+
+		for(i = 0; i < count; i++)
+		{
+			if(strcpy(children[i], begin) == 0)
+				break;
+		}
+		path = sds_cpy(path, file_path);
+		path = sds_cat(path, ":lock/");
+		path = sds_cat(path, children[i - 1]);
+		zclient->op->exists_znode(zclient, path, NULL, NOTICE_DELETE,
+				watch_handler_delete, mutex);
+	}
+
+	sds_free(path);
+	sds_free(data);
+	sds_free(return_data);
+	sds_free(return_name);
+	sds_free_split_res(children, count);
+}
+
+static void *watch_handler_delete(void *args)
+{
+	pthread_mutex_t *mutex;
+
+	mutex = args;
+	pthread_mutex_unlock(mutex);
+}
+
+
+static int append_data(fclient_t *fclient, writefile_msg_t *writefile_msg,
+		file_ret_t *file_ret)
+{
+	int dataserver_num, chunks_num;
+	int i, j;
+
+	dataserver_num = file_ret->dataserver_num;
+	for(i = 0; i < dataserver_num; i++)
+	{
+		for(j = 0; j < data_server_arr[i]; j++)
+		{
+			;
+		}
+	}
+}
+
 //===============================ACTUAL OPERATIONS=============================
 //this function is going to finish file create operation, there will be message
 //passing between client and server, after it will add a open file structure to
@@ -130,6 +214,10 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	if(zcilent->op->create_parent(zcient, path, data, PERSISTENT,
 				NULL) != ZOK)
 		ret_msg.ret_code = FSERVER_ERR;
+	//create lock for this file
+	path = sds_cat(path, ":lock");
+	data = sds_cpy(data, "This is a lock");
+	zclient->op->create_parent(zclient, path, "", PERSISTENT, NULL);
 	sds_free(path);
 	sds_free(data);
 
@@ -165,6 +253,7 @@ static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	zcient_t *zclient = NULL;
 	sds path, return_data;
 	znode_status_t zstatus;
+	file_ret_msg ret_msg;
 
 	log_write(LOG_DEBUG, "open a file to store data");
 	//construct client_create_file message
@@ -219,30 +308,52 @@ static void f_append(fclient_t *fclient, writefile_msg_t *writefile_msg, int fd)
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
 	zcient_t *zclient = NULL;
-	sds path, return_data;
+	pthread_mutex_t *mutex;
+	sds lock_name;
+	file_ret_msg ret_msg;
 
 	log_write(LOG_DEBUG, "append a file to store data");
 	//1.find right structure
 	file_list = fclient->file_list;
 	opened_file = file_list->list_ops->list_search_key(file_list, &fd)->value;
 
-	//2.construct client_create_file message
+	//2.construct client_write_file message
 	rpc_client = fclient->rpc_client;
 	client_append_file = zmalloc(sizeof(client_append_file_t));
 	init_append_msg(client_open_file, writefile_msg, opened_file);
 	client_append_msg->unique_tag = rpc_client->tag;
 
-	//3.send create message to data master
+	//3.create write lock on this server
+	lock_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
+	zclient = fclient->zclient;
+	mutex = zmalloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(mutex, NULL);
+	pthread_mutex_lock(mutex);
+	//add write lock, process maybe block here
+	add_write_lock(zclient, opened_file->f_info.file_path, mutex, lock_name);
+	pthread_mutex_lock(mutex);
+	thread_mutex_unlock(mutex);
+	pthread_mutex_destroy(mutex);
+	zfree(mutex);
+
+	//4.send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_open_file,
 			sizeof(client_open_file_t));
 	if(rpc_client->op->execute(rpc_client, COMMAND_WITH_RETURN) < 0)
 		ret_msg.ret_code = FSERVER_ERR;
 
-	//4.create write lock on this server
-
 	//5.copy data from shared memory and send to dataserver
+	append_data(fclient, writefile_msg, rpc_client->recv_buff);
 
-	//6.copy result to share memory
+	//6.delete lock
+	zclient->op->delete_znode(zcient, path, -1);
+
+	//7.copy result to share memory
+	shmem = fclient->shmem;
+	ret_msg.fd = -1;
+	if(ret_msg.ret_code != FSERVER_ERR)
+		ret_msg.ret_code = code_transfer(file_ret->op_status);
+	shmem->send_to_shm(shmem, &ret_msg, sizeof(file_ret_msg));
 
 	zfree(client_create_file);
 	zfree(rpc_client->recv_buff);
