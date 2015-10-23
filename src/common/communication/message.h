@@ -293,7 +293,7 @@ typedef struct client_open_file {
 
 typedef struct file_ret {
 	uint64_t file_size;
-	uint64_t offset;
+	uint64_t offset;//This is offset from begining
 
 	uint16_t op_status;
 	uint16_t dataserver_num;
@@ -301,6 +301,9 @@ typedef struct file_ret {
 
 	uint16_t data_server_arr[DATA_SERVER_NUM];
 	uint16_t data_server_cnum[DATA_SERVER_NUM];
+	//offset for each data server, this for writing and appending operation
+	uint64_t data_server_offset[DATA_SERVER_NUM];
+	uint64_t data_server_len[DATA_SERVER_NUM];
 
 	uint64_t chunks_id_arr[MAX_COUNT_CID_RET];
 }file_ret_t;

@@ -166,16 +166,33 @@ static int append_data(fclient_t *fclient, writefile_msg_t *writefile_msg,
 		file_ret_t *file_ret)
 {
 	int dataserver_num, chunks_num;
-	int i, j;
+	int i, j, index = 0, ret;
+	rpc_client_t *rpc_client;
+	write_c_to_d_t write_msg;
+	size_t write_len;
 
 	dataserver_num = file_ret->dataserver_num;
+	rpc_client = fclient->rpc_client;
+	write_len = writefile_msg->data_len;
+	write_msg.operation_code = C_D_WRITE_BLOCK_CODE;
+	write_msg.unique_tag = rpc_client->tag;
 	for(i = 0; i < dataserver_num; i++)
 	{
-		for(j = 0; j < data_server_arr[i]; j++)
-		{
-			;
-		}
+		int server_id = data_server_arr[i];
+
+		rpc_client->target = server_id;
+		write_msg.offset = file_ret->data_server_offset[i];
+		write_msg.write_len = file_ret->data_server_len[i];
+		write_msg.chunks_count = file_ret->data_server_cnum[i];
+		for(j = 0; j < write_msg.chunks_count; j++)
+			write_msg.chunks_id_arr[j] = file_ret_t->chunks_id_arr[index++];
+		rpc_client->op->set_send_buff(rpc_client, &write_msg,
+				sizeof(write_c_to_d_t));
+		ret = rpc_client->op->execute(rpc_client, WRITE_C_TO_D);
 	}
+	rpc_client->target = fclient->data_master_id;
+
+	return 0;
 }
 
 //===============================ACTUAL OPERATIONS=============================

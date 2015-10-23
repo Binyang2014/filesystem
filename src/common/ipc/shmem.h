@@ -53,10 +53,10 @@ void shm_free(struct shmem *shmem);
 int send_to_shm(struct shmem *shmem, void *data, size_t data_len);
 int recv_shm_with_len(struct shmem *shmem, void *data, size_t data_len);
 int recv_from_shm(struct shmem *shmem, void *data);
-void wait_esem(shmem_t *shmem);
-void post_esem(shmem_t *shmem);
-void wait_fsem(shmem_t *shmem);
-void post_fsem(shmem_t *shmem);
+void wait_esem(struct shmem *shmem);
+void post_esem(struct shmem *shmem);
+void wait_fsem(struct shmem *shmem);
+void post_fsem(struct shmem *shmem);
 
 typedef struct shmem shmem_t;
 typedef struct shmem_head shmem_head_t;
