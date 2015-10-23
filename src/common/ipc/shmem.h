@@ -14,15 +14,15 @@
 #include <sys/shm.h>
 #include "global.h"
 
-#define UREAD 0400
-#define UWRITE 0200
-#define UEXCUTE 0100
-#define GREAD 0040
-#define GWRITE 0020
-#define GEXCUTE 0010
-#define OREAD 0004
-#define OWRITE 0002
-#define OEXCUTE 0001
+#define SHM_UREAD 0400
+#define SHM_UWRITE 0200
+#define SHM_UEXCUTE 0100
+#define SHM_GREAD 0040
+#define SHM_GWRITE 0020
+#define SHM_GEXCUTE 0010
+#define SHM_OREAD 0004
+#define SHM_OWRITE 0002
+#define SHM_OEXCUTE 0001
 
 #define COMMON_KEY 8317
 
@@ -48,10 +48,15 @@ struct shmem *get_shm(uint32_t key, int flag);
 void *attach_shm(struct shmem *shmem);
 void detach_shm(struct shmem *shmem);
 void destroy_shm(struct shmem *shmem);
+void shm_free(struct shmem *shmem);
 
 int send_to_shm(struct shmem *shmem, void *data, size_t data_len);
 int recv_shm_with_len(struct shmem *shmem, void *data, size_t data_len);
 int recv_from_shm(struct shmem *shmem, void *data);
+void wait_esem(shmem_t *shmem);
+void post_esem(shmem_t *shmem);
+void wait_fsem(shmem_t *shmem);
+void post_fsem(shmem_t *shmem);
 
 typedef struct shmem shmem_t;
 typedef struct shmem_head shmem_head_t;

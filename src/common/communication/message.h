@@ -29,6 +29,8 @@
 #define COMMON_MSG_LEN (MAX_CMD_MSG_LEN + COMMON_MSG_HEAD)
 #define DATA_MSG_HEAD_LEN 16
 #define MAX_DATA_MSG_LEN (MAX_DATA_CONTENT_LEN + DATA_MSG_HEAD_LEN)
+#define DATA_SERVER_NUM 16
+#define MAX_COUNT_CID_RET MAX_COUNT_CID_R
 
 //caculate how many chunks ids can a meesage carries just for read and write
 //messages
@@ -49,6 +51,7 @@
 #define READ_FAIL 7003
 #define WRITE_FAIL 7004
 #define INIT_WRITE_FAIL 7005
+#define FILE_NOT_EXIST 7006
 #define ACC_IGNORE 7111
 
 //Mater should deal with
@@ -66,9 +69,11 @@
 
 //Data-Master should deal with
 #define CREATE_TEMP_FILE_CODE 3001
-#define DATA_SERVER_HEART_BEAT_CODE 3002
-#define READ_TEMP_FILE_CODE 3003
-#define APPEND_TEMP_FILE_CODE 3004
+#define CREATE_PERSIST_FILE_CODE 3002
+#define OPEN_FILE_CODE 3003
+#define DATA_SERVER_HEART_BEAT_CODE 3004
+#define READ_TEMP_FILE_CODE 3005
+#define APPEND_FILE_CODE 3006
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -270,23 +275,57 @@ typedef struct {
 /*
  * structure instruction of create file
  */
-typedef struct client_create_file{
+typedef struct client_create_file {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t file_mode;
+	uint16_t unique_tag;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_create_file_t;
+
+typedef struct client_open_file {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t unique_tag;
+	uint16_t reserved;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_open_file_t;
+
+typedef struct file_ret {
+	uint64_t file_size;
+	uint64_t offset;
+
+	uint16_t op_status;
+	uint16_t dataserver_num;
+	uint32_t chunks_num;
+
+	uint16_t data_server_arr[DATA_SERVER_NUM];
+	uint16_t data_server_cnum[DATA_SERVER_NUM];
+
+	uint64_t chunks_id_arr[MAX_COUNT_CID_RET];
+}file_ret_t;
+
+typedef struct client_read_file {
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint32_t reserved;
-	uint64_t file_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}client_create_file;
 
-typedef struct client_read_file{
+	uint64_t file_size;
+	uint64_t offset;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_read_file_t;
+
+typedef struct client_append_file {
 	uint16_t operation_code;
 	uint16_t transfer_version;
-	uint32_t reserved;
-	uint64_t file_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}client_read_file;
+	uint16_t unique_tag;
+	uint16_t reserved;
 
-typedef struct answer_confirm{
+	uint64_t write_size;
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_append_file_t;
+
+typedef struct answer_confirm {
 	int result;
 }answer_confirm_t;
 
@@ -326,13 +365,11 @@ typedef struct c_d_read_cmd{
 //	int8_t data[BLOCK_SIZE];
 //}c_d_block_data_t;
 
-typedef struct c_d_create_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_create_t;
+typedef struct c_d_block_data{
+	//block_location block_info;
+	int8_t data[BLOCK_SIZE];
+}c_d_block_data_t;
+
 
 /*-------------------DATA_MASTER MESSAGE STRUCTURE END----------------*/
 

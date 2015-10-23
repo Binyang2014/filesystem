@@ -84,6 +84,13 @@ void destroy_shm(shmem_t *shmem)
 	zfree(shmem);
 }
 
+void shm_free(struct shmem *shmem)
+{
+	sem_close(shmem->e_sem);
+	sem_close(shmem->f_sem);
+	zfree(shmem);
+}
+
 int send_to_shm(shmem_t *shmem, void *data, size_t data_len)
 {
 	void *addr = shmem->addr;
@@ -126,4 +133,24 @@ int recv_from_shm(struct shmem *shmem, void *data)
 	memcpy(data, addr, len);
 	sem_post(shmem->e_sem);
 	return 0;
+}
+
+void wait_esem(shmem_t *shmem)
+{
+	sem_wait(shmem->e_sem);
+}
+
+void post_esem(shmem_t *shmem)
+{
+	sem_post(shmem->e_sem);
+}
+
+void wait_fsem(shmem_t *shmem)
+{
+	sem_wait(shmem->f_sem);
+}
+
+void post_fsem(shmem_t *shmem)
+{
+	sem_post(shmem->f_sem);
 }

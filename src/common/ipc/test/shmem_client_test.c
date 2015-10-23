@@ -7,7 +7,7 @@ int main()
 	char data[50];
 
 	log_init("", LOG_DEBUG);
-	shmem = get_shm(COMMON_KEY, UREAD | UWRITE);
+	shmem = get_shm(COMMON_KEY, SHM_UREAD | SHM_UWRITE);
 	attach_shm(shmem);
 	recv_from_shm(shmem, data);
 	detach_shm(shmem);
