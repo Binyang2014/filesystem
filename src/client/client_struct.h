@@ -71,11 +71,17 @@ struct createfile_msg
 	f_mode_t mode;
 };
 
-struct writefile_msg
+struct appendfile_msg
 {
 	uint16_t operation_code;
 	size_t data_len;
-	int times;
+};
+
+struct readfile_msg
+{
+	uint16_t operation_code;
+	size_t offset;
+	size_t data_len;
 };
 
 typedef struct data_node data_node_t;
@@ -84,6 +90,8 @@ typedef struct opened_file opened_file_t;
 typedef struct createfile_msg create_msg_t;
 typedef struct openfile_msg openfile_msg_t;
 typedef struct file_ret_msg file_ret_msg_t;
+typedef struct appenfile_msg appendfile_msg_t;
+typedef struct readfile_msg readfile_msg_t;
 
 opened_file_t *create_file(const char *file_path, int position, open_mode_t
 		open_mode);

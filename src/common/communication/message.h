@@ -72,7 +72,7 @@
 #define CREATE_PERSIST_FILE_CODE 3002
 #define OPEN_FILE_CODE 3003
 #define DATA_SERVER_HEART_BEAT_CODE 3004
-#define READ_TEMP_FILE_CODE 3005
+#define READ_FILE_CODE 3005
 #define APPEND_FILE_CODE 3006
 //#define CREATE_FILE_ANS_CODE 3005
 
@@ -340,28 +340,6 @@ typedef struct d_server_heart_beat {
 	uint16_t transfer_version;
 	int id;
 }d_server_heart_beat_t;
-
-/**
- * client send write cmd request to data server
- */
-typedef struct c_d_append_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint64_t write_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_append_t;
-
-typedef struct c_d_read_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint64_t read_offset;
-	uint64_t read_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_read_t;
 
 //typedef struct c_d_block_data{
 //	block_location block_info;
