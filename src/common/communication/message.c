@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include <string.h>
-#include "log.h"
+#include "../structure_tool/log.h"
 #include "message.h"
 #include "mpi_communication.h"
 

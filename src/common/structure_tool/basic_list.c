@@ -406,9 +406,12 @@ static int list_has_next(list_iter_t *iter) {
 	return iter->next != NULL;
 }
 
+/*
+ * this function may result in memory fleak./ro
+ */
 static list_t *list_merge_list(list_t *list_head, list_t *list_tail){
 	list_head->len += list_tail->len;
-	list_head->tail->next = list_tail;
+	list_head->tail->next = list_tail->head;
 	list_head->tail = list_tail->tail;
 	return list_head;
 }

@@ -10,10 +10,10 @@
 #include <assert.h>
 #include <string.h>
 #include "rpc_server.h"
-#include "zmalloc.h"
-#include "syn_tool.h"
-#include "log.h"
-#include "basic_list.h"
+#include "../structure_tool/zmalloc.h"
+#include "../structure_tool/syn_tool.h"
+#include "../structure_tool/log.h"
+#include "../structure_tool/basic_list.h"
 #include "message.h"
 
 /*--------------------Private Declaration---------------------*/

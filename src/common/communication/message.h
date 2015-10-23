@@ -14,7 +14,7 @@
 
 #ifndef SRC_COMMON_COMMUNICATION_MESSAGE_H_
 #define SRC_COMMON_COMMUNICATION_MESSAGE_H_
-#include "global.h"
+#include "../../global.h"
 #include <stdint.h>
 
 //some define about message source(ip address) and message tag(port number)
@@ -321,10 +321,10 @@ typedef struct c_d_read_cmd{
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }c_d_read_t;
 
-typedef struct c_d_block_data{
-	block_location block_info;
-	int8_t data[BLOCK_SIZE];
-}c_d_block_data_t;
+//typedef struct c_d_block_data{
+//	block_location block_info;
+//	int8_t data[BLOCK_SIZE];
+//}c_d_block_data_t;
 
 typedef struct c_d_create_cmd{
 	int source;

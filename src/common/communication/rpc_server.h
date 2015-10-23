@@ -11,8 +11,8 @@
 #include <stdint.h>
 #include <pthread.h>
 #include "message.h"
-#include "threadpool.h"
-#include "global.h"
+#include "../structure_tool/threadpool.h"
+#include "../../global.h"
 
 struct rpc_send_msg {
 	int dst;

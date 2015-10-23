@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include "rpc_client.h"
 #include "message.h"
-#include "zmalloc.h"
-#include "log.h"
+#include "../structure_tool/zmalloc.h"
+#include "../structure_tool/log.h"
 
 /*--------------------Private Declaration---------------------*/
 static int execute(rpc_client_t *client, execute_type_t exe_type);

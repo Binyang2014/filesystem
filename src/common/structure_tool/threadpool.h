@@ -14,6 +14,7 @@
 #include "basic_list.h"
 #include "basic_queue.h"
 #include "syn_tool.h"
+#include "../../global.h"
 
 //#define THREAD_POOL_DEBUG 1
 

@@ -75,7 +75,7 @@ struct list_operations
 	void (*list_rewind)(struct list *list, struct list_iter *li);
 	void (*list_rewind_tail)(struct list *list, struct list_iter *li);
 	void (*list_rotate)(struct list *list);
-	list_t *(*list_merge_list)(struct list *list_head, struct list *list_tail);
+	struct list* (*list_merge_list)(struct list *list_head, struct list *list_tail);
 };
 
 struct list

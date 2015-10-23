@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <mpi.h>
 #include <stdlib.h>
-#include "log.h"
+#include "../structure_tool/log.h"
 #include "mpi_communication.h"
 
 static void printf_msg_status(mpi_status_t* status)
