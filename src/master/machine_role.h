@@ -9,9 +9,9 @@
 #define SRC_MASTER_MACHINE_ROLE_H_
 #include <stdint.h>
 #include "../common/communication/rpc_server.h"
-#include "../common/communication/rpc_client.h"
 #include "../common/communication/message.h"
 #include "../common/structure_tool/map.h"
+#include "../common/structure_tool/sds.h"
 
 struct map_role_value {
 	char master_ip[16];
@@ -40,7 +40,7 @@ typedef struct machine_role_allocator machine_role_allocator_t;
 typedef struct machine_role_allocator_op machine_role_allocator_op_t;
 typedef struct map_role_value map_role_value_t;
 
-machine_role_allocator_t *create_machine_role_allocater(size_t size, char *file_path);
+machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, char *file_path);
 void destroy_machine_role_allocater(machine_role_allocator_t *this);
 
 #endif /* SRC_MASTER_MACHINE_ROLE_H_ */

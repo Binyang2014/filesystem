@@ -174,7 +174,7 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 	while(iter->op->has_next(iter)){
 		role = iter->op->next(iter);
 		sds master_ip = sds_new(role->master_ip);
-		master_role = roles->op->get(master_ip);
+		master_role = (map_role_value_t *)(roles->op->get(roles, master_ip));
 		role->master_rank = master_role->rank;
 		allocator->server->op->send_result(role, allocator->rank, 1, sizeof(*role), ANS);
 		sds_free(master_ip);
@@ -207,7 +207,7 @@ static void machine_register(event_handler_t *event_handler) {
 	sds_free(key_ip);
 }
 
-void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
+static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 	common_msg_t common_msg;
 	syn_queue_t* queue = msg_queue;
 	queue->op->syn_queue_pop(queue, &common_msg);
@@ -236,17 +236,25 @@ machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, c
 
 	this->op->get_net_topology = get_net_topology;
 	this->op->machine_register = machine_register;
-	this->server = create_mpi_rpc_server(10, rank, resolve_handler);
+	this->server = create_rpc_server(10, 1024, rank, resolve_handler);
 	return this;
 }
 
 void destroy_machine_role_allocater(machine_role_allocator_t *this) {
 	destroy_map(this->roles);
-	destroy_mpi_rpc_server(this->server);
+	destroy_rpc_server(this->server);
 	zfree(this->op);
 	zfree(this);
 }
 
+/*
+ *
+  mpicc -o role machine_role.c ../common/structure_tool/zmalloc.c
+  ../common/structure_tool/threadpool.c ../common/structure_tool/sds.c
+  ../common/structure_tool/basic_list.c ../common/structure_tool/map.c
+  ../common/structure_tool/basic_queue.c ../common/structure_tool/log.c
+  ../common/communication/rpc_server.c
+ */
 #define MACHINE_ROLE_TEST 1
 #if defined(MACHINE_ROLE_TEST) || defined(GLOBAL_TEST)
 int main() {
