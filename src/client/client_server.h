@@ -18,14 +18,6 @@
 
 struct fclient;
 
-struct fclient_ops
-{
-	int (*f_create)();
-	int (*f_open)();
-	int (*f_read)();
-	int (*f_write)();
-};
-
 struct fclient
 {
 	rpc_client_t *rpc_client;
@@ -42,4 +34,5 @@ typedef struct fclient_ops fclient_ops_t;
 
 fclient_t *create_fclient(int client_id, int target);
 void destroy_fclient(fclient_t *fclient);
+void fclient_run(fclient);
 #endif
