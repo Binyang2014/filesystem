@@ -35,7 +35,8 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg);
 static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg);
 static void f_append(fclient_t *fclient, writefile_msg_t *writefile_msg);
-static void f_read(fclient *fclient, readfile_msg_t *readfile_msg);
+static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg);
+static void f_close(fclient_t *fclient, closefile_msg_t *closefile_msg, int fd);
 
 //=======================UTILITY FUNCTIONS======================
 static int code_transfer(uint32_t op_status)
@@ -337,7 +338,7 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 {
 	rpc_client_t *rpc_cilent = NULL;
 	client_create_file_t *cilent_create_file = NULL;
-	int fd;
+	int fifo_fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
 	zcient_t *zclient = NULL;
@@ -382,12 +383,12 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 
 	//copy result to share memory
-	fd = fclient->fd;
+	fifo_fd = fclient->fd;
 	ret_msg.fd = opened_file->fd;
 	if(ret_msg.ret_code != FSERVER_ERR)
 		ret_msg.ret_code = code_transfer(((acc_msg_t
 						*)rpc_client->recv_buff)->op_status);
-	write(fd, &ret_msg, sizeof(file_ret_msg));
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
 
 	zfree(client_create_file);
 	zfree(rpc_client->recv_buff);
@@ -398,7 +399,7 @@ static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 {
 	rpc_client_t *rpc_cilent = NULL;
 	client_open_file_t *cilent_open_file = NULL;
-	int fd;
+	int fifo_fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
 	zcient_t *zclient = NULL;
@@ -440,14 +441,30 @@ static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 
 	//copy result to share memory
-	fd = fclient->fd;
+	fifo_fd = fclient->fd;
 	ret_msg.fd = opened_file->fd;
 	if(ret_msg.ret_code != FSERVER_ERR)
 		ret_msg.ret_code = code_transfer(rpc_client->recv_buff->op_status);
-	write(fd, &ret_msg, sizeof(file_ret_msg));
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
 
 	zfree(client_create_file);
 	zfree(rpc_client->recv_buff);
+}
+
+static void f_close(fclient_t *fclient, closefile_msg_t *closefile_msg, int fd)
+{
+	int fifo_fd;
+	node_t *file_node = NULL;
+	list_t *file_list = NULL;
+	file_ret_msg ret_msg;
+
+	log_write(LOG_DEBUG, "close a file");
+	//1.find right structure
+	file_list = fclient->file_list;
+	file_node = file_list->list_ops->list_search_key(file_list, &fd);
+
+	//2.delete this structure form list
+	file_list->list_ops->list_remove_node(file_list, file_node);
 }
 
 //write data to data_server, only support append now
@@ -560,11 +577,11 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg, int fd)
 	zclient->op->delete_znode(zcient, path, -1);
 
 	//7.copy result to share memory
-	fd = fclient->fd;
+	fifo_fd = fclient->fd;
 	ret_msg.fd = -1;
 	if(ret_msg.ret_code != FSERVER_ERR)
 		ret_msg.ret_code = code_transfer(rpc_client->recv_buff->op_status);
-	write(fd, &ret_msg, sizeof(file_ret_msg));
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
 
 	zfree(client_read_file);
 	zfree(rpc_client->recv_buff);
