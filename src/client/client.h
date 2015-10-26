@@ -18,9 +18,9 @@
 
 int init_client();
 int f_open(const char *path, enum open_mode, ...);
-int f_close(opened_file_t *file);
-ssize_t f_read(opened_file_t *file, void *buf, size_t nbytes);
-ssize_t f_write(opened_file_t *file, const void *buf, size_t nbytes);
+int f_close(int fd);
+ssize_t f_read(int fd, void *buf, size_t nbytes);
+ssize_t f_append(int fd, const void *buf, size_t nbytes);
 int f_remove(const char *pathname);
 int f_mkdir(const char *pathname, f_mode_t mode);
 int f_rmdir(const char *pathname);

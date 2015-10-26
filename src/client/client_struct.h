@@ -86,7 +86,6 @@ struct appendfile_msg
 struct readfile_msg
 {
 	uint16_t operation_code;
-	size_t offset;
 	size_t data_len;
 	int fd;
 };
@@ -129,6 +128,7 @@ typedef struct appenfile_msg appendfile_msg_t;
 typedef struct readfile_msg readfile_msg_t;
 typedef struct removefile_msg removefile_msg_t;
 typedef struct stopclient_msg stopclient_msg_t;
+typedef struct closefile_msg closefile_msg_t;
 typedef union file_msg file_msg_t;
 
 opened_file_t *create_file(const char *file_path, int position, open_mode_t
