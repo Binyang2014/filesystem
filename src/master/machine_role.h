@@ -43,4 +43,25 @@ typedef struct map_role_value map_role_value_t;
 machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, char *file_path);
 void destroy_machine_role_allocater(machine_role_allocator_t *this);
 
+
+/*************************** Machine Role Fetcher ****************/
+struct machine_role_fetcher{
+	int rank;
+	map_role_value_t *role;
+	rpc_client_t *client;
+	struct machine_role_fetcher_op *op;
+};
+
+struct machine_role_fetcher_op{
+	void (*register_to_zero_rank)(struct machine_role_fetcher *fetcher); // register this mpi process info to zero process
+};
+
+typedef struct machine_role_fetcher machine_role_fetcher_t;
+typedef struct machine_role_fetcher_op machine_role_fetcher_op_t;
+
+
+machine_role_fetcher_t *create_machine_role_fetcher(int rank);
+void destroy_machine_role_fetcher(machine_role_fetcher_t *fetcher);
+
 #endif /* SRC_MASTER_MACHINE_ROLE_H_ */
+

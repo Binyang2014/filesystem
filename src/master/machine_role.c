@@ -179,7 +179,6 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 		allocator->server->op->send_result(role, allocator->rank, 1, sizeof(*role), ANS);
 		sds_free(master_ip);
 	}
-
 	destroy_map_iterator(iter);
 }
 
@@ -201,10 +200,11 @@ static void machine_register(event_handler_t *event_handler) {
 	role->type = param->role_type;
 	local_allocator->roles->op->put(local_allocator->roles, key_ip, role);
 	local_allocator->register_machine_num++;
+	sds_free(key_ip);
+
 	if(local_allocator->register_machine_num == local_allocator->machine_num){
 		allocate_machine_role(local_allocator);
 	}
-	sds_free(key_ip);
 }
 
 static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
@@ -223,7 +223,7 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 }
 
 /**
- *
+ * create allocator
  */
 machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, char *file_path) {
 	machine_role_allocator_t *this = zmalloc(sizeof(machine_role_allocator_t));
@@ -245,6 +245,40 @@ void destroy_machine_role_allocater(machine_role_allocator_t *this) {
 	destroy_rpc_server(this->server);
 	zfree(this->op);
 	zfree(this);
+}
+
+
+/*------------------Machine Role Fetcher--------------------*/
+//TODO get machine visual ip
+static void get_visual_ip(char *ip){
+	//strcpy();
+}
+
+static void register_to_zero_rank(struct machine_role_fetcher *fetcher){
+	machine_register_role_t *role = zmalloc(sizeof(*role));
+	role->source = fetcher->rank;
+	get_visual_ip(role->ip);
+	role->operation_code = MACHINE_REGISTER_TO_MASTER;
+	role->tag = MACHINE_ROLE_GET_ROLE;
+	fetcher->client->op->set_send_buff(fetcher->client, role, sizeof(*role));
+	fetcher->client->op->execute(fetcher->client, COMMAND_WITH_RETURN);
+
+	zfree(role);
+
+	role = fetcher->client->recv_buff;
+	//role->transfer_version
+	//fetcher->client->op->set_send_buff();
+}
+
+machine_role_fetcher_t *create_machine_role_fetcher(int rank){
+	machine_role_fetcher_t *fetcher = zmalloc(sizeof(*fetcher));
+	fetcher->rank = rank;
+	fetcher->client = create_rpc_client(rank, 0, MACHINE_ROLE_GET_ROLE);
+	fetcher->op = zmalloc(sizeof(*fetcher->op));
+
+	fetcher->op->register_to_zero_rank = register_to_zero_rank;
+
+	return fetcher;
 }
 
 /*
