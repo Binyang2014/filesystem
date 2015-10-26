@@ -72,10 +72,11 @@
 #define CREATE_PERSIST_FILE_CODE 3002
 #define OPEN_FILE_CODE 3003
 #define DATA_SERVER_HEART_BEAT_CODE 3004
-#define READ_TEMP_FILE_CODE 3005
+#define READ_FILE_CODE 3005
 #define APPEND_FILE_CODE 3006
 #define APPEND_TEMP_FILE_CODE 3007
 #define DELETE_TMP_FILE_CODE 3008
+
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -295,7 +296,7 @@ typedef struct client_open_file {
 
 typedef struct file_ret {
 	uint64_t file_size;
-	uint64_t offset;
+	uint64_t offset;//This is offset from begining
 
 	uint16_t op_status;
 	uint16_t dataserver_num;
@@ -303,6 +304,9 @@ typedef struct file_ret {
 
 	uint16_t data_server_arr[DATA_SERVER_NUM];
 	uint16_t data_server_cnum[DATA_SERVER_NUM];
+	//offset for each data server, this for writing and appending operation
+	uint64_t data_server_offset[DATA_SERVER_NUM];
+	uint64_t data_server_len[DATA_SERVER_NUM];
 
 	uint64_t chunks_id_arr[MAX_COUNT_CID_RET];
 }file_ret_t;
@@ -327,10 +331,14 @@ typedef struct client_append_file {
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_append_file_t;
 
-typedef struct answer_confirm {
-	int result;
-}answer_confirm_t;
+typedef struct client_remove_file {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t unique_tag;
+	uint16_t reserved;
 
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_remove_file_t;
 /*
  * data server send heart beat to master
  */
@@ -339,28 +347,6 @@ typedef struct d_server_heart_beat {
 	uint16_t transfer_version;
 	int id;
 }d_server_heart_beat_t;
-
-/**
- * client send write cmd request to data server
- */
-typedef struct c_d_append_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint64_t write_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_append_t;
-
-typedef struct c_d_read_cmd{
-	int source;
-	int tag;
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint64_t read_offset;
-	uint64_t read_size;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}c_d_read_t;
 
 //typedef struct c_d_block_data{
 //	block_location block_info;
