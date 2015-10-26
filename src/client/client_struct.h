@@ -109,19 +109,19 @@ struct stopclient_msg
 
 union file_msg
 {
-	struct createfile_msg;
-	struct openfile_msg;
-	struct readfile_msg;
-	struct appendfile_msg;
-	struct removefile_msg;
-	struct closefile_msg;
-	struct stopclient_msg;
+	struct createfile_msg createfile_msg;
+	struct openfile_msg openfile_msg;
+	struct readfile_msg readfile_msg;
+	struct appendfile_msg appendfile_msg;
+	struct removefile_msg removefile_msg;
+	struct closefile_msg closefile_msg;
+	struct stopclient_msg stopclient_msg;
 };
 
 typedef struct data_node data_node_t;
 typedef struct file_info file_info_t;
 typedef struct opened_file opened_file_t;
-typedef struct createfile_msg create_msg_t;
+typedef struct createfile_msg createfile_msg_t;
 typedef struct openfile_msg openfile_msg_t;
 typedef struct file_ret_msg file_ret_msg_t;
 typedef struct appenfile_msg appendfile_msg_t;
@@ -131,7 +131,7 @@ typedef struct stopclient_msg stopclient_msg_t;
 typedef struct closefile_msg closefile_msg_t;
 typedef union file_msg file_msg_t;
 
-opened_file_t *create_file(const char *file_path, int position, open_mode_t
+opened_file_t *create_openedfile(const char *file_path, int position, open_mode_t
 		open_mode);
 void free_file(opened_file_t *opened_file);
 int match_file(void *ptr, void *key);

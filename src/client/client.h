@@ -17,7 +17,7 @@
 #include "client_struct.h"
 
 int init_client();
-int f_open(const char *path, enum open_mode, ...);
+int f_open(const char *path, open_mode_t open_mode, ...);
 int f_close(int fd);
 ssize_t f_read(int fd, void *buf, size_t nbytes);
 ssize_t f_append(int fd, const void *buf, size_t nbytes);

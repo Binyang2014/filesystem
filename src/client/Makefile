@@ -2,8 +2,8 @@ TOPDIR = ../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = client.o
-target = $(TOPDIR)/lib/libdataserver.a
+object = client_struct.o client.o
+target = $(TOPDIR)/lib/libclient.a
 
 $(target): $(object)
 	$(AR) $(ARFLAG) $@ $^
