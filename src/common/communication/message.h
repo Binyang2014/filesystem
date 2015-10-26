@@ -74,6 +74,8 @@
 #define DATA_SERVER_HEART_BEAT_CODE 3004
 #define READ_TEMP_FILE_CODE 3005
 #define APPEND_FILE_CODE 3006
+#define APPEND_TEMP_FILE_CODE 3007
+#define DELETE_TMP_FILE_CODE 3008
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -281,7 +283,7 @@ typedef struct client_create_file {
 	uint16_t file_mode;
 	uint16_t unique_tag;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}client_create_file_t;
+}c_d_create_t;
 
 typedef struct client_open_file {
 	uint16_t operation_code;

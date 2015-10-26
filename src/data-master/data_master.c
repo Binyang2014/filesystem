@@ -211,17 +211,35 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 		case READ_TEMP_FILE_CODE:
 			event_handler->handler = read_temp_file;
 			break;
+		case DELETE_TMP_FILE_CODE:
+			event_handler->handler = delete_temp_file;
+			break;
 		default:
 			event_handler->handler = NULL;
 	}
 	return event_handler->handler;
 }
 
-int data_master_init(){
+int data_master_init(data_master_t *master){
+	master->rpc_server->op->server_start(master->rpc_server);
+
 
 }
 
-int data_master_destroy(){
+data_master_t* create_data_master(int machine_num){
+	data_master_t *this = zmalloc(sizeof(*this));
+
+	this->group_size = machine_num;
+	this->namespace = create_name_space(1024);
+
+
+	this->rpc_server = create_rpc_server(8, 1024, 1, resolve_handler);
 
 }
+
+
+void destroy_data_master(data_master_t *this){
+
+}
+
 

@@ -167,7 +167,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			recv_acc_msg(acc_msg, client->target, client->tag);
 			if(acc_msg->op_status != ACC_OK)
 			{
-				log_write(LOG_ERR, "command did not execute seccessfully");
+				log_write(LOG_ERR, "command did not execute successfully");
 				zfree(acc_msg);
 				return -1;
 			}
