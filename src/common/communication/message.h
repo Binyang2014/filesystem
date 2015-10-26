@@ -74,6 +74,7 @@
 #define DATA_SERVER_HEART_BEAT_CODE 3004
 #define READ_FILE_CODE 3005
 #define APPEND_FILE_CODE 3006
+#define DELETE_FILE_CODE 3007
 //#define CREATE_FILE_ANS_CODE 3005
 
 //Data-Server should deal with
@@ -328,10 +329,14 @@ typedef struct client_append_file {
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_append_file_t;
 
-typedef struct answer_confirm {
-	int result;
-}answer_confirm_t;
+typedef struct client_remove_file {
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t unique_tag;
+	uint16_t reserved;
 
+	char file_name[FILE_NAME_MAX_LENGTH + 1];
+}client_remove_file_t;
 /*
  * data server send heart beat to master
  */

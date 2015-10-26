@@ -11,9 +11,9 @@
 #include "client.h"
 #include "shmem.h"
 #include "zmalloc.h"
+#include "fifo_ipc.h"
 
-static shmem_t *shmem = NULL;
-static pthread_mutex_t *shm_mutex = NULL;
+static int fifo_fd;
 
 static int open_file(const char *path, open_mode_t open_mode);
 static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode);
@@ -39,17 +39,14 @@ static int open_file(const char *path, open_mode_t open_mode, int *fd)
 	strcpy(openfile_msg.file_path, path);
 	openfile_msg.open_mode = open_mode;
 
-	pthread_mutex_lock(shm_mutex);
-	if( send_to_shm(shmem, &openfile_msg, sizeof(openfile_msg_t)) != 0 )
+	if( write(fifo_fd, &openfile_msg, sizeof(openfile_msg_t)) < 0 )
 	{
 		sds_free(openfile_msg.file_path);
-		pthread_mutex_unlock(shm_mutex);
 		return -1;
 	}
 	//get return code
-	recv_from_shm(shmem, &file_ret_msg);
+	read(fifo_fd, &file_ret_msg, sizeof(file_ret_msg));
 	*fd = file_ret_msg.fd;
-	pthread_mutex_unlock(shm_mutex);
 	sds_free(openfile_msg.file_path);
 
 	return file_ret_msg.ret_code;
@@ -70,35 +67,29 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode,
 	create_msg.open_mode = open_mode;
 	create_msg.mode = mode;
 
-	pthread_mutex_lock(shm_mutex);
-	if( send_to_shm(shmem, &create_msg, sizeof(createfile_msg_t)) != 0 )
+	if( write(fifo_fd, &create_msg, sizeof(createfile_msg_t)) < 0 )
 	{
 		sds_free(create_msg.file_path);
-		pthread_mutex_unlock(shm_mutex);
 		return -1;
 	}
 	//get return code
-	recv_from_shm(shmem, &file_ret_msg);
+	read(fifo_fd, &file_ret_msg, sizeof(file_ret_msg));
 	*fd = file_ret_msg.fd;
-	pthread_mutex_unlock(shm_mutex);
 	sds_free(create_msg.file_path);
 
 	return file_ret_msg.ret_code;
 }
 
+//===========================================================================================
+
 int init_client()
 {
-	shmem = get_shm(COMMON_KEY, SHM_UREAD | SHM_UWRITE);
-	shm_mutex = zmalloc(sizeof(pthread_mutex_t));
-	pthread_mutex_init(shm_mutex);
-	//attach memory to this process address space
-	attach_shm(shmem);
+	fifo_fd = open_fifo(FIFO_PATH, O_RDWR);
 }
 
 void close_client()
 {
-	detach_shm(shmem);
-	shm_free(shmem);
+	close_fifo(fifo_fd);
 }
 
 int f_open(const char *path, open_mode_t open_mode, ...)
