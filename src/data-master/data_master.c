@@ -179,6 +179,7 @@ static void append_temp_file(event_handler_t *event_handler){
 	local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size);
 }
 
+
 static void read_temp_file(event_handler_t *event_handler){
 	c_d_read_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
@@ -220,26 +221,41 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	return event_handler->handler;
 }
 
-int data_master_init(data_master_t *master){
+/**
+ * TODO
+ * start server
+ *
+ */
+void data_master_init(data_master_t *master){
 	master->rpc_server->op->server_start(master->rpc_server);
-
-
+	//initialize client
+	//initialize data server
 }
 
-data_master_t* create_data_master(int machine_num){
+/**
+ *
+ */
+data_master_t* create_data_master(map_role_value_t *role){
 	data_master_t *this = zmalloc(sizeof(*this));
 
-	this->group_size = machine_num;
+	this->group_size =  role->group_size;
 	this->namespace = create_name_space(1024);
-
-
 	this->rpc_server = create_rpc_server(8, 1024, 1, resolve_handler);
-
+	this->storage_q = zmalloc(role->group_size * sizeof(storage_machine_sta_t));
+	memset(this->storage_q, 0, role->group_size * sizeof(storage_machine_sta_t));
+	this->rank = role->rank;
+	this->visual_ip = sds_new(role->ip);
+	this->master_rank = role->master_rank;
+	//this->global_id
+	return this;
 }
 
 
 void destroy_data_master(data_master_t *this){
-
+	this->rpc_server->op->server_stop(this->rpc_server);
+	destroy_name_space(this->namespace);
+	zfree(this->storage_q);
+	sds_free(this->visual_ip);
 }
 
 

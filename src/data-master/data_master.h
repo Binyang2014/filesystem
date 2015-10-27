@@ -12,9 +12,11 @@
 #include "../common/communication/message.h"
 #include "../common/structure_tool/basic_list.h"
 #include "../common/communication/rpc_server.h"
+#include "../master/machine_role.h"
 
 struct data_master{
 	int rank;
+	int master_rank;
 	sds visual_ip;
 	size_t group_size;		//size
 	name_space_t *namespace;

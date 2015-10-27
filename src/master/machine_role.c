@@ -117,8 +117,10 @@ static inline map_role_value_t *create_role(char *master_ip, char *ip, machine_r
 	return role;
 }
 
-static inline map_role_value_t *create_data_master_role(char *master_ip, char *ip) {
-	return create_role(master_ip, ip, DATA_MASTER);
+static inline map_role_value_t *create_data_master_role(char *master_ip, char *ip, size_t group_size) {
+	map_role_value_t *role =  create_role(master_ip, ip, DATA_MASTER);
+	role->group_size = group_size;
+	return role;
 }
 
 static inline map_role_value_t *create_data_server_role(char *master_ip, char *ip) {
@@ -143,15 +145,17 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 
 	//read group number
 	read_conf_int(fp, buf, key, value, &group_num);
+	size_t group_size = 0;
 
 	while(group_num--) {
 		read_conf_int(fp, buf, key, value, &current_group_size);
+		group_size = current_group_size;
 		read_conf_str(fp, buf, key, value, current_master);
 		map_key = sds_new(value);
-		allocator->roles->op->put(allocator->roles, map_key, create_data_master_role(current_master, value));
+		allocator->roles->op->put(allocator->roles, map_key, create_data_master_role(current_master, value, current_group_size));
 		sds_free(map_key);
 
-		while(current_group_size--) {
+		while(--current_group_size) {
 			get_line_param(fp, buf, key, value);
 			map_key = sds_new(value);
 			allocator->roles->op->put(allocator->roles, map_key, create_data_server_role(current_master, value));
@@ -180,6 +184,7 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 		sds_free(master_ip);
 	}
 	destroy_map_iterator(iter);
+	destroy_machine_role_allocater(allocator);
 }
 
 static void *get_event_handler_param(event_handler_t *event_handler) {
@@ -225,7 +230,7 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 /**
  * create allocator
  */
-machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, char *file_path) {
+static machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, char *file_path) {
 	machine_role_allocator_t *this = zmalloc(sizeof(machine_role_allocator_t));
 	strcpy(this->file_path, file_path);
 	local_allocator = this;
@@ -240,11 +245,16 @@ machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, c
 	return this;
 }
 
-void destroy_machine_role_allocater(machine_role_allocator_t *this) {
+static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
 	destroy_map(this->roles);
 	destroy_rpc_server(this->server);
 	zfree(this->op);
 	zfree(this);
+}
+
+void machine_role_allocator_start(size_t size, int rank, char *file_path){
+	machine_role_allocator_t *allocator = create_machine_role_allocator(size, rank, file_path);
+	allocator->server->op->server_start(allocator->server);
 }
 
 
@@ -254,7 +264,7 @@ static void get_visual_ip(char *ip){
 	//strcpy();
 }
 
-static void register_to_zero_rank(struct machine_role_fetcher *fetcher){
+static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetcher){
 	machine_register_role_t *role = zmalloc(sizeof(*role));
 	role->source = fetcher->rank;
 	get_visual_ip(role->ip);
@@ -264,13 +274,10 @@ static void register_to_zero_rank(struct machine_role_fetcher *fetcher){
 	fetcher->client->op->execute(fetcher->client, COMMAND_WITH_RETURN);
 
 	zfree(role);
-
-	role = fetcher->client->recv_buff;
-	//role->transfer_version
-	//fetcher->client->op->set_send_buff();
+	return fetcher->client->recv_buff;
 }
 
-machine_role_fetcher_t *create_machine_role_fetcher(int rank){
+static machine_role_fetcher_t *create_machine_role_fetcher(int rank){
 	machine_role_fetcher_t *fetcher = zmalloc(sizeof(*fetcher));
 	fetcher->rank = rank;
 	fetcher->client = create_rpc_client(rank, 0, MACHINE_ROLE_GET_ROLE);
@@ -280,6 +287,20 @@ machine_role_fetcher_t *create_machine_role_fetcher(int rank){
 
 	return fetcher;
 }
+
+static void destroy_machine_role_fetcher(machine_role_fetcher_t *fetcher)
+{
+	destroy_rpc_client(fetcher->client);
+	zfree(fetcher->op);
+}
+
+map_role_value_t *get_role(int rank){
+	machine_role_fetcher_t *fetcher = create_machine_role_fetcher(rank);
+	map_role_value_t *role = fetcher->op->register_to_zero_rank(fetcher);
+	destroy_machine_role_fetcher(fetcher);
+	return role;
+}
+
 
 /*
  *
@@ -291,7 +312,8 @@ machine_role_fetcher_t *create_machine_role_fetcher(int rank){
  */
 #define MACHINE_ROLE_TEST 1
 #if defined(MACHINE_ROLE_TEST) || defined(GLOBAL_TEST)
-int main() {
+int main()
+{
 	machine_role_allocator_t *allocator = create_machine_role_allocater(10, 0, "topo.conf");
 	allocator->op->get_net_topology(allocator);
 	destroy_machine_role_allocater(allocator);

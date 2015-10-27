@@ -19,6 +19,7 @@ struct map_role_value {
 	machine_role_e type;
 	int master_rank;
 	int rank;
+	size_t group_size;
 };
 
 struct machine_role_allocator {
@@ -47,7 +48,6 @@ void destroy_machine_role_allocater(machine_role_allocator_t *this);
 /*************************** Machine Role Fetcher ****************/
 struct machine_role_fetcher{
 	int rank;
-	map_role_value_t *role;
 	rpc_client_t *client;
 	struct machine_role_fetcher_op *op;
 };
