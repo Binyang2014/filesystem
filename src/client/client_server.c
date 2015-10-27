@@ -5,6 +5,8 @@
  */
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "log.h"
 #include "client_server.h"
 #include "zmalloc.h"
@@ -22,9 +24,9 @@ static void init_file_struct(opened_file_t *opened_file, const file_ret_t *file_
 static int code_transfer(uint32_t op_status);
 
 static int add_write_lock(zclient_t *zclient, const char *file_path,
-		pthread_mutex_t *mutex);
+		pthread_mutex_t *mutex, sds lock_name);
 static int add_read_lock(zclient_t *zclient, const char *file_path,
-		pthread_mutex_t *mutex);
+		pthread_mutex_t *mutex, sds lock_name);
 static void *watch_handler_delete(void *args);
 
 
@@ -45,7 +47,7 @@ static int code_transfer(uint32_t op_status)
 {
 	switch(op_status)
 	{
-		case FILE_NOT_EXIST
+		case FILE_NOT_EXIST:
 			return FNO_EXISIT;
 		default:
 			return FOK;
@@ -57,8 +59,8 @@ static int get_fd(fclient_t *fclient)
 {
 	int fd;
 
-	fd = find_first_zero_bit(f_client->bitmap, MAX_FD_NUMBER);
-	bitmap_set(f_client->bitmap, fd, 1);
+	fd = find_first_zero_bit(fclient->bitmap, MAX_FD_NUMBER);
+	bitmap_set(fclient->bitmap, fd, 1);
 	return fd;
 }
 
@@ -84,7 +86,7 @@ static void init_append_msg(client_append_file_t *client_append_file, const
 		appendfile_msg_t *writefile_msg, const opened_file_t *opened_file)
 {
 	client_append_file->operation_code = APPEND_FILE_CODE;
-	strcpy(client_append_file->file_name, opened_file->file_info->file_path);
+	strcpy(client_append_file->file_name, opened_file->f_info.file_path);
 	client_append_file->write_size = writefile_msg->data_len;
 }
 
@@ -92,15 +94,15 @@ static void init_read_msg(client_read_file_t * client_read_file, const
 		readfile_msg_t * readfile_msg, const opened_file_t *opened_file)
 {
 	client_read_file->operation_code = READ_FILE_CODE;
-	strcpy(client_read_file->file_name, opened_file->file_info->file_path);
-	client_read_file->read_size = read_msg->data_len;
-	client_read_file->offset = opened_file->file_info.offset;
+	strcpy(client_read_file->file_name, opened_file->f_info.file_path);
+	client_read_file->file_size = readfile_msg->data_len;
+	client_read_file->offset = opened_file->f_info.file_offset;
 }
 
 static void init_remove_msg(client_remove_file_t *client_remove_file, const
 		removefile_msg_t *removefile_msg)
 {
-	client_remove_file->operation_code = DELETE_FILE_CODE;
+	client_remove_file->operation_code = DELETE_TMP_FILE_CODE;
 	strcpy(client_remove_file->file_name, removefile_msg->file_path);
 }
 
@@ -108,19 +110,19 @@ static void init_file_struct(opened_file_t *opened_file, const file_ret_t *file_
 {
 	int dataserver_num, chunks_num, index = 0;
 	int i, j;
-	list_t *data_nodes = opened_file->file_info.data_nodes;
+	list_t *data_nodes = opened_file->f_info.data_nodes;
 	data_node_t *data_node;
 
 	dataserver_num = file_ret->dataserver_num;
 	chunks_num = file_ret->chunks_num;
-	opened_file->file_info.file_len = file_ret->file_size;
-	opened_file->file_info.file_offset = file_ret->offset;
+	opened_file->f_info.file_len = file_ret->file_size;
+	opened_file->f_info.file_offset = file_ret->offset;
 	for(i = 0; i < dataserver_num; i++)
 	{
 		data_node = zmalloc(sizeof(data_node_t));
 		data_node->data_server_id = file_ret->data_server_arr[i];
-		data_node->chunks_id = zmalloc(sizeof(uint64_t) * file_ret->chunks_num);
-		for(j = 0; j < data_server_cnum[i], j++)
+		data_node->chunks_id = zmalloc(sizeof(uint64_t) * chunks_num);
+		for(j = 0; j < file_ret->data_server_cnum[i]; j++)
 			data_node->chunks_id[j] = file_ret->chunks_id_arr[index++];
 		data_nodes->list_ops->list_add_node_tail(data_nodes, data_node);
 	}
@@ -175,6 +177,8 @@ static int add_write_lock(zclient_t *zclient, const char *file_path,
 	sds_free(return_data);
 	sds_free(return_name);
 	sds_free_split_res(children, count);
+
+	return ret_num;
 }
 
 static int add_read_lock(zclient_t *zclient, const char *file_path,
@@ -236,6 +240,8 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 	sds_free(return_data);
 	sds_free(return_name);
 	sds_free_split_res(children, count);
+
+	return ret_num;
 }
 static void *watch_handler_delete(void *args)
 {
@@ -243,41 +249,41 @@ static void *watch_handler_delete(void *args)
 
 	mutex = args;
 	pthread_mutex_unlock(mutex);
+
+	return NULL;
 }
 
 
 static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg,
 		file_ret_t *file_ret)
 {
-	int dataserver_num, chunks_num;
+	int dataserver_num;
 	int i, j, index = 0, ret;
 	rpc_client_t *rpc_client;
 	write_c_to_d_t write_msg;
-	size_t write_len;
 	char *data_msg;
 
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
-	write_len = appendfile_msg->data_len;
 	write_msg.operation_code = C_D_WRITE_BLOCK_CODE;
 	write_msg.unique_tag = rpc_client->tag;
 	for(i = 0; i < dataserver_num; i++)
 	{
-		int server_id = data_server_arr[i];
+		int server_id = file_ret->data_server_arr[i];
 
 		rpc_client->target = server_id;
 		write_msg.offset = file_ret->data_server_offset[i];
 		write_msg.write_len = file_ret->data_server_len[i];
 		data_msg = zmalloc(write_msg.write_len);
-		read(fclient->fd, data_msg, write_msg.write_len);
+		read(fclient->fifo_fd, data_msg, write_msg.write_len);
 		write_msg.chunks_count = file_ret->data_server_cnum[i];
 
 		for(j = 0; j < write_msg.chunks_count; j++)
-			write_msg.chunks_id_arr[j] = file_ret_t->chunks_id_arr[index++];
+			write_msg.chunks_id_arr[j] = file_ret->chunks_id_arr[index++];
 
 		rpc_client->op->set_send_buff(rpc_client, &write_msg,
 				sizeof(write_c_to_d_t));
-		rpc_client->op->set_second_send_buff(client, data_msg,
+		rpc_client->op->set_second_send_buff(rpc_client, data_msg,
 				write_msg.write_len);
 		ret = rpc_client->op->execute(rpc_client, WRITE_C_TO_D);
 		if(ret < 0)
@@ -296,21 +302,19 @@ static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg,
 static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 		file_ret_t *file_ret)
 {
-	int dataserver_num, chunks_num;
+	int dataserver_num;
 	int i, j, index = 0, ret;
 	rpc_client_t *rpc_client;
 	read_c_to_d_t read_msg;
-	size_t read_len;
 	char *data_msg;
 
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
-	read_len = readfile_msg->data_len;
 	read_msg.operation_code = C_D_WRITE_BLOCK_CODE;
 	read_msg.unique_tag = rpc_client->tag;
 	for(i = 0; i < dataserver_num; i++)
 	{
-		int server_id = data_server_arr[i];
+		int server_id = file_ret->data_server_arr[i];
 
 		rpc_client->target = server_id;
 		read_msg.offset = file_ret->data_server_offset[i];
@@ -319,14 +323,14 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 		read_msg.chunks_count = file_ret->data_server_cnum[i];
 
 		for(j = 0; j < read_msg.chunks_count; j++)
-			read_msg.chunks_id_arr[j] = file_ret_t->chunks_id_arr[index++];
+			read_msg.chunks_id_arr[j] = file_ret->chunks_id_arr[index++];
 
 		rpc_client->op->set_send_buff(rpc_client, &read_msg,
 				sizeof(read_c_to_d_t));
-		rpc_client->op->set_second_send_buff(client, data_msg,
-				read_msg.write_len);
+		rpc_client->op->set_second_send_buff(rpc_client, data_msg,
+				read_msg.read_len);
 		ret = rpc_client->op->execute(rpc_client, READ_C_TO_D);
-		write(fclient->fd, data_msg, read_msg.read_len);
+		write(fclient->fifo_fd, data_msg, read_msg.read_len);
 		if(ret < 0)
 		{
 			zfree(data_msg);
@@ -345,21 +349,21 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 //opened file list.
 static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 {
-	rpc_client_t *rpc_cilent = NULL;
-	client_create_file_t *cilent_create_file = NULL;
+	rpc_client_t *rpc_client = NULL;
+	client_create_file_t *client_create_file = NULL;
 	int fifo_fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
-	zcient_t *zclient = NULL;
+	zclient_t *zclient = NULL;
 	sds path, data;
-	file_ret_msg ret_msg;
+	file_ret_msg_t ret_msg;
 
 	log_write(LOG_DEBUG, "creating a file to store data");
 	//construct client_create_file message
 	rpc_client = fclient->rpc_client;
 	client_create_file = zmalloc(sizeof(client_create_file_t));
 	init_create_msg(client_create_file, createfile_msg);
-	client_create_msg->unique_tag = rpc_client->tag;
+	client_create_file->unique_tag = rpc_client->tag;
 
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_create_file,
@@ -370,9 +374,9 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	//create znode on server
 	path = sds_new(createfile_msg->file_path);
 	//have not used data structure now
-	data = sds_new("msg:")
-	zclient = fcient->zclient;
-	if(zcilent->op->create_parent(zcient, path, data, PERSISTENT,
+	data = sds_new("msg:");
+	zclient = fclient->zclient;
+	if(zclient->op->create_parent(zclient, path, data, PERSISTENT,
 				NULL) != ZOK)
 		ret_msg.ret_code = FSERVER_ERR;
 	//create lock for this file
@@ -384,10 +388,10 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 
 	//create opened_file structure and add it to list
 	file_list = fclient->file_list;
-	opened_file = create_file(createfile_msg->file_path, 0,
+	opened_file = create_openedfile(createfile_msg->file_path, 0,
 			createfile_msg->open_mode);
 	opened_file->fd = get_fd(fclient);
-	opened_file->file_info.file_len = 0;
+	opened_file->f_info.file_len = 0;
 
 	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 
@@ -397,7 +401,7 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	if(ret_msg.ret_code != FSERVER_ERR)
 		ret_msg.ret_code = code_transfer(((acc_msg_t
 						*)rpc_client->recv_buff)->op_status);
-	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_create_file);
 	zfree(rpc_client->recv_buff);
@@ -405,12 +409,12 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 
 static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 {
-	rpc_client_t *rpc_cilent = NULL;
-	client_remove_file_t *cilent_remove_file = NULL;
+	rpc_client_t *rpc_client = NULL;
+	client_remove_file_t *client_remove_file = NULL;
 	int fifo_fd;
-	zcient_t *zclient = NULL;
+	zclient_t *zclient = NULL;
 	sds path;
-	file_ret_msg ret_msg;
+	file_ret_msg_t ret_msg;
 
 	log_write(LOG_DEBUG, "removing a file");
 	//1.send message to data master to delete file
@@ -418,7 +422,7 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 	rpc_client = fclient->rpc_client;
 	client_remove_file = zmalloc(sizeof(client_remove_file_t));
 	init_remove_msg(client_remove_file, removefile_msg);
-	client_remove_msg->unique_tag = rpc_client->tag;
+	client_remove_file->unique_tag = rpc_client->tag;
 
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_remove_file,
@@ -428,7 +432,7 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 
 	//2.delete znode in zserver
 	path = sds_new(removefile_msg->file_path);
-	zclient = fcient->zclient;
+	zclient = fclient->zclient;
 	if(zclient->op->delete_znode(zclient, path, -1) != ZOK)
 		ret_msg.ret_code = FSERVER_ERR;
 	sds_free(path);
@@ -439,7 +443,7 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 	if(ret_msg.ret_code != FSERVER_ERR)
 		ret_msg.ret_code = code_transfer(((acc_msg_t
 						*)rpc_client->recv_buff)->op_status);
-	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_remove_file);
 	zfree(rpc_client->recv_buff);
@@ -448,22 +452,22 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 //open a exist file
 static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 {
-	rpc_client_t *rpc_cilent = NULL;
-	client_open_file_t *cilent_open_file = NULL;
+	rpc_client_t *rpc_client = NULL;
+	client_open_file_t *client_open_file = NULL;
 	int fifo_fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
-	zcient_t *zclient = NULL;
+	zclient_t *zclient = NULL;
 	sds path, return_data;
 	znode_status_t zstatus;
-	file_ret_msg ret_msg;
+	file_ret_msg_t ret_msg;
 
 	log_write(LOG_DEBUG, "open a file to store data");
-	//construct client_create_file message
+	//construct client_open_file message
 	rpc_client = fclient->rpc_client;
 	client_open_file = zmalloc(sizeof(client_open_file_t));
 	init_open_msg(client_open_file, openfile_msg);
-	client_open_msg->unique_tag = rpc_client->tag;
+	client_open_file->unique_tag = rpc_client->tag;
 
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_open_file,
@@ -472,10 +476,10 @@ static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 		ret_msg.ret_code = FSERVER_ERR;
 
 	//get znode informamtion on server
-	path = sds_new(createfile_msg->file_path);
+	path = sds_new(openfile_msg->file_path);
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	zclient = fcient->zclient;
-	if(zcilent->op->get_znode(zclient, path, return_data, &zstatus, 0,
+	zclient = fclient->zclient;
+	if(zclient->op->get_znode(zclient, path, return_data, &zstatus, 0,
 				NULL, NULL) != ZOK)
 		ret_msg.ret_code = FSERVER_ERR;
 	sds_free(path);
@@ -483,7 +487,7 @@ static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 
 	//create opened_file structure and add it to list
 	file_list = fclient->file_list;
-	opened_file = create_file(openfile_msg->file_path, 0,
+	opened_file = create_openedfile(openfile_msg->file_path, 0,
 			openfile_msg->open_mode);
 	opened_file->fd = get_fd(fclient);
 	init_file_struct(opened_file, rpc_client->recv_buff);
@@ -495,19 +499,19 @@ static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	fifo_fd = fclient->fifo_fd;
 	ret_msg.fd = opened_file->fd;
 	if(ret_msg.ret_code != FSERVER_ERR)
-		ret_msg.ret_code = code_transfer(rpc_client->recv_buff->op_status);
-	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
+		ret_msg.ret_code = code_transfer(((file_ret_t *)rpc_client->recv_buff)->op_status);
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg_t));
 
-	zfree(client_create_file);
+	zfree(client_open_file);
 	zfree(rpc_client->recv_buff);
 }
 
 static void f_close(fclient_t *fclient, closefile_msg_t *closefile_msg)
 {
 	int fifo_fd, fd;
-	node_t *file_node = NULL;
+	list_node_t *file_node = NULL;
 	list_t *file_list = NULL;
-	file_ret_msg ret_msg;
+	file_ret_msg_t ret_msg;
 
 	log_write(LOG_DEBUG, "close a file");
 	//1.find right structure
@@ -522,21 +526,21 @@ static void f_close(fclient_t *fclient, closefile_msg_t *closefile_msg)
 	fifo_fd = fclient->fifo_fd;
 	ret_msg.fd = -1;
 	ret_msg.ret_code = 0;
-	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg_t));
 }
 
 //write data to data_server, only support append now
 static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 {
-	rpc_client_t *rpc_cilent = NULL;
-	client_append_file_t *cilent_append_file = NULL;
+	rpc_client_t *rpc_client = NULL;
+	client_append_file_t *client_append_file = NULL;
 	int fifo_fd, fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
-	zcient_t *zclient = NULL;
+	zclient_t *zclient = NULL;
 	pthread_mutex_t *mutex;
 	sds lock_name;
-	file_ret_msg ret_msg;
+	file_ret_msg_t ret_msg;
 
 	log_write(LOG_DEBUG, "append a file to store data");
 	//1.find right structure
@@ -547,8 +551,8 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 	//2.construct client_write_file message
 	rpc_client = fclient->rpc_client;
 	client_append_file = zmalloc(sizeof(client_append_file_t));
-	init_append_msg(client_open_file, appendfile_msg, opened_file);
-	client_append_msg->unique_tag = rpc_client->tag;
+	init_append_msg(client_append_file, appendfile_msg, opened_file);
+	client_append_file->unique_tag = rpc_client->tag;
 
 	//3.create write lock on this server
 	lock_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
@@ -559,7 +563,7 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 	//add write lock, process maybe block here
 	add_write_lock(zclient, opened_file->f_info.file_path, mutex, lock_name);
 	pthread_mutex_lock(mutex);
-	thread_mutex_unlock(mutex);
+	pthread_mutex_unlock(mutex);
 	pthread_mutex_destroy(mutex);
 	zfree(mutex);
 
@@ -573,14 +577,14 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 	append_data(fclient, appendfile_msg, rpc_client->recv_buff);
 
 	//6.delete lock
-	zclient->op->delete_znode(zcient, path, -1);
+	zclient->op->delete_znode(zclient, lock_name, -1);
 
 	//7.copy result to share memory
 	fifo_fd = fclient->fifo_fd;
 	ret_msg.fd = -1;
 	if(ret_msg.ret_code != FSERVER_ERR)
-		ret_msg.ret_code = code_transfer(rpc_client->recv_buff->op_status);
-	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
+		ret_msg.ret_code = code_transfer(((file_ret_t *)rpc_client->recv_buff)->op_status);
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_append_file);
 	zfree(rpc_client->recv_buff);
@@ -589,19 +593,19 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 //read data from data_server
 static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 {
-	rpc_client_t *rpc_cilent = NULL;
-	client_read_file_t *cilent_read_file = NULL;
+	rpc_client_t *rpc_client = NULL;
+	client_read_file_t *client_read_file = NULL;
 	int fifo_fd, fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
-	zcient_t *zclient = NULL;
+	zclient_t *zclient = NULL;
 	pthread_mutex_t *mutex;
 	sds lock_name;
-	file_ret_msg ret_msg;
+	file_ret_msg_t ret_msg;
 
 	log_write(LOG_DEBUG, "append a file to store data");
 	//1.find right structure
-	fd = readfile_msg.fd;
+	fd = readfile_msg->fd;
 	file_list = fclient->file_list;
 	opened_file = file_list->list_ops->list_search_key(file_list, &fd)->value;
 
@@ -609,7 +613,7 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	rpc_client = fclient->rpc_client;
 	client_read_file = zmalloc(sizeof(client_read_file_t));
 	init_read_msg(client_read_file, readfile_msg, opened_file);
-	client_read_msg->unique_tag = rpc_client->tag;
+	client_read_file->unique_tag = rpc_client->tag;
 
 	//3.create read lock on this server
 	lock_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
@@ -620,7 +624,7 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	//add read lock, process maybe block here
 	add_read_lock(zclient, opened_file->f_info.file_path, mutex, lock_name);
 	pthread_mutex_lock(mutex);
-	thread_mutex_unlock(mutex);
+	pthread_mutex_unlock(mutex);
 	pthread_mutex_destroy(mutex);
 	zfree(mutex);
 
@@ -634,14 +638,14 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	read_data(fclient, readfile_msg, rpc_client->recv_buff);
 
 	//6.delete lock
-	zclient->op->delete_znode(zcient, path, -1);
+	zclient->op->delete_znode(zclient, lock_name, -1);
 
 	//7.copy result to share memory
 	fifo_fd = fclient->fifo_fd;
 	ret_msg.fd = -1;
 	if(ret_msg.ret_code != FSERVER_ERR)
-		ret_msg.ret_code = code_transfer(rpc_client->recv_buff->op_status);
-	write(fifo_fd, &ret_msg, sizeof(file_ret_msg));
+		ret_msg.ret_code = code_transfer(((file_ret_t *)rpc_client->recv_buff)->op_status);
+	write(fifo_fd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_read_file);
 	zfree(rpc_client->recv_buff);
@@ -670,23 +674,19 @@ fclient_t *create_fclient(int client_id, int target, int tag)
 	list_set_free_method(fclient->file_list, free_file);
 	list_set_match_method(fclient->file_list, match_file);
 
-	fclient->fclient_ops = zmalloc(sizeof(fclient_ops_t));
-	fclient->fclient_ops->f_create = f_create;
-
 	return fclient;
 }
 
 void destroy_fclient(fclient_t *fclient)
 {
-	fifo_close(fclient->fd);
+	close_fifo(fclient->fifo_fd);
 	remove_fifo(FIFO_PATH);
 	destroy_rpc_client(fclient->rpc_client);
 
-	fclient->zcient->op->stop_zclient(zcilent);
+	fclient->zclient->op->stop_zclient(fclient->zclient);
 	destroy_zclient(fclient->zclient);
 
 	list_release(fclient->file_list);
-	zfree(fclient->fclient_ops);
 
 	zfree(fclient);
 }
@@ -699,7 +699,7 @@ void fclient_run(fclient_t *fclient)
 	fifo_fd = fclient->fifo_fd;
 	while(!client_stop)
 	{
-		read(fifo, &file_msg, sizeof(file_msg));
+		read(fifo_fd, &file_msg, sizeof(file_msg));
 		switch(file_msg.closefile_msg.operation_code)
 		{
 			case FCREATE_OP:

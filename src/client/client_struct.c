@@ -47,8 +47,11 @@ opened_file_t *create_openedfile(const char *file_path, int position, open_mode_
 	return open_file;
 }
 
-void free_file(opened_file_t *opened_file)
+void free_file(void *args)
 {
+	opened_file_t *opened_file;
+
+	opened_file = args;
 	list_release(opened_file->f_info.data_nodes);
 	sds_free(opened_file->f_info.file_path);
 

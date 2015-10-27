@@ -24,7 +24,7 @@
 #define FOPEN_OP 0002
 #define FAPPEND_OP 0003
 #define FREAD_OP 0004
-#define FLCOSE_OP 0005
+#define FCLOSE_OP 0005
 #define FREMOVE_OP 0006
 #define FSTOP_OP 0007
 
@@ -124,7 +124,7 @@ typedef struct opened_file opened_file_t;
 typedef struct createfile_msg createfile_msg_t;
 typedef struct openfile_msg openfile_msg_t;
 typedef struct file_ret_msg file_ret_msg_t;
-typedef struct appenfile_msg appendfile_msg_t;
+typedef struct appendfile_msg appendfile_msg_t;
 typedef struct readfile_msg readfile_msg_t;
 typedef struct removefile_msg removefile_msg_t;
 typedef struct stopclient_msg stopclient_msg_t;
@@ -133,6 +133,6 @@ typedef union file_msg file_msg_t;
 
 opened_file_t *create_openedfile(const char *file_path, int position, open_mode_t
 		open_mode);
-void free_file(opened_file_t *opened_file);
+void free_file(void *args);
 int match_file(void *ptr, void *key);
 #endif
