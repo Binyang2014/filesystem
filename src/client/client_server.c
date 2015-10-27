@@ -94,7 +94,7 @@ static void init_read_msg(client_read_file_t * client_read_file, const
 	client_read_file->operation_code = READ_FILE_CODE;
 	strcpy(client_read_file->file_name, opened_file->file_info->file_path);
 	client_read_file->read_size = read_msg->data_len;
-	client_read_file->offset = read_msg->offset;
+	client_read_file->offset = opened_file->file_info.offset;
 }
 
 static void init_remove_msg(client_remove_file_t *client_remove_file, const
