@@ -8,6 +8,8 @@
 #include <stdarg.h>
 #include <pthread.h>
 #include <string.h>
+#include <fcntl.h>
+#include "log.h"
 #include "client.h"
 #include "zmalloc.h"
 #include "fifo_ipc.h"
@@ -85,6 +87,11 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode,
 int init_client()
 {
 	fifo_fd = open_fifo(FIFO_PATH, O_RDWR);
+	if(fifo_fd < 0)
+		log_write(LOG_ERR, "could not connect to client server");
+	else
+		log_write(LOG_INFO, "connect to server successfully");
+	return fifo_fd;
 }
 
 void close_client()
@@ -102,7 +109,7 @@ int f_open(const char *path, open_mode_t open_mode, ...)
 		f_mode_t mode;
 
 		va_start(vl, open_mode);
-		mode = va_arg(vl, f_mode_t);
+		mode = va_arg(vl, int);
 		va_end(vl);
 		if(create_file(path, open_mode, mode, &fd) != 0)
 			return -1;
@@ -118,7 +125,6 @@ int f_open(const char *path, open_mode_t open_mode, ...)
 
 int f_close(int fd)
 {
-	int fd;
 	closefile_msg_t closefile_msg;
 	file_ret_msg_t file_ret_msg;
 
@@ -129,7 +135,7 @@ int f_close(int fd)
 	return file_ret_msg.ret_code;
 }
 
-int f_read(int fd, void *buf, size_t nbytes)
+ssize_t f_read(int fd, void *buf, size_t nbytes)
 {
 	readfile_msg_t readfile_msg;
 	file_ret_msg_t file_ret_msg;
@@ -139,11 +145,12 @@ int f_read(int fd, void *buf, size_t nbytes)
 	readfile_msg.fd = fd;
 
 	write(fifo_fd, &readfile_msg, sizeof(readfile_msg_t));
+	read(fifo_fd, buf, nbytes);
 	read(fifo_fd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
 
-int f_append(int fd, void *buf, size_t nbytes)
+ssize_t f_append(int fd, const void *buf, size_t nbytes)
 {
 	appendfile_msg_t appendfile_msg;
 	file_ret_msg_t file_ret_msg;
@@ -153,6 +160,7 @@ int f_append(int fd, void *buf, size_t nbytes)
 	appendfile_msg.fd = fd;
 
 	write(fifo_fd, &appendfile_msg, sizeof(appendfile_msg_t));
+	write(fifo_fd, buf, nbytes);
 	read(fifo_fd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
@@ -165,7 +173,7 @@ int f_remove(const char *pathname)
 	removefile_msg.operation_code = FREMOVE_OP;
 	strcpy(removefile_msg.file_path, pathname);
 
-	write(fifo_fd, &removefile, sizeof(removefile_msg_t));
+	write(fifo_fd, &removefile_msg, sizeof(removefile_msg_t));
 	read(fifo_fd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
