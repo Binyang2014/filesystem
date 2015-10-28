@@ -1,4 +1,5 @@
 #include "dataserver.h"
+#include "zmalloc.h"
 #include "log.h"
 #include "client_server.h"
 #include "mpi_communication.h"
@@ -8,6 +9,19 @@ static rpc_server_t *local_server;
 
 void create_file_handler(event_handler_t *event_handler)
 {
+	client_create_file_t *client_create_file;
+	file_sim_ret_t *file_sim_ret;
+
+	log_write(LOG_DEBUG, "create file handler stub");
+	client_create_file = event_handler->special_struct;
+	log_write(LOG_INFO, "file name is %s", client_create_file->file_name);
+	log_write(LOG_INFO, "unique tag is %d", client_create_file->unique_tag);
+	log_write(LOG_INFO, "file mode is %o", client_create_file->file_mode);
+	file_sim_ret = zmalloc(sizeof(file_sim_ret_t));
+	file_sim_ret->op_status = ACC_OK;
+	local_server->op->send_result(file_sim_ret, 1, 13, sizeof(file_sim_ret_t),
+			ANS);
+	zfree(file_sim_ret);
 }
 
 void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
@@ -32,10 +46,12 @@ void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 
 		case CREATE_TEMP_FILE_CODE:
 			event_handler->handler = create_file_handler;
+			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			break;
 
 		default:
 			event_handler->handler = NULL;
+			break;
 	}
 	return event_handler->handler;
 }

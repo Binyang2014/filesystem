@@ -19,7 +19,8 @@
 struct fclient
 {
 	rpc_client_t *rpc_client;
-	int fifo_fd;
+	int fifo_rfd;
+	int fifo_wfd;
 	zclient_t *zclient;
 	list_t *file_list;
 	unsigned long *bitmap;
