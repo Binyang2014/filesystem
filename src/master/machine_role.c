@@ -20,6 +20,30 @@
 static machine_role_allocator_t *local_allocator;
 static const char blank_space = ' ';
 
+static void map_list_pair_free(void *value);
+static inline int local_atoi(char *c);
+static inline void get_param(char *p, char *key, char *value, int *line_type);
+static void inline get_line_param(FILE *fp, char *buf, char *key, char *value);
+static void inline read_conf_int(FILE *fp, char *buf, char *key, char *value, int *v);
+static void inline read_conf_str(FILE *fp, char *buf, char *key, char *value, char *v);
+static inline map_role_value_t *create_role(char *master_ip, char *ip, machine_role_e type);
+static inline map_role_value_t *create_data_master_role(char *master_ip, char *ip, size_t group_size);
+static inline map_role_value_t *create_data_server_role(char *master_ip, char *ip);
+static void get_net_topology(machine_role_allocator_t *allocator);
+static void allocate_machine_role(machine_role_allocator_t *allocator);
+static void *get_event_handler_param(event_handler_t *event_handler);
+static void machine_register(event_handler_t *event_handler);
+static void *resolve_handler(event_handler_t *event_handler, void* msg_queue);
+static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path);
+static void destroy_machine_role_allocater(machine_role_allocator_t *this);
+void machine_role_allocator_start(size_t size, int rank, char *file_path);
+static void get_visual_ip(char *ip);
+static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetcher);
+static machine_role_fetcher_t *create_machine_role_fetcher(int rank);
+static void destroy_machine_role_fetcher(machine_role_fetcher_t *fetcher);
+extern map_role_value_t *get_role(int rank);
+
+/*-----------------------------Implementation--------------------*/
 static void map_list_pair_free(void *value) {
 	pair_t *p = value;
 	sds_free(p->key);
@@ -137,19 +161,15 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 	char key[LINE_LENGTH] = {};
 	char value[LINE_LENGTH] = {};
 	sds map_key;
-	char ip[LINE_LENGTH] = {};
-	int current_group_type = 0;
 	int current_group_size = 0;
 	char current_master[LINE_LENGTH] = {};
 	int group_num = 0;
 
 	//read group number
 	read_conf_int(fp, buf, key, value, &group_num);
-	size_t group_size = 0;
 
 	while(group_num--) {
 		read_conf_int(fp, buf, key, value, &current_group_size);
-		group_size = current_group_size;
 		read_conf_str(fp, buf, key, value, current_master);
 		map_key = sds_new(value);
 		allocator->roles->op->put(allocator->roles, map_key, create_data_master_role(current_master, value, current_group_size));
@@ -196,6 +216,7 @@ static void *get_event_handler_param(event_handler_t *event_handler) {
  * get machine role
  */
 static void machine_register(event_handler_t *event_handler) {
+	pthread_mutex_lock(local_allocator->mutex_allocator);
 	machine_register_role_t *param = get_event_handler_param(event_handler);
 	map_role_value_t *role = zmalloc(sizeof(*role));
 
@@ -206,6 +227,7 @@ static void machine_register(event_handler_t *event_handler) {
 	local_allocator->roles->op->put(local_allocator->roles, key_ip, role);
 	local_allocator->register_machine_num++;
 	sds_free(key_ip);
+	pthread_mutex_unlock(local_allocator->mutex_allocator);
 
 	if(local_allocator->register_machine_num == local_allocator->machine_num){
 		allocate_machine_role(local_allocator);
@@ -230,7 +252,7 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 /**
  * create allocator
  */
-static machine_role_allocator_t *create_machine_role_allocater(size_t size, int rank, char *file_path) {
+static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path) {
 	machine_role_allocator_t *this = zmalloc(sizeof(machine_role_allocator_t));
 	strcpy(this->file_path, file_path);
 	local_allocator = this;
@@ -242,18 +264,24 @@ static machine_role_allocator_t *create_machine_role_allocater(size_t size, int 
 	this->op->get_net_topology = get_net_topology;
 	this->op->machine_register = machine_register;
 	this->server = create_rpc_server(10, 1024, rank, resolve_handler);
+
+	this->mutex_allocator = zmalloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(this->mutex_allocator, NULL);
+
 	return this;
 }
 
 static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
 	destroy_map(this->roles);
 	destroy_rpc_server(this->server);
+	pthread_mutex_destroy(this->mutex_allocator);
 	zfree(this->op);
 	zfree(this);
 }
 
 void machine_role_allocator_start(size_t size, int rank, char *file_path){
 	machine_role_allocator_t *allocator = create_machine_role_allocator(size, rank, file_path);
+	allocator->op->get_net_topology(allocator);
 	allocator->server->op->server_start(allocator->server);
 }
 
@@ -310,12 +338,3 @@ map_role_value_t *get_role(int rank){
   ../common/structure_tool/basic_queue.c ../common/structure_tool/log.c
   ../common/communication/rpc_server.c
  */
-#define MACHINE_ROLE_TEST 1
-#if defined(MACHINE_ROLE_TEST) || defined(GLOBAL_TEST)
-int main()
-{
-	machine_role_allocator_t *allocator = create_machine_role_allocater(10, 0, "topo.conf");
-	allocator->op->get_net_topology(allocator);
-	destroy_machine_role_allocater(allocator);
-}
-#endif
