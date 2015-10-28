@@ -70,13 +70,12 @@
 //Data-Master should deal with
 #define CREATE_TEMP_FILE_CODE 3001
 #define CREATE_PERSIST_FILE_CODE 3002
-#define OPEN_FILE_CODE 3003
-#define DATA_SERVER_HEART_BEAT_CODE 3004
-#define READ_FILE_CODE 3005
-#define APPEND_FILE_CODE 3006
-#define APPEND_TEMP_FILE_CODE 3007
-#define DELETE_TMP_FILE_CODE 3008
-#define READ_TEMP_FILE_CODE 3009
+#define DATA_SERVER_HEART_BEAT_CODE 3003
+#define READ_FILE_CODE 3004
+#define APPEND_FILE_CODE 3005
+#define APPEND_TEMP_FILE_CODE 3006
+#define DELETE_TMP_FILE_CODE 3006
+#define READ_TEMP_FILE_CODE 3008
 
 //#define CREATE_FILE_ANS_CODE 3005
 
@@ -287,14 +286,6 @@ typedef struct client_create_file {
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_create_file_t;
 
-typedef struct client_open_file {
-	uint16_t operation_code;
-	uint16_t transfer_version;
-	uint16_t unique_tag;
-	uint16_t reserved;
-	char file_name[FILE_NAME_MAX_LENGTH + 1];
-}client_open_file_t;
-
 typedef struct file_ret {
 	uint64_t file_size;
 	uint64_t offset; //This is offset from begining
@@ -311,6 +302,10 @@ typedef struct file_ret {
 
 	uint64_t chunks_id_arr[MAX_COUNT_CID_RET];
 }file_ret_t;
+
+typedef struct file_sim_ret {
+	uint16_t op_status;
+}file_sim_ret_t;
 
 typedef struct client_read_file {
 	uint16_t operation_code;

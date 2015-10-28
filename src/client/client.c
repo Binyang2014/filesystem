@@ -9,6 +9,7 @@
 #include <pthread.h>
 #include <string.h>
 #include <fcntl.h>
+#include "log.h"
 #include "client.h"
 #include "zmalloc.h"
 #include "fifo_ipc.h"
@@ -86,6 +87,10 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode,
 int init_client()
 {
 	fifo_fd = open_fifo(FIFO_PATH, O_RDWR);
+	if(fifo_fd < 0)
+		log_write(LOG_ERR, "could not connect to client server");
+	else
+		log_write(LOG_INFO, "connect to server successfully");
 	return fifo_fd;
 }
 

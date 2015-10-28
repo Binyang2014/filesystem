@@ -15,7 +15,7 @@ static void free_data_node(void *args)
 	zfree(data_node);
 }
 
-int match_data(void *ptr, void *key)
+int match_file(void *ptr, void *key)
 {
 	opened_file_t *opened_file;
 	int *fd;
