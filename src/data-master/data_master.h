@@ -8,11 +8,19 @@
 #ifndef SRC_DATA_MASTER_DATA_MASTER_H_
 #define SRC_DATA_MASTER_DATA_MASTER_H_
 #include <stddef.h>
+#include <pthread.h>
 #include "../common/structure_tool/name_space.h"
 #include "../common/communication/message.h"
 #include "../common/structure_tool/basic_list.h"
 #include "../common/communication/rpc_server.h"
 #include "../master/machine_role.h"
+
+typedef struct {
+	int rank;
+	sds visual_ip;
+	unsigned long used_blocks;
+	unsigned long free_blocks;
+}storage_machine_sta_t;
 
 struct data_master{
 	int rank;
@@ -24,6 +32,7 @@ struct data_master{
 	uint64_t free_size;
 	uint64_t global_id;
 	rpc_server_t *rpc_server;
+	pthread_mutex_t *mutex_data_master; //
 };
 
 struct data_master_op{

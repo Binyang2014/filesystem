@@ -115,7 +115,7 @@ static int file_exists(struct name_space *space, sds file_name) {
 	return find(space, file_name) != NULL;
 }
 
-list_t *get_file_location(name_space_t *space, sds file_name){
+static list_t *get_file_location(name_space_t *space, sds file_name){
 	file_node_t *node = find(space, file_name);
 
 	assert(node != NULL);
@@ -123,7 +123,7 @@ list_t *get_file_location(name_space_t *space, sds file_name){
 	return node->position;
 }
 
-void set_file_location(name_space_t *space, sds file_name, list_t *list){
+static void set_file_location(name_space_t *space, sds file_name, list_t *list){
 	file_node_t *node = find(space, file_name);
 
 	assert(node != NULL);
@@ -134,6 +134,10 @@ void set_file_location(name_space_t *space, sds file_name, list_t *list){
 		list_t *list_head = node->position;
 		list_head->list_ops->list_merge_list(list_head, list);
 	}
+}
+
+struct file_node* get_file_node(name_space_t *space, sds file_name){
+	return find(space, file_name);
 }
 
 
@@ -149,7 +153,9 @@ name_space_t *create_name_space(size_t size) {
 	this->op->delete_file = delete_file;
 	this->op->file_finish_consistent = file_finish_consistent;
 	this->op->rename_file = rename_file;
-
+	this->op->get_file_location = get_file_location;
+	this->op->set_file_location = set_file_location;
+	this->op->get_file_node = get_file_node;
 	return this;
 }
 

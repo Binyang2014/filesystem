@@ -68,6 +68,7 @@
 #define DATA_MASTER_HEART_BEAT_CODE 2002
 
 //Data-Master should deal with
+#define REGISTER_TO_DATA_MASTER 3000
 #define CREATE_TEMP_FILE_CODE 3001
 #define CREATE_PERSIST_FILE_CODE 3002
 #define DATA_SERVER_HEART_BEAT_CODE 3003
@@ -314,6 +315,7 @@ typedef struct client_read_file {
 	uint16_t reserved;
 
 	uint64_t file_size;
+	uint64_t read_size;
 	uint64_t offset;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_read_file_t;
@@ -356,6 +358,17 @@ typedef struct c_d_block_data{
 	//block_location block_info;
 	int8_t data[BLOCK_SIZE];
 }c_d_block_data_t;
+
+typedef struct c_d_register{
+	uint16_t operation_code;
+	uint16_t transfer_version;
+	uint16_t unique_tag;
+	uint16_t reserved;
+
+	uint64_t free_block;
+	int source;
+	char ip[20];
+}c_d_register_t;
 
 
 /*-------------------DATA_MASTER MESSAGE STRUCTURE END----------------*/
