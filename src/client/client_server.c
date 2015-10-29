@@ -1,5 +1,5 @@
 /*
- * create on: 2015.1019
+ * create on: 2015.10.19
  * author: Binyang
  * This file will implement functions define in clinet_server.h
  */
@@ -499,9 +499,12 @@ static void f_close(fclient_t *fclient, closefile_msg_t *closefile_msg)
 	file_node = file_list->list_ops->list_search_key(file_list, &fd);
 
 	//2.delete this structure form list
-	file_list->list_ops->list_remove_node(file_list, file_node);
+	file_list->list_ops->list_del_node(file_list, file_node);
 
-	//3.copy return number to fifo
+	//3.free bit map
+	bitmap_clear(fclient->bitmap, fd, 1);
+
+	//4.copy return number to fifo
 	fifo_wfd = fclient->fifo_wfd;
 	ret_msg.fd = -1;
 	ret_msg.ret_code = 0;
@@ -678,9 +681,12 @@ void fclient_run(fclient_t *fclient)
 {
 	int fifo_rfd, client_stop = 0;
 	file_msg_t file_msg;
+	zclient_t *zclient = NULL;
 
 	log_write(LOG_INFO, "===client server start run===");
 	fifo_rfd = fclient->fifo_rfd;
+	zclient = fclient->zclient;
+	zclient->op->start_zclient(zclient);
 	while(!client_stop)
 	{
 		read(fifo_rfd, &file_msg, sizeof(file_msg));
