@@ -9,7 +9,6 @@
 #include <mpi.h>
 #include "./client/client.h"
 #include "./master/master.h"
-#include "./dataserver/server/dataserver.h"
 pthread_t p_server, p_client;
 
 int main(argc, argv)

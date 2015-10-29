@@ -36,6 +36,7 @@ struct name_space_op {
 	int (*append_file)(name_space_t *space, sds file_name, uint64_t append_size);
 	list_t *(*get_file_location)(name_space_t *space, sds file_name);
 	int (*set_file_location)(name_space_t *space, sds file_name, list_t *list);
+	file_node_t* (*get_file_node)(name_space_t *space, sds file_name);
 };
 
 struct name_space {

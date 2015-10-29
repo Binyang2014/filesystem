@@ -5,6 +5,7 @@
  *      Author: ron
  */
 
+#include <math.h>
 #include "data_master.h"
 #include "../common/structure_tool/list_queue_util.h"
 
@@ -83,7 +84,28 @@ static int has_enough_space(uint64_t block_num){
 	}
 }
 
-static list_t *allocate_space(uint64_t allocate_size, int index){
+static void *position_dup(const void *ptr){
+	position_des_t *position = zmalloc(sizeof(position_des_t));
+	memcpy(position, ptr, sizeof(*position));
+	return position;
+}
+
+static void position_free(void *ptr){
+	zfree(ptr);
+}
+
+/**
+ * allocate file space
+ * first judge whether there is enough space, if not break the process
+ */
+static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node){
+	uint64_t allocate_size;
+	if((node->file_size) % BLOCK_SIZE == 0){
+		allocate_size = ceil((double)write_size / BLOCK_SIZE);
+	}else{
+		allocate_size = ceil((double)(write_size + node->file_size) / BLOCK_SIZE) - ceil((double)(node->file_size) / BLOCK_SIZE);
+	}
+
 	assert(has_enough_space(allocate_size));
 
 	uint64_t start_global_id = local_master->global_id;
@@ -91,6 +113,17 @@ static list_t *allocate_space(uint64_t allocate_size, int index){
 	local_master->global_id = end_global_id;
 
 	list_t *list = list_create();
+	list->free = position_free;
+	list->dup = position_dup;
+	position_des_t *position = zmalloc(sizeof(position_des_t));
+	if((node->file_size) % BLOCK_SIZE != 0){
+		memcpy(position, node->position->tail->value, sizeof(position_des_t));
+		position->start = position->end;
+	}
+
+	if(allocate_size == 0){
+		return list;
+	}
 	basic_queue_t *queue = local_master->storage_q;
 	int end = index;
 	int t_index = index;
@@ -100,7 +133,7 @@ static list_t *allocate_space(uint64_t allocate_size, int index){
 		if(!st->free_blocks){
 			continue;
 		}
-		position_des_t *position = zmalloc(sizeof(position_des_t));
+		position = zmalloc(sizeof(position_des_t));
 		position->rank = st->rank;
 		position->start = start_global_id;
 		if(st->free_blocks < allocate_size){
@@ -146,55 +179,89 @@ static list_t *allocate_space(uint64_t allocate_size, int index){
 static void create_temp_file(event_handler_t *event_handler){
 	//assert(exists);
 
-	c_d_create_t *c_cmd = get_event_handler_param(event_handler);
+	client_create_file *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
+
+	pthread_mutex_lock(local_master->mutex_data_master);
 	assert(!local_master->namespace->op->file_exists(local_master->namespace, file_name));
-
 	local_master->namespace->op->add_temporary_file(file_name);
-
+	pthread_mutex_unlock(local_master->mutex_data_master);
 	//send result
 }
 
 static void append_temp_file(event_handler_t *event_handler){
 
-	c_d_append_t *c_cmd = get_event_handler_param(event_handler);
+	client_append_file_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
+	assert(c_cmd->write_size > 0);
 	assert(local_master->namespace->op->file_exists(local_master->namespace, file_name));
-
 	int index = hash_code(file_name, local_master->group_size);
-	list_t *list = allocate_space(c_cmd->write_size, index);
-	assert(list != NULL);
 
+	pthread_mutex_lock(local_master->mutex_data_master);
+	list_t *list = allocate_space(c_cmd->write_size, index, local_master->namespace->op->get_file_node(local_master->namespace, file_name));
+	assert(list != NULL);
 	int size = list->len;
 	void *pos_arrray = list_to_array(list, sizeof(position_des_t));
-	//TODO free function
-	list_release(list);
 
 	//send write result to client
 	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->tag, size * sizeof(position_des_t), ANS);
 
-	zfree(pos_arrray);
 	//set location
 	local_master->namespace->op->set_file_location(local_master->namespace, file_name, list);
 	local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size);
+	pthread_mutex_unlock(local_master->mutex_data_master);
+
+	list_release(list);
+	zfree(pos_arrray);
 }
 
+static list_t* get_file_location(uint64_t read_blocks, uint64_t read_offset, list *queue){
+
+}
 
 static void read_temp_file(event_handler_t *event_handler){
-	c_d_read_t *c_cmd = get_event_handler_param(event_handler);
+
+	client_read_file_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
+
 	assert(local_master->namespace->op->file_exists(local_master->namespace, file_name));
 
+	pthread_mutex_lock(local_master->mutex_data_master);
 	list_t *list = local_master->namespace->op->get_file_location(local_master->namespace, file_name);
+	pthread_mutex_unlock(local_master->mutex_data_master);
 
+	file_node_t *node = local_master->namespace->op->get_file_node(local_master->namespace, file_name);
 
-	//test whether file exists
+	uint64_t read_size = c_cmd->read_size;
+	uint64_t offset = c_cmd->offset;
+	uint64_t read_blocks;
+	uint64_t read_index;
+	assert(read_size + offset <= node->file_size);
+	read_index = offset / BLOCK_SIZE + 1;
+	if(offset % BLOCK_SIZE == 0){
+		read_blocks = ceil((double)read_size / BLOCK_SIZE);
+	}else{
+		read_blocks = ceil((double)(read_size + offset) / BLOCK_SIZE) - ceil((double)(offset) / BLOCK_SIZE) + 1;
+	}
+
 	//get file position
 	//send result to client
 }
 
 static void delete_temp_file(event_handler_t *event_handler){
 	//well this may be much more difficult
+	//delete file node info and free space
+}
+
+static void register_to_master(event_handler_t *event_handler){
+	c_d_register_t *cmd = get_event_handler_param(event_handler);
+	storage_machine_sta_t *stor = zmalloc(sizeof(*stor));
+	stor->rank = cmd->source;
+	stor->free_blocks = cmd->free_block;
+	stor->used_blocks = 0;
+	stor->visual_ip = sds_new(cmd->ip);
+	local_master->storage_q->basic_queue_op->push(local_master->storage_q, stor);
+	zfree(stor);
 }
 
 static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
@@ -203,6 +270,9 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	queue->op->syn_queue_pop(queue, &common_msg);
 	switch(common_msg.operation_code)
 	{
+		case REGISTER_TO_DATA_MASTER:
+			event_handler->handler = register_to_master;
+			break;
 		case CREATE_TEMP_FILE_CODE:
 			event_handler->handler = create_temp_file;
 			break;
@@ -247,9 +317,11 @@ data_master_t* create_data_master(map_role_value_t *role){
 	this->visual_ip = sds_new(role->ip);
 	this->master_rank = role->master_rank;
 	//this->global_id
+
+	this->mutex_data_master = zmalloc(sizeof(pthread_mutex_t));
+	pthread_mutex_init(this->mutex_data_master);
 	return this;
 }
-
 
 void destroy_data_master(data_master_t *this){
 	this->rpc_server->op->server_stop(this->rpc_server);

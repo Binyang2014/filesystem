@@ -8,10 +8,12 @@
 #ifndef SRC_COMMON_STRUCTURE_TOOL_LIST_QUEUE_UTIL_H_
 #define SRC_COMMON_STRUCTURE_TOOL_LIST_QUEUE_UTIL_H_
 
+#include <stdio.h>
 #include "basic_queue.h"
 #include "basic_list.h"
 #include "../communication/message.h"
 
 void *list_to_array(list_t *list, int size);
+basic_queue_t *list_to_queue(list_t *list);
 
 #endif /* SRC_COMMON_STRUCTURE_TOOL_LIST_QUEUE_UTIL_H_ */
