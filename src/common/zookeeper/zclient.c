@@ -118,7 +118,7 @@ static int create_znode(zclient_t *zclient, const sds path, const sds data,
 	rpc_client->op->set_send_buff(rpc_client, create_msg, sizeof(zoo_create_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_sim_t));
-	if(zreturn->return_code & ZOK)
+	if(zreturn->return_code & ZOK && return_name != NULL)
 		sds_cpy(return_name, zreturn->data);
 
 	return zreturn->return_code;
@@ -146,7 +146,7 @@ static int create_parent(zclient_t *zclient, const sds path, const sds data, zno
 	rpc_client->op->set_send_buff(rpc_client, create_msg, sizeof(zoo_create_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_sim_t));
-	if(zreturn->return_code & ZOK)
+	if(zreturn->return_code & ZOK && return_name != NULL)
 		sds_cpy(return_name, zreturn->data);
 
 	return zreturn->return_code;

@@ -10,6 +10,7 @@
 
 /*===================== Prototypes ==========================*/
 static void init_list_ops(list_op_t* list_ops);
+static void list_delete_node(struct list *list, struct node *node);
 static void list_remove_node(struct list *list, struct node *node);
 static list_t *list_add_node_head(list_t *list, void *value);
 static list_t *list_add_exist_node_head(list_t *list, list_node_t *node);
@@ -30,7 +31,6 @@ static void list_rewind_tail(list_t *list, list_iter_t *li);
 static void list_rotate(list_t *list);
 static int list_has_next(list_iter_t *iter);
 static list_t *list_merge_list(list_t *list_head, list_t *list_tail);
-
 
 static void init_list_ops(list_op_t* list_ops)
 {
@@ -123,22 +123,35 @@ void list_release_without_node(list_t *list)
 /*
  * This won't free the node removed from the list
  */
-static void list_remove_node(struct list *list, struct node *node) {
-	if(list == NULL || node == NULL) {
+static void list_remove_node(struct list *list, struct node *node)
+{
+	if(list == NULL || node == NULL)
+	{
 		return;
 	}
 
-	if(node == list->head) {
+	if(list->len == 1)
+	{
+		list->head = list->tail = NULL;
+		list->len--;
+		return;
+	}
+
+	if(node == list->head)
+	{
 		list->head = list->head->next;
 		node->next = NULL;
 		list->head->prev = NULL;
+		list->len--;
 		return;
 	}
 
-	if(node == list->tail) {
+	if(node == list->tail)
+	{
 		list->tail = list->tail->prev;
 		list->tail->next = NULL;
 		node->prev = NULL;
+		list->len--;
 		return;
 	}
 
@@ -146,6 +159,7 @@ static void list_remove_node(struct list *list, struct node *node) {
 	node->next->prev = node->prev;
 	node->next = NULL;
 	node->prev = NULL;
+	list->len--;
 }
 
 /* Add a new node to the list, to head, containing the specified 'value'
