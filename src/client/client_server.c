@@ -75,11 +75,11 @@ static void init_create_msg(client_create_file_t
 }
 
 static void init_append_msg(client_append_file_t *client_append_file, const
-		appendfile_msg_t *writefile_msg, const opened_file_t *opened_file)
+		appendfile_msg_t *appendfile_msg, const opened_file_t *opened_file)
 {
 	client_append_file->operation_code = APPEND_FILE_CODE;
 	strcpy(client_append_file->file_name, opened_file->f_info.file_path);
-	client_append_file->write_size = writefile_msg->data_len;
+	client_append_file->write_size = appendfile_msg->data_len;
 }
 
 static void init_read_msg(client_read_file_t * client_read_file, const

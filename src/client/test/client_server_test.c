@@ -24,6 +24,31 @@ void create_file_handler(event_handler_t *event_handler)
 	zfree(file_sim_ret);
 }
 
+void append_file_handler(event_handler_t *event_handler)
+{
+	client_append_file_t *client_append_file;
+	file_ret_t *file_ret;
+
+	log_write(LOG_DEBUG, "append file handler stub");
+	client_append_file = event_handler->special_struct;
+	log_write(LOG_INFO, "file name is %s", client_append_file->file_name);
+	log_write(LOG_INFO, "unique tag is %d", client_append_file->unique_tag);
+	file_ret = zmalloc(sizeof(file_ret_t));
+	file_ret->op_status = ACC_OK;
+	file_ret->file_size = 20;
+	file_ret->offset = 0;
+	file_ret->dataserver_num = 1;
+	file_ret->chunks_num = 1;
+	file_ret->data_server_arr[0] = 2;
+	file_ret->data_server_cnum[0] = 1;
+	file_ret->data_server_offset[0] = 0;
+	file_ret->data_server_len[0] = 20;
+	file_ret->chunks_id_arr[0] = 0;
+	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t),
+			ANS);
+	zfree(file_ret);
+}
+
 void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 {
 	common_msg_t common_msg;
@@ -46,6 +71,11 @@ void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 
 		case CREATE_TEMP_FILE_CODE:
 			event_handler->handler = create_file_handler;
+			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			break;
+			
+		case APPEND_FILE_CODE:
+			event_handler->handler = append_file_handler;
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			break;
 

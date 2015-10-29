@@ -2,6 +2,8 @@
 #include "client.h"
 #include "log.h"
 
+char buf[] = "1 2 3 4 5 6 7 8 9 10";
+
 int main()
 {
 	int fd;
@@ -16,6 +18,7 @@ int main()
 		exit(1);
 	}
 	log_write(LOG_DEBUG, "file open successfully");
+	f_append(fd, buf, sizeof(buf));
 	f_close(fd);
 	return 0;
 }

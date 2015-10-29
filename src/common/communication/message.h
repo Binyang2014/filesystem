@@ -73,8 +73,8 @@
 #define DATA_SERVER_HEART_BEAT_CODE 3003
 #define READ_FILE_CODE 3004
 #define APPEND_FILE_CODE 3005
-#define APPEND_TEMP_FILE_CODE 3006
 #define DELETE_TMP_FILE_CODE 3006
+#define APPEND_TEMP_FILE_CODE 3007
 #define READ_TEMP_FILE_CODE 3008
 
 //#define CREATE_FILE_ANS_CODE 3005
@@ -319,8 +319,6 @@ typedef struct client_read_file {
 }client_read_file_t;
 
 typedef struct client_append_file {
-	int source;
-	int tag;
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t unique_tag;
