@@ -42,7 +42,31 @@ void append_file_handler(event_handler_t *event_handler)
 	file_ret->data_server_arr[0] = 2;
 	file_ret->data_server_cnum[0] = 1;
 	file_ret->data_server_offset[0] = 0;
-	file_ret->data_server_len[0] = 20;
+	file_ret->data_server_len[0] = 21;
+	file_ret->chunks_id_arr[0] = 0;
+	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t),
+			ANS);
+	zfree(file_ret);
+}
+void read_file_handler(event_handler_t *event_handler)
+{
+	client_read_file_t *client_read_file;
+	file_ret_t *file_ret;
+
+	log_write(LOG_DEBUG, "read file handler stub");
+	client_read_file = event_handler->special_struct;
+	log_write(LOG_INFO, "file name is %s", client_read_file->file_name);
+	log_write(LOG_INFO, "unique tag is %d", client_read_file->unique_tag);
+	file_ret = zmalloc(sizeof(file_ret_t));
+	file_ret->op_status = ACC_OK;
+	file_ret->file_size = 21;
+	file_ret->offset = 0;
+	file_ret->dataserver_num = 1;
+	file_ret->chunks_num = 1;
+	file_ret->data_server_arr[0] = 2;
+	file_ret->data_server_cnum[0] = 1;
+	file_ret->data_server_offset[0] = 0;
+	file_ret->data_server_len[0] = 21;
 	file_ret->chunks_id_arr[0] = 0;
 	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t),
 			ANS);
@@ -76,6 +100,11 @@ void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 			
 		case APPEND_FILE_CODE:
 			event_handler->handler = append_file_handler;
+			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			break;
+
+		case READ_FILE_CODE:
+			event_handler->handler = read_file_handler;
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			break;
 

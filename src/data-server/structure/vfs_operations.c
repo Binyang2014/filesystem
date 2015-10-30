@@ -256,6 +256,7 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 	printf("The address of alloced block is %p\n", alloced_block);
 	chunk_num = this->f_chunks_arr[offset / BLOCK_SIZE];
 	printf("The block number is %d, and the chunk number is %llu\n", block_num, (unsigned long long)chunk_num);
+	printf("the buffer is %s\n", buffer);
 #endif
 
 	return nbytes;
@@ -333,11 +334,13 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 	memcpy(find_a_block(this->super_block, block_num) + offset_in_group, buffer, nbytes);
 
 #ifdef VFS_RW_DEBUG
+	uint64_t chunk_num;
 	printf("--------------VFS_RW_DEBUG WRITE PART-----------------\n");
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
+	chunk_num = this->f_chunks_arr[offset / BLOCK_SIZE];
 	printf("The block number is %d, and the chunk number is %llu\n", block_num, (unsigned long long)chunk_num);
-	//printf("the buffer is %s\n", buffer);
+	printf("the buffer is %s\n", buffer);
 	//printf("The block contains %s\n", alloced_block + offset_in_group);
 #endif
 	return nbytes;

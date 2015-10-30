@@ -138,15 +138,17 @@ ssize_t f_read(int fd, void *buf, size_t nbytes)
 {
 	readfile_msg_t readfile_msg;
 	file_ret_msg_t file_ret_msg;
-	int ret;
+	int read_times, i;
+	size_t offset = 0;
 
 	readfile_msg.operation_code = FREAD_OP;
 	readfile_msg.data_len = nbytes;
 	readfile_msg.fd = fd;
 
 	write(fifo_wfd, &readfile_msg, sizeof(readfile_msg_t));
-	read(fifo_rfd, buf, nbytes);
-	write(fifo_wfd, &ret, sizeof(int));
+	read(fifo_rfd, &read_times, sizeof(int));
+	for(i = 0; i < read_times; i++)
+		offset = offset + read(fifo_rfd, buf + offset, nbytes - offset);
 	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }

@@ -296,15 +296,19 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 		file_ret_t *file_ret)
 {
 	int dataserver_num;
-	int i, j, index = 0, ret;
+	int i, j, index = 0, ret, read_times;
 	rpc_client_t *rpc_client;
 	read_c_to_d_t read_msg;
 	char *data_msg;
 
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
-	read_msg.operation_code = C_D_WRITE_BLOCK_CODE;
+	read_msg.operation_code = C_D_READ_BLOCK_CODE;
 	read_msg.unique_tag = rpc_client->tag;
+	//send read times to client
+	read_times = dataserver_num;
+	write(fclient->fifo_wfd, &read_times, sizeof(int));
+	//read data and send data to client
 	for(i = 0; i < dataserver_num; i++)
 	{
 		int server_id = file_ret->data_server_arr[i];
@@ -320,19 +324,21 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 
 		rpc_client->op->set_send_buff(rpc_client, &read_msg,
 				sizeof(read_c_to_d_t));
-		rpc_client->op->set_second_send_buff(rpc_client, data_msg,
+		rpc_client->op->set_recv_buff(rpc_client, data_msg,
 				read_msg.read_len);
 		ret = rpc_client->op->execute(rpc_client, READ_C_TO_D);
 		write(fclient->fifo_wfd, data_msg, read_msg.read_len);
 		if(ret < 0)
 		{
 			zfree(data_msg);
+			rpc_client->op->set_recv_buff(rpc_client, file_ret, sizeof(file_ret));
 			rpc_client->target = fclient->data_master_id;
 			return -1;
 		}
 		zfree(data_msg);
 	}
 	rpc_client->target = fclient->data_master_id;
+	rpc_client->op->set_recv_buff(rpc_client, file_ret, sizeof(file_ret));
 
 	return 0;
 }
@@ -585,7 +591,7 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	sds lock_name;
 	file_ret_msg_t ret_msg;
 
-	log_write(LOG_DEBUG, "append a file to store data");
+	log_write(LOG_DEBUG, "read a file");
 	//1.find right structure
 	fd = readfile_msg->fd;
 	file_list = fclient->file_list;
