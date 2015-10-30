@@ -87,7 +87,7 @@ static void init_read_msg(client_read_file_t * client_read_file, const
 {
 	client_read_file->operation_code = READ_FILE_CODE;
 	strcpy(client_read_file->file_name, opened_file->f_info.file_path);
-	client_read_file->file_size = readfile_msg->data_len;
+	client_read_file->read_size = readfile_msg->data_len;
 	client_read_file->offset = opened_file->f_info.file_offset;
 }
 
@@ -134,7 +134,7 @@ static int add_write_lock(zclient_t *zclient, const char *file_path,
 	data = sds_new("This is a write lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_znode(zclient, path, data,
+	ret_num = zclient->op->create_parent(zclient, path, data,
 			EPHEMERAL_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
@@ -187,7 +187,7 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 	data = sds_new("This is a read lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_znode(zclient, path, data,
+	ret_num = zclient->op->create_parent(zclient, path, data,
 			EPHEMERAL_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
@@ -679,12 +679,13 @@ void destroy_fclient(fclient_t *fclient)
 
 void fclient_run(fclient_t *fclient)
 {
-	int fifo_rfd, client_stop = 0;
+	int fifo_rfd, fifo_wfd, ret = 0, client_stop = 0;
 	file_msg_t file_msg;
 	zclient_t *zclient = NULL;
 
 	log_write(LOG_INFO, "===client server start run===");
 	fifo_rfd = fclient->fifo_rfd;
+	fifo_wfd = fclient->fifo_wfd;
 	zclient = fclient->zclient;
 	zclient->op->start_zclient(zclient);
 	while(!client_stop)
@@ -702,6 +703,7 @@ void fclient_run(fclient_t *fclient)
 				break;
 			case FAPPEND_OP:
 				log_write(LOG_DEBUG, "client server handle append operation");
+				write(fifo_wfd, &ret, sizeof(int));
 				f_append(fclient, &(file_msg.appendfile_msg));
 				break;
 			case FREAD_OP:

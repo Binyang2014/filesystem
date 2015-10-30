@@ -138,6 +138,7 @@ ssize_t f_read(int fd, void *buf, size_t nbytes)
 {
 	readfile_msg_t readfile_msg;
 	file_ret_msg_t file_ret_msg;
+	int ret;
 
 	readfile_msg.operation_code = FREAD_OP;
 	readfile_msg.data_len = nbytes;
@@ -145,6 +146,7 @@ ssize_t f_read(int fd, void *buf, size_t nbytes)
 
 	write(fifo_wfd, &readfile_msg, sizeof(readfile_msg_t));
 	read(fifo_rfd, buf, nbytes);
+	write(fifo_wfd, &ret, sizeof(int));
 	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
@@ -153,12 +155,14 @@ ssize_t f_append(int fd, const void *buf, size_t nbytes)
 {
 	appendfile_msg_t appendfile_msg;
 	file_ret_msg_t file_ret_msg;
+	int ret;
 
 	appendfile_msg.operation_code = FAPPEND_OP;
 	appendfile_msg.data_len = nbytes;
 	appendfile_msg.fd = fd;
 
 	write(fifo_wfd, &appendfile_msg, sizeof(appendfile_msg_t));
+	read(fifo_rfd, &ret, sizeof(int));
 	write(fifo_wfd, buf, nbytes);
 	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;

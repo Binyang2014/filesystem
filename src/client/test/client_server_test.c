@@ -35,7 +35,7 @@ void append_file_handler(event_handler_t *event_handler)
 	log_write(LOG_INFO, "unique tag is %d", client_append_file->unique_tag);
 	file_ret = zmalloc(sizeof(file_ret_t));
 	file_ret->op_status = ACC_OK;
-	file_ret->file_size = 20;
+	file_ret->file_size = 21;
 	file_ret->offset = 0;
 	file_ret->dataserver_num = 1;
 	file_ret->chunks_num = 1;
