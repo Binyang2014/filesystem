@@ -75,11 +75,11 @@ static void init_create_msg(client_create_file_t
 }
 
 static void init_append_msg(client_append_file_t *client_append_file, const
-		appendfile_msg_t *writefile_msg, const opened_file_t *opened_file)
+		appendfile_msg_t *appendfile_msg, const opened_file_t *opened_file)
 {
 	client_append_file->operation_code = APPEND_FILE_CODE;
 	strcpy(client_append_file->file_name, opened_file->f_info.file_path);
-	client_append_file->write_size = writefile_msg->data_len;
+	client_append_file->write_size = appendfile_msg->data_len;
 }
 
 static void init_read_msg(client_read_file_t * client_read_file, const
@@ -87,7 +87,7 @@ static void init_read_msg(client_read_file_t * client_read_file, const
 {
 	client_read_file->operation_code = READ_FILE_CODE;
 	strcpy(client_read_file->file_name, opened_file->f_info.file_path);
-	client_read_file->file_size = readfile_msg->data_len;
+	client_read_file->read_size = readfile_msg->data_len;
 	client_read_file->offset = opened_file->f_info.file_offset;
 }
 
@@ -134,7 +134,7 @@ static int add_write_lock(zclient_t *zclient, const char *file_path,
 	data = sds_new("This is a write lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_znode(zclient, path, data,
+	ret_num = zclient->op->create_parent(zclient, path, data,
 			EPHEMERAL_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
@@ -187,7 +187,7 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 	data = sds_new("This is a read lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_znode(zclient, path, data,
+	ret_num = zclient->op->create_parent(zclient, path, data,
 			EPHEMERAL_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
@@ -296,15 +296,19 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 		file_ret_t *file_ret)
 {
 	int dataserver_num;
-	int i, j, index = 0, ret;
+	int i, j, index = 0, ret, read_times;
 	rpc_client_t *rpc_client;
 	read_c_to_d_t read_msg;
 	char *data_msg;
 
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
-	read_msg.operation_code = C_D_WRITE_BLOCK_CODE;
+	read_msg.operation_code = C_D_READ_BLOCK_CODE;
 	read_msg.unique_tag = rpc_client->tag;
+	//send read times to client
+	read_times = dataserver_num;
+	write(fclient->fifo_wfd, &read_times, sizeof(int));
+	//read data and send data to client
 	for(i = 0; i < dataserver_num; i++)
 	{
 		int server_id = file_ret->data_server_arr[i];
@@ -320,19 +324,21 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
 
 		rpc_client->op->set_send_buff(rpc_client, &read_msg,
 				sizeof(read_c_to_d_t));
-		rpc_client->op->set_second_send_buff(rpc_client, data_msg,
+		rpc_client->op->set_recv_buff(rpc_client, data_msg,
 				read_msg.read_len);
 		ret = rpc_client->op->execute(rpc_client, READ_C_TO_D);
 		write(fclient->fifo_wfd, data_msg, read_msg.read_len);
 		if(ret < 0)
 		{
 			zfree(data_msg);
+			rpc_client->op->set_recv_buff(rpc_client, file_ret, sizeof(file_ret));
 			rpc_client->target = fclient->data_master_id;
 			return -1;
 		}
 		zfree(data_msg);
 	}
 	rpc_client->target = fclient->data_master_id;
+	rpc_client->op->set_recv_buff(rpc_client, file_ret, sizeof(file_ret));
 
 	return 0;
 }
@@ -585,7 +591,7 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	sds lock_name;
 	file_ret_msg_t ret_msg;
 
-	log_write(LOG_DEBUG, "append a file to store data");
+	log_write(LOG_DEBUG, "read a file");
 	//1.find right structure
 	fd = readfile_msg->fd;
 	file_list = fclient->file_list;
@@ -679,12 +685,13 @@ void destroy_fclient(fclient_t *fclient)
 
 void fclient_run(fclient_t *fclient)
 {
-	int fifo_rfd, client_stop = 0;
+	int fifo_rfd, fifo_wfd, ret = 0, client_stop = 0;
 	file_msg_t file_msg;
 	zclient_t *zclient = NULL;
 
 	log_write(LOG_INFO, "===client server start run===");
 	fifo_rfd = fclient->fifo_rfd;
+	fifo_wfd = fclient->fifo_wfd;
 	zclient = fclient->zclient;
 	zclient->op->start_zclient(zclient);
 	while(!client_stop)
@@ -702,6 +709,7 @@ void fclient_run(fclient_t *fclient)
 				break;
 			case FAPPEND_OP:
 				log_write(LOG_DEBUG, "client server handle append operation");
+				write(fifo_wfd, &ret, sizeof(int));
 				f_append(fclient, &(file_msg.appendfile_msg));
 				break;
 			case FREAD_OP:

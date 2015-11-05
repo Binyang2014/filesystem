@@ -1,6 +1,10 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "client.h"
 #include "log.h"
+
+char buf[] = "1 2 3 4 5 6 7 8 9 10";
+char read_buf[30] = {0};
 
 int main()
 {
@@ -16,6 +20,15 @@ int main()
 		exit(1);
 	}
 	log_write(LOG_DEBUG, "file open successfully");
+	f_append(fd, buf, sizeof(buf));
+	f_read(fd, read_buf, 21);
+	printf("data is %s\n", read_buf);
+	f_close(fd);
+
+	//read again
+	f_open("/temp/a.txt", RDWR);
+	f_read(fd, read_buf, 21);
+	printf("data is %s\n", read_buf);
 	f_close(fd);
 	return 0;
 }
