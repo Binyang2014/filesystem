@@ -215,8 +215,33 @@ static void append_temp_file(event_handler_t *event_handler){
 	zfree(pos_arrray);
 }
 
-static list_t* get_file_location(uint64_t read_blocks, uint64_t read_offset, list *queue){
+static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset, list_t *list){
+	list_iter_t *iter = list->list_ops->list_get_iterator(list);
+	list_t *result = list_create();
+	list->free = position_free;
+	list->dup = position_dup;
+	position_des_t *position;
+	position_des_t *list_p;
 
+	int count = 0; //how many blocks this position can read
+
+	while(read_blocks > 0){
+		position = (list_node_t *)list->list_ops->list_next(iter)->value;
+		count = position->end - position->start + 1;
+		list_p = zmalloc(sizeof(*list_p));
+		if(read_blocks <= count){
+			list_p->rank = position->rank;
+			list_p->start = position->start;
+			list_p->end = position->start + read_blocks - 1;
+			read_blocks = 0;
+			break;
+		}else{
+			list_p = list->dup(position);
+			read_blocks -= count;
+		}
+		result->list_ops->list_add_node_tail(list_p);
+	}
+	return result;
 }
 
 static void read_temp_file(event_handler_t *event_handler){
@@ -244,8 +269,11 @@ static void read_temp_file(event_handler_t *event_handler){
 		read_blocks = ceil((double)(read_size + offset) / BLOCK_SIZE) - ceil((double)(offset) / BLOCK_SIZE) + 1;
 	}
 
-	//get file position
-	//send result to client
+	list_t *list = get_file_list_location(read_blocks, read_index, node->position);
+	void *pos_arrray = list_to_array(list, sizeof(position_des_t));
+	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->tag, list->len * sizeof(position_des_t), ANS);
+	list_release(list);
+	zfree(pos_arrray);
 }
 
 static void delete_temp_file(event_handler_t *event_handler){

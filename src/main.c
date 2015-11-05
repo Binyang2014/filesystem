@@ -20,6 +20,7 @@ int main(argc, argv)
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+
 	if (rank == 0) {
 		char *file_path = "";
 		machine_role_allocator_start(size, 0, file_path);

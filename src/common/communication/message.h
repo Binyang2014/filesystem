@@ -317,6 +317,8 @@ typedef struct client_read_file {
 	uint64_t file_size;
 	uint64_t read_size;
 	uint64_t offset;
+	int source;
+	int tag;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_read_file_t;
 
