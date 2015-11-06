@@ -48,6 +48,6 @@ typedef struct data_master data_master_t;
 
 data_master_t* create_data_master(int machine_num);
 void destroy_data_master(data_master_t *this);
-void data_master_init(data_master_t *data_master);
+void data_master_init(void *args);
 
 #endif /* SRC_DATA_MASTER_DATA_MASTER_H_ */
