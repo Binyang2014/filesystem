@@ -12,6 +12,7 @@
 #include "global.h"
 #include "sds.h"
 #include "basic_list.h"
+#include "sds.h"
 
 #define MAX_FILE_PATH 255
 #define FOK 0

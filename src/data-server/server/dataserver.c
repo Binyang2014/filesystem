@@ -13,8 +13,6 @@
 #include "dataserver.h"
 #include "dataserver_buff.h"
 #include "dataserver_handler.h"
-#include "vfs_structure.h"
-#include "rpc_server.h"
 #include "basic_list.h"
 #include "log.h"
 #include "zmalloc.h"

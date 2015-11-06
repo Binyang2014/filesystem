@@ -13,6 +13,7 @@
 #include "basic_list.h"
 #include "fifo_ipc.h"
 #include "bitmap.h"
+#include "sds.h"
 
 #define MAX_FD_NUMBER 1024
 
