@@ -12,6 +12,7 @@
 #include "data-master/data_master.h"
 #include "data-server/server/dataserver.h"
 #include "client/client.h"
+#include "common/communication/message.h"
 
 int main(argc, argv)
 	int argc;char ** argv; {
@@ -29,13 +30,12 @@ int main(argc, argv)
 		machine_role_allocator_start(size, 0, file_path);
 	}
 
-
 	map_role_value_t *role = get_role(rank);
 	if (role->type == DATA_MASTER) {
 		data_master_t *master = create_data_master(role);
 		data_server_t *server = alloc_dataserver(LARGEST, rank);
 		//TODO tag
-		fclient_t *fclient = create_fclient(rank, role->master_rank, 13);
+		fclient_t *fclient = create_fclient(rank, role->master_rank, CLIENT_LISTEN_TAG);
 
 		pthread_create(thread_data_master, NULL, data_master_init, master);
 		pthread_create(thread_data_server, NULL, dataserver_run, server);
@@ -46,7 +46,7 @@ int main(argc, argv)
 	} else if (role->type == DATA_SERVER) {
 		data_server_t *server = alloc_dataserver(LARGEST, rank);
 		//TODO tag
-		fclient_t *fclient = create_fclient(rank, role->master_rank, 13);
+		fclient_t *fclient = create_fclient(rank, role->master_rank, CLIENT_LISTEN_TAG);
 
 		pthread_create(thread_data_server, NULL, dataserver_run, server);
 		pthread_create(thread_client, NULL, fclient_run, fclient);

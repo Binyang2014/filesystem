@@ -9,6 +9,7 @@
 #define SRC_COMMON_NAME_SPACE_H_
 
 #include <pthread.h>
+#include <stdio.h>
 #include "sds.h"
 #include "map.h"
 
@@ -26,23 +27,23 @@ struct file_node {
 	FILE *fp;
 };
 
-struct name_space_op {
-	int (*add_temporary_file)(struct name_space space, sds file_name);
-	int (*add_persistent_file)(struct name_space space, sds file_name);
-	int (*rename_file)(struct name_space space, sds old_name, sds new_name);
-	int (*delete_file)(struct name_space space, sds file_name);
-	int (*file_finish_consistent)(struct name_space *space, sds file_name);
-	int (*file_exists)(struct name_space *space, sds file_name);
-	int (*append_file)(name_space_t *space, sds file_name, uint64_t append_size);
-	list_t *(*get_file_location)(name_space_t *space, sds file_name);
-	int (*set_file_location)(name_space_t *space, sds file_name, list_t *list);
-	file_node_t* (*get_file_node)(name_space_t *space, sds file_name);
-};
-
 struct name_space {
 	map_t *name_space;
 	size_t file_num;
 	struct name_space_op *op;
+};
+
+struct name_space_op {
+	int (*add_temporary_file)(struct name_space *space, sds file_name);
+	int (*add_persistent_file)(struct name_space *space, sds file_name);
+	int (*rename_file)(struct name_space *space, sds old_name, sds new_name);
+	int (*delete_file)(struct name_space *space, sds file_name);
+	int (*file_finish_consistent)(struct name_space *space, sds file_name);
+	int (*file_exists)(struct name_space *space, sds file_name);
+	int (*append_file)(struct name_space *space, sds file_name, uint64_t append_size);
+	list_t *(*get_file_location)(struct name_space *space, sds file_name);
+	int (*set_file_location)(struct name_space *space, sds file_name, list_t *list);
+	struct file_node* (*get_file_node)(struct name_space *space, sds file_name);
 };
 
 typedef struct name_space name_space_t;

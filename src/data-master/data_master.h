@@ -46,7 +46,7 @@ struct data_master_op{
 
 typedef struct data_master data_master_t;
 
-data_master_t* create_data_master(int machine_num);
+data_master_t* create_data_master(map_role_value_t *role);
 void destroy_data_master(data_master_t *this);
 void data_master_init(void *args);
 

@@ -42,6 +42,7 @@
 //communicate tag different kinds of message need different tags
 #define CLIENT_INSTRCTION_MESSAGE_TAG 400
 #define CLIENT_INSTRUCTION_ANS_MESSAGE_TAG 401
+#define CLIENT_LISTEN_TAG 402
 
 //operation code
 //ACC CODE
@@ -284,6 +285,7 @@ typedef struct client_create_file {
 	uint16_t transfer_version;
 	uint16_t file_mode;
 	uint16_t unique_tag;
+	int source;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_create_file_t;
 
@@ -328,6 +330,8 @@ typedef struct client_append_file {
 	uint16_t reserved;
 
 	uint64_t write_size;
+	int source;
+	int tag;
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_append_file_t;
 
