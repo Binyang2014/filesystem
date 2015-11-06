@@ -9,11 +9,11 @@
 #define SRC_MASTER_MACHINE_ROLE_H_
 #include <stdint.h>
 #include <pthread.h>
-#include "../common/communication/rpc_server.h"
-#include "../common/communication/rpc_client.h"
-#include "../common/communication/message.h"
-#include "../common/structure_tool/map.h"
-#include "../common/structure_tool/sds.h"
+#include "rpc_server.h"
+#include "rpc_client.h"
+#include "message.h"
+#include "map.h"
+#include "sds.h"
 
 struct map_role_value {
 	char master_ip[16];

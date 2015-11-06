@@ -9,11 +9,11 @@
 #define SRC_DATA_MASTER_DATA_MASTER_H_
 #include <stddef.h>
 #include <pthread.h>
-#include "../common/structure_tool/name_space.h"
-#include "../common/communication/message.h"
-#include "../common/structure_tool/basic_list.h"
-#include "../common/communication/rpc_server.h"
-#include "../master/machine_role.h"
+#include "name_space.h"
+#include "message.h"
+#include "basic_list.h"
+#include "rpc_server.h"
+#include "machine_role.h"
 
 typedef struct {
 	int rank;
@@ -48,6 +48,6 @@ typedef struct data_master data_master_t;
 
 data_master_t* create_data_master(map_role_value_t *role);
 void destroy_data_master(data_master_t *this);
-void data_master_init(void *args);
+void *data_master_init(void *args);
 
 #endif /* SRC_DATA_MASTER_DATA_MASTER_H_ */

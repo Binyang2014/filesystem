@@ -31,5 +31,5 @@ typedef struct fclient fclient_t;
 
 fclient_t *create_fclient(int client_id, int target, int tag);
 void destroy_fclient(fclient_t *fclient);
-void fclient_run(fclient_t *fclient);
+void *fclient_run(void *fclient);
 #endif

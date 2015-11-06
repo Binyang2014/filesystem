@@ -51,7 +51,7 @@ struct map_op {
 	int (*contains)(map_t *map, sds key);
 	int (*modify_key)(map_t *map, sds old_key, sds new_key);
 	size_t (*get_size)(map_t *map);
-	void (*del)(map_t *map, sds key);
+	int (*del)(map_t *map, sds key);
 	sds *(*get_all_keys)(map_t *map, int *count);
 };
 

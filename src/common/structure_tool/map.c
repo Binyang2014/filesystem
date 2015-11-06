@@ -177,7 +177,7 @@ static size_t get_size(map_t *this) {
 	return this->current_size;
 }
 
-static void del(map_t *this, sds key){
+static int del(map_t *this, sds key){
 	uint32_t h = map_gen_hash_function(key, this->size);
 
 	list_t *l = *(this->list + h);
@@ -193,11 +193,12 @@ static void del(map_t *this, sds key){
 			key_list_node = this->key_list->list_ops->list_search_key(this->key_list,
 					key);
 			this->key_list->list_ops->list_del_node(this->key_list, key_list_node);
-			return;
+			return 0;
 		}
 		node = l->list_ops->list_next(iter);
 	}
 	l->list_ops->list_release_iterator(iter);
+	return -1;
 }
 
 /* This function will look up keys in the map and put ervery key into a array.

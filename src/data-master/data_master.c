@@ -9,8 +9,8 @@
 #include <string.h>
 #include <assert.h>
 #include "data_master.h"
-#include "../common/structure_tool/list_queue_util.h"
-#include "../common/structure_tool/zmalloc.h"
+#include "list_queue_util.h"
+#include "zmalloc.h"
 
 /*--------------------Private Declaration------------------*/
 static int has_enough_space();
@@ -327,11 +327,12 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
  * start server
  *
  */
-void data_master_init(void *args){
+void* data_master_init(void *args){
 	data_master_t *master = args;
 	master->rpc_server->op->server_start(master->rpc_server);
 	//initialize client
 	//initialize data server
+	return 0;
 }
 
 /**

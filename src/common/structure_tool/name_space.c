@@ -9,7 +9,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+#include <assert.h>
 #include "name_space.h"
+#include "zmalloc.h"
 
 #define FILE_EXISTS 400
 #define FILE_NOT_EXISTS 404
@@ -66,7 +69,7 @@ static int add_temporary_file(name_space_t *space, sds file_name) {
 		return FILE_EXISTS;
 	}
 
-	space->name_space->op->put(file_name, node);
+	space->name_space->op->put(space->name_space, file_name, node);
 	return FILE_OPERATE_SUCCESS;
 }
 
@@ -79,7 +82,8 @@ static int add_persistent_file(name_space_t *space, sds file_name) {
 	file_node_t *node = add_file(space, file_name, PERSISTENT_FILE);
 	FILE *fp = fopen(file_name, "ab+");
 	node->fp = fp;
-	space->name_space->op->put(file_name, node);
+	space->name_space->op->put(space->name_space, file_name, node);
+	//TODO check if file has closed
 	return FILE_OPERATE_SUCCESS;
 }
 

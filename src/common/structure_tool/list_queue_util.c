@@ -9,7 +9,7 @@
 void *list_to_array(list_t *list, int size) {
 	position_des_t *pos = zmalloc(size * list->len);
 	int index = 0;
-	list_iter_t *iter = list->list_ops->list_get_iterator(list);
+	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	while (list->list_ops->list_has_next(iter)) {
 		position_des_t *p = ((list_node_t *) list->list_ops->list_next(iter))->value;
 		memcpy(pos + index, p, size);
@@ -28,7 +28,7 @@ basic_queue_t *list_to_queue(list_t *list, size_t size) {
 
 	queue->dup = list->dup;
 	queue->free = list->free;
-	list_iter_t *iter = list->list_ops->list_get_iterator(list);
+	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	while (list->list_ops->list_has_next(iter)) {
 		queue->basic_queue_op->push(queue,
 				(list_node_t*) list->list_ops->list_next(iter)->value);

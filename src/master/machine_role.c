@@ -10,10 +10,10 @@
 #include <string.h>
 #include <assert.h>
 #include "machine_role.h"
-#include "../common/structure_tool/syn_tool.h"
-#include "../common/structure_tool/threadpool.h"
-#include "../common/structure_tool/zmalloc.h"
-#include "../common/communication/message.h"
+#include "syn_tool.h"
+#include "threadpool.h"
+#include "zmalloc.h"
+#include "message.h"
 
 #define LINE_LENGTH 64
 /*---------------------Private Declaration---------------------*/

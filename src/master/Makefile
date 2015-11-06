@@ -4,7 +4,7 @@ TESTDIR = ./test
 include $(TOPDIR)/GlobalMakefile
 object = machine_role.o
 
-target = $(TOPDIR)/lib/lib_machine_role.a
+target = $(TOPDIR)/lib/libmachinerole.a
 
 $(target): $(object)
 	$(AR) $(ARFLAG) $@ $^

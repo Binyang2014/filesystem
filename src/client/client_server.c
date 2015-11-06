@@ -683,8 +683,9 @@ void destroy_fclient(fclient_t *fclient)
 	zfree(fclient);
 }
 
-void fclient_run(fclient_t *fclient)
+void *fclient_run(void *args)
 {
+	fclient_t *fclient = (fclient_t *)args;
 	int fifo_rfd, fifo_wfd, ret = 0, client_stop = 0;
 	file_msg_t file_msg;
 	zclient_t *zclient = NULL;
@@ -731,4 +732,5 @@ void fclient_run(fclient_t *fclient)
 				break;
 		}
 	}
+	return 0;
 }
