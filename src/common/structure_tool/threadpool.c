@@ -45,7 +45,7 @@ static event_handler_set_t *alloc_event_handler_set(thread_pool_t* thread_pool,
 static int handle_event(thread_t* thread, event_handler_t* event_handler)
 {
 	handler_t handler;
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "Now the leader thread is %d", thread->id);
 #endif
 	event_handler->thread_pool->tp_ops->deactive_handle(event_handler->thread_pool);
@@ -56,7 +56,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 	}
 	event_handler->thread_pool->tp_ops->promote_a_leader(event_handler->thread_pool, thread);
 
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "Now new leader has been selected");
 #endif
 	//Resolve handler for thread
@@ -65,7 +65,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 	event_handler->thread_pool->spare_treads_count--;
 	event_handler->thread_pool->tp_ops->reactive_handle(event_handler->thread_pool);
 	event_handler->handler = handler;
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "thread %d is do handling", thread->id);
 #endif
 	event_handler->handler(event_handler);
@@ -155,7 +155,7 @@ static void* thread_do(void* arg)
 {
 	thread_t* this = (thread_t* )arg;
 	int leader_id;
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "thread %d has been created!", this->id);
 #endif
 	pthread_cleanup_push(cleanup, &(this->id));
@@ -165,7 +165,7 @@ static void* thread_do(void* arg)
 		leader_id = this->thread_pool->leader_id;
 		if(leader_id != NO_THREAD_LEADER && this->id != leader_id)
 		{
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 			log_write(LOG_DEBUG, "thread %d is going to wait signal", this->id);
 #endif
 			push_stack(this->thread_pool, this);
@@ -376,7 +376,7 @@ static int push_stack(thread_pool_t* this, thread_t* thread)
 		return -1;
 	spare_stack[top] = *thread;
 	this->spare_stack_top = this->spare_stack_top + 1;
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "push thread %d into spare stack", thread->id);
 #endif
 	return 0;
@@ -388,14 +388,14 @@ static int pop_stack(thread_pool_t* this, thread_t* stack_top)
 	int top = this->spare_stack_top;
 	if(top == 0)
 	{
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 		log_write(LOG_DEBUG, "now the spare stack is empty");
 #endif
 		return -1;
 	}
 	*stack_top = spare_stack[top - 1];
 	this->spare_stack_top = this->spare_stack_top - 1;
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "pop thread %d from spare stack", stack_top->id);
 #endif
 	return 0;
@@ -450,7 +450,7 @@ static void start(thread_pool_t* this)
 {
 	int i;
 	event_handler_t** handler_set = this->handler_set->event_handler_arr;
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "Now in start function and will start thread pool soon!");
 #endif
 	if(this->pool_status == THREAD_POOL_UNINIT)
@@ -487,7 +487,7 @@ void destroy_thread_pool(thread_pool_t* thread_pool)
 	while(thread_pool->spare_treads_count < thread_pool->threads_count)
 		sleep(1);
 
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "The number of spare threads is %d", thread_pool->spare_treads_count);
 #endif
 
@@ -501,7 +501,7 @@ void destroy_thread_pool(thread_pool_t* thread_pool)
 	for(i = 0; i < stack_num; i++)
 	{
 		pop_stack(thread_pool, &thread_temp);
-#ifdef THREAD_POOL_DEBUG
+#if THREAD_POOL_DEBUG
 		log_write(LOG_DEBUG, "thread %d is going to be killed", thread_temp.id);
 #endif
 		pthread_cond_signal(thread_pool->pool_condition + thread_temp.id);

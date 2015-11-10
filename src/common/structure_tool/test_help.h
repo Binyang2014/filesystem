@@ -25,7 +25,4 @@ int __test_num = 0;
 			    } \
 } while(0);
 
-#define GLOBAL_TEST 1
-#define MAP_TEST 1
-
 #endif /* SRC_COMMON_TEST_HELP_H_ */

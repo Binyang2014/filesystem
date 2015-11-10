@@ -30,14 +30,18 @@
 //线程池大小
 #define D_THREAD_SIZE	(1<<4)
 
-//use for debug
+//DEBUG
+#define GLOBAL_DEBUG 1
 #define DEBUG 1
-#define RPC_SERVER_DEBUG 1
-//#define MPI_COMMUNICATION_DEBUG 1
-//#define VFS_RW_DEBUG 1
-//#define DATASERVER_COMM_DEBUG 1
-#define THREAD_POOL_DEBUG 1
-//#define DATASERVER_BUFF_DEBUG 1
+#define RPC_SERVER_DEBUG 0
+#define MPI_COMMUNICATION_DEBUG 0
+#define VFS_RW_DEBUG 1
+#define DATASERVER_COMM_DEBUG 1
+#define THREAD_POOL_DEBUG 0
+#define DATASERVER_BUFF_DEBUG 1
+#define MAP_DEBUG 1
+#define MACHINE_ROLE_DEBUG 1
+
 
 //define for file access mode
 #define RUSR 0400

@@ -9,6 +9,8 @@
 #define SRC_MASTER_MACHINE_ROLE_H_
 #include <stdint.h>
 #include <pthread.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include "rpc_server.h"
 #include "rpc_client.h"
 #include "message.h"
@@ -51,6 +53,7 @@ void machine_role_allocator_start(size_t size, int rank, char *file_path);
 struct machine_role_fetcher{
 	int rank;
 	rpc_client_t *client;
+	char net_name[INET6_ADDRSTRLEN];
 	struct machine_role_fetcher_op *op;
 };
 
@@ -61,7 +64,7 @@ struct machine_role_fetcher_op{
 typedef struct machine_role_fetcher machine_role_fetcher_t;
 typedef struct machine_role_fetcher_op machine_role_fetcher_op_t;
 
-map_role_value_t *get_role(int rank);
+map_role_value_t *get_role(int rank, char *net_name);
 
 #endif /* SRC_MASTER_MACHINE_ROLE_H_ */
 
