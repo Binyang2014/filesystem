@@ -13,6 +13,7 @@
 #include <stddef.h>
 #include "sds.h"
 #include "basic_list.h"
+#include "global.h"
 
 struct pair {
 	sds key;

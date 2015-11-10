@@ -44,8 +44,7 @@ void append_file_handler(event_handler_t *event_handler)
 	file_ret->data_server_offset[0] = 0;
 	file_ret->data_server_len[0] = 21;
 	file_ret->chunks_id_arr[0] = 0;
-	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t),
-			ANS);
+	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t), ANS);
 	zfree(file_ret);
 }
 void read_file_handler(event_handler_t *event_handler)
@@ -68,8 +67,7 @@ void read_file_handler(event_handler_t *event_handler)
 	file_ret->data_server_offset[0] = 0;
 	file_ret->data_server_len[0] = 21;
 	file_ret->chunks_id_arr[0] = 0;
-	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t),
-			ANS);
+	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t), ANS);
 	zfree(file_ret);
 }
 

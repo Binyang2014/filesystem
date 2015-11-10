@@ -22,15 +22,17 @@ int main(argc, argv)
 	log_write(LOG_DEBUG, "file open successfully");
 	if (rank == 0) {
 		char *file_path = "topo.conf";
-		puts("start");
+		puts("server ******************************************************end");
 		machine_role_allocator_start(size, rank, file_path);
+		puts("server ******************************************************end");
 	}
 
 	usleep(50);
 	map_role_value_t *role = get_role(rank, "eth0");
+	//log_write(LOG_DEBUG, "get role successfully, ip = %s and rank = %d and type = %d", role->ip, role->rank, role->type);
 	zfree(role);
 
-	log_write(LOG_DEBUG, "file open successfully");
+	log_write(LOG_DEBUG, "file end successfully");
 	MPI_Finalize();
 	return 0;
 }

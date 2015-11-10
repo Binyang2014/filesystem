@@ -9,6 +9,7 @@
 #include <assert.h>
 #include "map.h"
 #include "zmalloc.h"
+#include "log.h"
 
 
 /* Copy from redis
@@ -110,8 +111,7 @@ static int put(map_t *this, sds key, void *value) {
 		l->list_ops->list_add_node_tail(l, (void *)pair);
 		this->current_size++;
 		//change key_list
-		this->key_list->list_ops->list_add_node_tail(this->key_list,
-				sds_dup(pair->key));
+		this->key_list->list_ops->list_add_node_tail(this->key_list, sds_dup(pair->key));
 		return 1;
 	}else {
 		if(this->value_free) {
@@ -217,8 +217,9 @@ static sds *get_all_keys(map_t *this, int *count)
 		return NULL;
 	array = zmalloc(sizeof(sds) * this->current_size);
 	iter = key_list->list_ops->list_get_iterator(key_list, AL_START_HEAD);
-	while((node = key_list->list_ops->list_next(iter)) != NULL)
+	while((node = key_list->list_ops->list_next(iter)) != NULL){
 		array[index++] = sds_dup((sds)(node->value));
+	}
 	key_list->list_ops->list_release_iterator(iter);
 	return array;
 }
@@ -227,6 +228,7 @@ static int has_next(struct map_iterator *iterator)
 {
 	int offset = iterator->dir_no;
 	for(; offset < iterator->map->size; offset++){
+		iterator->dir_no = offset;
 		if(iterator->list == NULL){
 			if(*(iterator->map->list + offset) != NULL){
 				iterator->list = *(iterator->map->list + offset);
@@ -236,6 +238,10 @@ static int has_next(struct map_iterator *iterator)
 			}
 		}
 		if(iterator->list->list_ops->list_has_next(iterator->iter)){
+
+#if MAP_DEBUG
+	log_write(LOG_DEBUG, "has next");
+#endif
 			return 1;
 		}else{
 			iterator->list->list_ops->list_release_iterator(iterator->iter);
@@ -243,11 +249,14 @@ static int has_next(struct map_iterator *iterator)
 		}
 	}
 
+#if MAP_DEBUG
+	log_write(LOG_DEBUG, "next is NULL");
+#endif
 	return 0;
 }
 
 static void *next(struct map_iterator *iterator){
-	return ((list_node_t *)iterator->list->list_ops->list_next(iterator->iter))->next;
+	return ((pair_t *)((list_node_t *)(iterator->list->list_ops->list_next(iterator->iter))->value))->value;
 }
 
 /* This function will create a map. In the construre, you should provide map
@@ -317,10 +326,14 @@ map_iterator_t *create_map_iterator(map_t *map) {
 
 void destroy_map_iterator(map_iterator_t *iter) {
 	zfree(iter->op);
-	if(iter->iter) {
+	if(iter->iter && iter->list) {
 		iter->list->list_ops->list_release_iterator(iter->iter);
+		iter->list = NULL;
 	}
 	zfree(iter);
+#if MAP_DEBUG
+	log_write(LOG_DEBUG, "finish destroy map iterator");
+#endif
 }
 
 void print_map_keys() {

@@ -131,8 +131,8 @@ typedef struct{
 typedef struct {
 	uint16_t operation_code;
 	uint16_t transfer_version; //use to idetify specific message
+	uint16_t unique_tag;
 	int source;
-	int tag;
 	char ip[20];
 	machine_role_e role_type;
 }machine_register_role_t;

@@ -36,7 +36,7 @@ int main(argc, argv)
 	thread_data_server = (pthread_t *)zmalloc(sizeof(*thread_data_server));
 	thread_client = (pthread_t *)zmalloc(sizeof(*thread_client));
 
-	map_role_value_t *role = get_role(rank);
+	map_role_value_t *role = get_role(rank, "eth0");
 	if (role->type == DATA_MASTER) {
 		data_master_t *master = create_data_master(role);
 		data_server_t *server = alloc_dataserver(LARGEST, rank);
