@@ -38,9 +38,8 @@ static void allocate_machine_role(machine_role_allocator_t *allocator);
 static void *get_event_handler_param(event_handler_t *event_handler);
 static void machine_register(event_handler_t *event_handler);
 static void *resolve_handler(event_handler_t *event_handler, void* msg_queue);
-static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path);
+static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path, char *net_name);
 static void destroy_machine_role_allocater(machine_role_allocator_t *this);
-void machine_role_allocator_start(size_t size, int rank, char *file_path);
 static void get_visual_ip(char *net_name, char *ip);
 static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetcher);
 static machine_role_fetcher_t *create_machine_role_fetcher(int rank, char *net_name);
@@ -240,8 +239,10 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 
 		sds_free(master_ip);
 	}
+
+	allocator->role = get_role(allocator->rank, allocator->net_name);
 	destroy_map_iterator(iter);
-	destroy_machine_role_allocater(local_allocator);
+	destroy_machine_role_allocater(allocator);
 
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "end allocate_machine_role");
@@ -300,6 +301,10 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			event_handler->handler = machine_register;
 			break;
+		case SERVER_STOP:
+			event_handler->special_struct = local_allocator->server;
+			event_handler->handler = force_server_stop;
+			break;
 		default:
 			event_handler->handler = NULL;
 	}
@@ -309,11 +314,13 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 /**
  * create allocator
  */
-static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path) {
+static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path, char *net_name) {
 	machine_role_allocator_t *this = zmalloc(sizeof(machine_role_allocator_t));
 	strcpy(this->file_path, file_path);
 	local_allocator = this;
+	this->rank = 0;
 	this->machine_num = size;
+	this->net_name = net_name;
 	this->register_machine_num = 0;
 	this->roles = create_map(size * 2, NULL, NULL, NULL, map_list_pair_free);
 	this->op = zmalloc(sizeof(machine_role_allocator_op_t));
@@ -329,24 +336,38 @@ static machine_role_allocator_t *create_machine_role_allocator(size_t size, int 
 }
 
 static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
-	log_write(LOG_DEBUG, "destroy role 88888888888888888888888888888888888888888888888888888");
+#if MACHINE_ROLE_DEBUG
+	log_write(LOG_DEBUG, "destroy_machine_role_allocater");
+#endif
+
 	destroy_map(this->roles);
-	log_write(LOG_DEBUG, "destroy role 8888888888888888888888888888888888888888888888888888m");
-	force_destroy_rpc_server(this->server);
-	log_write(LOG_DEBUG, "destroy role 8888888888888888888888888888888888888888888888888888s");
+
+#if MACHINE_ROLE_DEBUG
+	log_write(LOG_DEBUG, "destroy map");
+#endif
+
+	send_server_stop_cmd(this->server);
+
+#if MACHINE_ROLE_DEBUG
+	log_write(LOG_DEBUG, "send_server_stop_cmd");
+#endif
+
+	destroy_rpc_server(this->server);
+
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "destroy role allocator");
 #endif
+
 	pthread_mutex_destroy(this->mutex_allocator);
 	zfree(this->op);
 	zfree(this);
 }
 
-void machine_role_allocator_start(size_t size, int rank, char *file_path){
+map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file_path, char *net_name){
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "start create role allocator");
 #endif
-	machine_role_allocator_t *allocator = create_machine_role_allocator(size, rank, file_path);
+	machine_role_allocator_t *allocator = create_machine_role_allocator(size, rank, file_path, net_name);
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "create role allocator success");
 #endif
@@ -358,6 +379,7 @@ void machine_role_allocator_start(size_t size, int rank, char *file_path){
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "server start success");
 #endif
+	return allocator->role;
 }
 
 /*------------------Machine Role Fetcher--------------------*/
@@ -394,7 +416,7 @@ static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetc
 	role->source = fetcher->rank;
 	get_visual_ip(fetcher->net_name, role->ip);
 
-#if MACHINE_ROLE_DEBUG
+#if MACHINE_ROLE_FETCHER_DEBUG
 	log_write(LOG_DEBUG, "get_visual_ip = %s\n", role->ip);
 #endif
 
@@ -402,20 +424,17 @@ static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetc
 	role->unique_tag = MACHINE_ROLE_GET_ROLE;
 	fetcher->client->op->set_send_buff(fetcher->client, role, sizeof(*role));
 
-#if MACHINE_ROLE_DEBUG
+#if MACHINE_ROLE_FETCHER_DEBUG
 	log_write(LOG_DEBUG, "set_send_buff");
 #endif
 
 	int result = fetcher->client->op->execute(fetcher->client, COMMAND_WITH_RETURN);
 
-#if MACHINE_ROLE_DEBUG
-	log_write(LOG_DEBUG, "fetcher->client->op->execute");
+#if MACHINE_ROLE_FETCHER_DEBUG
+	log_write(LOG_DEBUG, "fetch send request");
 #endif
 
 	zfree(role);
-#if MACHINE_ROLE_DEBUG
-	log_write(LOG_DEBUG, "get_visual_ip");
-#endif
 	return fetcher->client->recv_buff;
 }
 
@@ -447,18 +466,19 @@ map_role_value_t *get_role(int rank, char *net_name){
 		strcpy(result->master_ip, role->master_ip);
 		result->type = role->type;
 		result->group_size = role->group_size;
+
 		return result;
 	}
 
-#if MACHINE_ROLE_DEBUG
+#if MACHINE_ROLE_FETCHER_DEBUG
 	log_write(LOG_DEBUG, "create_machine_role_fetcher");
 #endif
 	machine_role_fetcher_t *fetcher = create_machine_role_fetcher(rank, net_name);
-#if MACHINE_ROLE_DEBUG
+#if MACHINE_ROLE_FETCHER_DEBUG
 	log_write(LOG_DEBUG, "register_to_zero_rank");
 #endif
 	map_role_value_t *role = fetcher->op->register_to_zero_rank(fetcher);
-#if MACHINE_ROLE_DEBUG
+#if MACHINE_ROLE_FETCHER_DEBUG
 	log_write(LOG_DEBUG, "destroy_machine_role_fetcher");
 #endif
 	destroy_machine_role_fetcher(fetcher);

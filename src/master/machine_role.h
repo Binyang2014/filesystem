@@ -29,12 +29,14 @@ struct map_role_value {
 struct machine_role_allocator {
 	int rank;
 	char file_path[255];
+	char *net_name;
 	size_t register_machine_num;
 	size_t machine_num; //machine number
 	rpc_server_t *server;
 	map_t *roles;
 	struct machine_role_allocator_op *op;
 	pthread_mutex_t *mutex_allocator;
+	struct map_role_value *role;
 };
 
 struct machine_role_allocator_op {
@@ -47,7 +49,7 @@ typedef struct machine_role_allocator_op machine_role_allocator_op_t;
 typedef struct map_role_value map_role_value_t;
 
 
-void machine_role_allocator_start(size_t size, int rank, char *file_path);
+map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file_path, char *net_name);
 
 /*************************** Machine Role Fetcher ****************/
 struct machine_role_fetcher{

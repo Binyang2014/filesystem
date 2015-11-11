@@ -18,21 +18,25 @@ int main(argc, argv)
 	MPI_Comm_size(MPI_COMM_WORLD, &size);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
+	map_role_value_t *role = NULL;
+	char *net_name = "eth0";
+	char *file_name = "topo.conf";
 	log_init("", LOG_DEBUG);
 	log_write(LOG_DEBUG, "file open successfully");
 	if (rank == 0) {
-		char *file_path = "topo.conf";
+		char *file_path = file_name;
+		role = machine_role_allocator_start(size, rank, file_path, net_name);
 		puts("server ******************************************************end");
-		machine_role_allocator_start(size, rank, file_path);
-		puts("server ******************************************************end");
+	}else{
+
+		usleep(50);
+		role = get_role(rank, net_name);
+		//log_write(LOG_DEBUG, "get role successfully, ip = %s and rank = %d and type = %d", role->ip, role->rank, role->type);
+		zfree(role);
+
+		log_write(LOG_DEBUG, "file end successfully");
 	}
-
-	usleep(50);
-	map_role_value_t *role = get_role(rank, "eth0");
-	//log_write(LOG_DEBUG, "get role successfully, ip = %s and rank = %d and type = %d", role->ip, role->rank, role->type);
-	zfree(role);
-
-	log_write(LOG_DEBUG, "file end successfully");
-	MPI_Finalize();
+	log_write(LOG_WARN, "SUCCESS!!!! role rank = %d, role ip = %s", role->rank, role->ip);
+	mpi_finish();
 	return 0;
 }
