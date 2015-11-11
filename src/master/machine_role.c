@@ -332,7 +332,7 @@ static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
 	log_write(LOG_DEBUG, "destroy role 88888888888888888888888888888888888888888888888888888");
 	destroy_map(this->roles);
 	log_write(LOG_DEBUG, "destroy role 8888888888888888888888888888888888888888888888888888m");
-	destroy_rpc_server(this->server);
+	force_destroy_rpc_server(this->server);
 	log_write(LOG_DEBUG, "destroy role 8888888888888888888888888888888888888888888888888888s");
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "destroy role allocator");

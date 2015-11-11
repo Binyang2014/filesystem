@@ -208,6 +208,12 @@ rpc_server_t *create_rpc_server2(int thread_num, int recv_qsize, int send_qsize,
 	return this;
 }
 
+void force_destroy_rpc_server(rpc_server_t *server)
+{
+	server->server_commit_cancel = 1;
+	destroy_rpc_server(server);
+}
+
 void destroy_rpc_server(rpc_server_t *server)
 {
 	while(server->server_commit_cancel != 1);
@@ -215,8 +221,9 @@ void destroy_rpc_server(rpc_server_t *server)
 	usleep(500);
 	destroy_thread_pool(server->thread_pool);
 	destroy_syn_queue(server->request_queue);
-	if(server->send_queue != NULL)
+	if(server->send_queue != NULL){
 		destroy_syn_queue(server->send_queue);
+	}
 	zfree(server->op);
 	zfree(server->recv_buff);
 	zfree(server->send_buff);

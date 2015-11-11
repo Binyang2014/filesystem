@@ -55,6 +55,7 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size, int server_id,
 //create rpc server with send queue
 rpc_server_t *create_rpc_server2(int thread_num, int recv_qsize, int send_qsize, 
 		int server_id, resolve_handler_t resolve_handler);
+void force_destroy_rpc_server(rpc_server_t *server);
 void destroy_rpc_server(rpc_server_t *server);
 
 int init_server_stop_handler(event_handler_t *, void* server, void*
