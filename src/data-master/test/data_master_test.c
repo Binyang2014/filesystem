@@ -1,13 +1,23 @@
-/*
- * data_master.c
- *
- *  Created on: 2015年10月28日
- *      Author: ron
- */
+#include <mpi.h>
+#include "data_master.h"
+#include "zmalloc.h"
+#include "log.h"
 
-int main(int argc, char * argv)
-{
+int main(argc, argv)
+	int argc;char ** argv; {
+	int rank, size, provided;
 
+	mpi_init_with_thread(&argc, &argv);
+	size = get_mpi_size();
+	rank = get_mpi_rank();
+
+
+	if(rank == 0){
+
+	}else{
+
+	}
+	mpi_finish();
+	return 0;
 }
-
 
