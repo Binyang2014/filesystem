@@ -33,7 +33,7 @@
 //DEBUG
 #define GLOBAL_DEBUG 1
 #define DEBUG 1
-#define RPC_SERVER_DEBUG 1
+#define RPC_SERVER_DEBUG 0
 #define MPI_COMMUNICATION_DEBUG 0
 #define VFS_RW_DEBUG 1
 #define DATASERVER_COMM_DEBUG 1
@@ -41,6 +41,7 @@
 #define DATASERVER_BUFF_DEBUG 1
 #define MAP_DEBUG 0
 #define MACHINE_ROLE_DEBUG 1
+#define DATA_MASTER_DEBUG 1
 
 
 //define for file access mode

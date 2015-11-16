@@ -343,7 +343,7 @@ data_master_t* create_data_master(map_role_value_t *role){
 
 	this->group_size =  role->group_size;
 	this->namespace = create_name_space(1024);
-	this->rpc_server = create_rpc_server(8, 1024, 1, resolve_handler);
+	this->rpc_server = create_rpc_server(8, 1024, role->rank, resolve_handler);
 	this->storage_q = zmalloc(role->group_size * sizeof(storage_machine_sta_t));
 	memset(this->storage_q, 0, role->group_size * sizeof(storage_machine_sta_t));
 	this->rank = role->rank;

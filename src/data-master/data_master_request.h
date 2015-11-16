@@ -17,9 +17,10 @@ struct data_master_request{
 };
 
 struct data_master_request_op{
-	void (*create_tmp_file)(data_master_request_t *request, client_create_file_t *c_cmd);
-	void *(*append_temp_file)(data_master_request_t *request, client_append_file_t *c_cmd);
-	void *(*read_temp_file)(data_master_request_t *request, client_read_file_t *c_cmd);
+	void (*create_tmp_file)(struct data_master_request *request, client_create_file_t *c_cmd);
+	void *(*append_temp_file)(struct data_master_request *request, client_append_file_t *c_cmd);
+	void *(*read_temp_file)(struct data_master_request *request, client_read_file_t *c_cmd);
+	void (*register_to_master)(struct data_master_request *request, c_d_register_t *c_cmd);
 };
 
 typedef struct data_master_request data_master_request_t;
