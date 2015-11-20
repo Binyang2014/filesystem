@@ -193,7 +193,9 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 	case C_D_READ_BLOCK_CODE:
 		error = init_rw_event_handler(event_handler, &t_common_msg, MSG_READ);
 		if(error == -1)
+		{
 			err_quit("error when allocate buffer");
+		}
 		//invoke a thread to excuse
 		return d_read_handler;
 

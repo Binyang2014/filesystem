@@ -2,7 +2,7 @@ TOPDIR = ../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = data_master.o
+object = data_master.o data_master_request.o
 
 target = $(TOPDIR)/lib/libdatamaster.a
 

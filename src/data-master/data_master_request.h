@@ -10,6 +10,7 @@
 
 #include <mpi.h>
 #include "rpc_client.h"
+#include "message.h"
 
 struct data_master_request{
 	rpc_client_t *client;

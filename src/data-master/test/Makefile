@@ -8,9 +8,9 @@ test_obj = data_master_test.o
 
 all_test:: $(TEST_PROGRAM)
 
-machine_role_test: data_master_test.o $(LIB)
-	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -ldatamaster-o $@
+data_master_test: data_master_test.o $(LIB)
+	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -ldatamaster -lm -lpthread -o $@
 
 include $(TOPDIR)/GlobalRules
-
+ 
 include $(test_obj:.$(OBJSUF)=.d)

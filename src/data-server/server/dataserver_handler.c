@@ -233,7 +233,9 @@ void d_read_handler(event_handler_t* event_handle)
 	handle_buff.file_info->count = read_msg->read_len;
 	handle_buff.f_arr_buff->hash_table_size = read_msg->chunks_count;
 	for(i = 0; i < read_msg->chunks_count; i++)
+	{
 		handle_buff.f_arr_buff->chunks_arr[i] = read_msg->chunks_id_arr[i];
+	}
 	handle_buff.file_info->file = init_vfs_file(this->d_super_block, handle_buff.file_info->file,
 			handle_buff.f_arr_buff, VFS_READ);
 
@@ -267,7 +269,9 @@ void d_read_handler(event_handler_t* event_handle)
 	acc_msg = zmalloc(sizeof(acc_msg_t));
 	this->rpc_server->op->recv_reply(acc_msg, source, tag, ACC);
 	if(acc_msg->op_status != ACC_OK)
+	{
 		log_write(LOG_ERR, "read did not success");
+	}
 	zfree(acc_msg);
 	release_rw_handler_buffer(event_handle);
 	zfree(handle_buff.file_info);

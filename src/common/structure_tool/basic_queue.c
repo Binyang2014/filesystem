@@ -95,9 +95,13 @@ static int basic_queue_push(basic_queue_t* this, void* element)
 	assert(this->current_size != this->queue_len);
 
 	if(this->dup)
+	{
 		this->dup(this->elements + this->tail_pos * this->element_size, element);
+	}
 	else
+	{
 		memcpy(this->elements+this->tail_pos * this->element_size, element, this->element_size);
+	}
 	this->tail_pos = (this->tail_pos + 1) % this->queue_len;
 	this->current_size++;
 	return result;

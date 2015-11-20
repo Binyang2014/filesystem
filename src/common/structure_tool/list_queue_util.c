@@ -5,6 +5,7 @@
  *      Author: ron
  */
 #include "list_queue_util.h"
+#include "zmalloc.h"
 
 void *list_to_array(list_t *list, int size) {
 	position_des_t *pos = zmalloc(size * list->len);

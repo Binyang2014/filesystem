@@ -22,7 +22,9 @@ void init_data_structure(char data_msg[])
 {
 	int i;
 	for(i = 0; i < 16; i++)
+	{
 		data_msg[i] = '0' + i;
+	}
 }
 
 void init_r_structure(read_c_to_d_t* r_msg)
@@ -65,7 +67,9 @@ int main(int argc, char* argv[])
 		init_data_structure(data_msg);
 		client->op->set_second_send_buff(client, data_msg, 16);
 		if(client->op->execute(client, WRITE_C_TO_D) < 0)
+		{
 			log_write(LOG_ERR, "client write wrong");
+		}
 		destroy_rpc_client(client);
 
 		//I will test read function
@@ -75,9 +79,13 @@ int main(int argc, char* argv[])
 		memset(data_msg, 0, sizeof(data_msg));
 		client->op->set_recv_buff(client, data_msg, 16);
 		if(client->op->execute(client, READ_C_TO_D) < 0)
+		{
 			log_write(LOG_ERR, "client read wrong");
+		}
 		for(i = 0 ; i < 16; i++)
+		{
 			printf("%c ", data_msg[i]);
+		}
 		printf("\n");
 		destroy_rpc_client(client);
 

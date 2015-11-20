@@ -50,7 +50,7 @@ static file_node_t *add_file(name_space_t *space, sds file_name, enum file_type_
 	}
 
 	node = zmalloc(sizeof(file_node_t));
-	sds_cpy(node->file_name, file_name);
+	node->file_name = sds_new(file_name);
 	node->file_size = 0;
 	node->file_type = type;
 	node->consistent_size = 0;
@@ -160,6 +160,8 @@ name_space_t *create_name_space(size_t size) {
 	this->op->get_file_location = get_file_location;
 	this->op->set_file_location = set_file_location;
 	this->op->get_file_node = get_file_node;
+	this->op->file_exists = file_exists;
+	this->op->append_file = append_file;
 	return this;
 }
 

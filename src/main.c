@@ -29,7 +29,7 @@ int main(argc, argv)
 	if (rank == 0)
 	{
 		char *file_path = "";
-		machine_role_allocator_start(size, 0, file_path);
+		machine_role_allocator_start(size, 0, file_path, "eth0");
 	}
 
 	thread_data_master = (pthread_t *)zmalloc(sizeof(*thread_data_master));
@@ -38,7 +38,7 @@ int main(argc, argv)
 
 	map_role_value_t *role = get_role(rank, "eth0");
 	if (role->type == DATA_MASTER) {
-		data_master_t *master = create_data_master(role);
+		data_master_t *master = create_data_master(role, 1024);
 		data_server_t *server = alloc_dataserver(LARGEST, rank);
 		//TODO tag
 		fclient_t *fclient = create_fclient(rank, role->master_rank, CLIENT_LISTEN_TAG);
