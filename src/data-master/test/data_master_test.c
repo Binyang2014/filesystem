@@ -76,24 +76,32 @@ int main(argc, argv)
 		strcpy(role->master_ip, "10.4.13.22");
 		data_master_t *master = create_data_master(role, 1024);
 		data_master_init(master);
+		destroy_data_master(master);
+		puts("Rank 0 END");
+	}else{
+		c_d_register_t *re = get_register_cmd(rank);
+		data_master_request_t *request = create_data_master_request(rank, 0, 1234);
+		request->op->register_to_master(request, re);
+
+		client_create_file_t *c_c_f = get_create_file_cmd(rank);
+		request->op->create_tmp_file(request, c_c_f);
+
+		client_append_file_t *c_a_f = get_append_file_cmd(rank);
+		request->op->append_temp_file(request, c_a_f);
+		puts("test append tmp file");
+//
+//		client_read_file_t *c_r_f = get_read_file_cmd(rank);
+//		request->op->read_temp_file(request, c_r_f);
+
+		request->op->stop_master(request);
+		puts("test stop master rank 1");
+
+		destroy_data_master_request(request);
+		puts("test append tmp file");
+
+		log_write(LOG_WARN, "SUCCESS!!!!");
 	}
 	usleep(20);
-	c_d_register_t *re = get_register_cmd(rank);
-	data_master_request_t *request = create_data_master_request(rank, 0, 1234);
-	request->op->register_to_master(request, re);
-
-	usleep(20);
-	client_create_file_t *c_c_f = get_create_file_cmd(rank);
-	request->op->create_tmp_file(request, c_c_f);
-
-	client_append_file_t *c_a_f = get_append_file_cmd(rank);
-	request->op->append_temp_file(request, c_a_f);
-
-	client_read_file_t *c_r_f = get_read_file_cmd(rank);
-	request->op->read_temp_file(request, c_r_f);
-
-
-	log_write(LOG_WARN, "SUCCESS!!!!");
 	mpi_finish();
 	return 0;
 }

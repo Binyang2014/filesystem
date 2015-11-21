@@ -301,7 +301,6 @@ static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset
 		}
 		else
 		{
-			puts("121233");
 			if(read_blocks <= count)
 			{
 				list_p->rank = position->rank;
@@ -428,6 +427,10 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 		case DELETE_TMP_FILE_CODE:
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			event_handler->handler = delete_temp_file;
+			break;
+		case SERVER_STOP:
+			init_server_stop_handler(event_handler, local_master->rpc_server, &common_msg);
+			event_handler->handler = server_stop_handler;
 			break;
 		default:
 			event_handler->handler = NULL;

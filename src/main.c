@@ -17,49 +17,59 @@
 #include "message.h"
 #include "zmalloc.h"
 
+int main_init(char *file_name){
+
+}
+
 int main(argc, argv)
 	int argc;char ** argv; {
-	int rank, size, provided;
+	int rank, size;
 	pthread_t *thread_data_master, *thread_data_server, *thread_client;
 
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	mpi_init_with_thread(&argc, &argv);
+	rank = get_mpi_rank();
+	size = get_mpi_size();
 
-	if (rank == 0)
-	{
-		char *file_path = "";
-		machine_role_allocator_start(size, 0, file_path, "eth0");
+	map_role_value_t *map_role = NULL;
+	char *file_path = argv[1];
+	char *net_name = argv[2];
+
+	log_init("", LOG_TRACE);
+	log_write(LOG_DEBUG, "file open successfully");
+
+	if (rank == 0) {
+		map_role = machine_role_allocator_start(size, rank, file_path, net_name);
+	}else{
+		usleep(50);
+		map_role = get_role(rank, net_name);
 	}
+	usleep(10);
 
 	thread_data_master = (pthread_t *)zmalloc(sizeof(*thread_data_master));
 	thread_data_server = (pthread_t *)zmalloc(sizeof(*thread_data_server));
 	thread_client = (pthread_t *)zmalloc(sizeof(*thread_client));
 
-	map_role_value_t *role = get_role(rank, "eth0");
-	if (role->type == DATA_MASTER) {
-		data_master_t *master = create_data_master(role, 1024);
+	if (map_role->type == DATA_MASTER) {
+		data_master_t *master = create_data_master(map_role, 1024);
 		data_server_t *server = alloc_dataserver(LARGEST, rank);
-		//TODO tag
-		fclient_t *fclient = create_fclient(rank, role->master_rank, CLIENT_LISTEN_TAG);
+		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
-		pthread_create(thread_data_master, NULL, data_master_init, master);
-		pthread_create(thread_data_server, NULL, dataserver_run, server);
-		pthread_create(thread_client, NULL, fclient_run, fclient);
-		pthread_join(*thread_data_master, NULL);
-		pthread_join(*thread_data_server, NULL);
+//		pthread_create(thread_data_master, NULL, data_master_init, master);
+//		pthread_create(thread_data_server, NULL, dataserver_run, server);
+//		pthread_create(thread_client, NULL, fclient_run, fclient);
+//		pthread_join(*thread_data_master, NULL);
+//		pthread_join(*thread_data_server, NULL);
 		pthread_join(*thread_client, NULL);
-	} else if (role->type == DATA_SERVER) {
-		data_server_t *server = alloc_dataserver(LARGEST, rank);
-		//TODO tag
-		fclient_t *fclient = create_fclient(rank, role->master_rank, CLIENT_LISTEN_TAG);
+	} else if (map_role->type == DATA_SERVER) {
+		data_server_t *server = alloc_dataserver(SMALL, rank);
+		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
-		pthread_create(thread_data_server, NULL, dataserver_run, server);
-		pthread_create(thread_client, NULL, fclient_run, fclient);
-		pthread_join(*thread_data_server, NULL);
-		pthread_join(*thread_client, NULL);
+//		pthread_create(thread_data_server, NULL, dataserver_run, server);
+//		pthread_create(thread_client, NULL, fclient_run, fclient);
+//		pthread_join(*thread_data_server, NULL);
+//		pthread_join(*thread_client, NULL);
 	}
 
-	MPI_Finalize();
+	mpi_finish();
 	return 0;
 }

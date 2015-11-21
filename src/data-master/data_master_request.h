@@ -22,6 +22,7 @@ struct data_master_request_op{
 	void *(*append_temp_file)(struct data_master_request *request, client_append_file_t *c_cmd);
 	void *(*read_temp_file)(struct data_master_request *request, client_read_file_t *c_cmd);
 	void (*register_to_master)(struct data_master_request *request, c_d_register_t *c_cmd);
+	void (*stop_master)(struct data_master_request *request);
 };
 
 typedef struct data_master_request data_master_request_t;

@@ -101,9 +101,13 @@ int main(int argc, char* argv[])
 		stop_server_msg->tag = 1;
 		client->op->set_send_buff(client, stop_server_msg, sizeof(stop_server_msg_t));
 		if(client->op->execute(client, STOP_SERVER) < 0)
+		{
 			printf("something wrong\n");
+		}
 		else
+		{
 			printf("I can't believe it!!!\n");
+		}
 		destroy_rpc_client(client);
 		zfree(stop_server_msg);
 	}
