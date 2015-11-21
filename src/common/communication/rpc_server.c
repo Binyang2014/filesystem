@@ -248,15 +248,15 @@ rpc_server_t *create_rpc_server2(int thread_num, int recv_qsize, int send_qsize,
 void destroy_rpc_server(rpc_server_t *server)
 {
 	log_write(LOG_DEBUG, "destroy rpc server server com = %d", server->server_commit_cancel);
-	while(server->server_commit_cancel != 1);
 	//wait client receive ack message
-	usleep(500);
+	while(server->server_commit_cancel != 1)
+		usleep(500);
 
 #if RPC_SERVER_DEBUG
 	log_write(LOG_DEBUG, "destroy rpc server start");
 #endif
 
-	//destroy_thread_pool(server->thread_pool);
+	destroy_thread_pool(server->thread_pool);
 
 #if RPC_SERVER_DEBUG
 	log_write(LOG_DEBUG, "destroy rpc server thread pool");
