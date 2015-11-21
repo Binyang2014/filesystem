@@ -110,7 +110,6 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 		allocate_size = ceil((double)(write_size + node->file_size) / BLOCK_SIZE) - ceil((double)(node->file_size) / BLOCK_SIZE);
 	}
 	uint64_t tmp_al_size = allocate_size;
-	printf("allocate size = %d\n", allocate_size);
 	assert(has_enough_space(allocate_size));
 
 	uint64_t start_global_id = local_master->global_id;
@@ -235,7 +234,7 @@ static void append_temp_file(event_handler_t *event_handler){
 #endif
 
 	//send write result to client
-	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->tag, size * sizeof(position_des_t), ANS);
+	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, size * sizeof(position_des_t), ANS);
 
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "data master append send result");
@@ -255,36 +254,66 @@ static void append_temp_file(event_handler_t *event_handler){
 #endif
 	pthread_mutex_unlock(local_master->mutex_data_master);
 
-	list_release(list);
 	zfree(pos_arrray);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "append tmp file end");
 #endif
 }
 
-static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset, list_t *list){
+static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset, list_t *list)
+{
 	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	list_t *result = list_create();
-	list->free = position_free;
-	list->dup = position_dup;
+	result->free = position_free;
+	result->dup = position_dup;
 	position_des_t *position;
 	position_des_t *list_p;
 
 	int count = 0; //how many blocks this position can read
-
-	while(read_blocks > 0){
+	log_write(LOG_DEBUG, "read_blocks = %d, read_offset = %d, list = %d", read_blocks, read_offset, ((position_des_t *)(list->head)));
+	while(read_blocks > 0)
+	{
 		position = (position_des_t *)((list_node_t *)list->list_ops->list_next(iter)->value);
 		count = position->end - position->start + 1;
 		list_p = zmalloc(sizeof(*list_p));
-		if(read_blocks <= count){
-			list_p->rank = position->rank;
-			list_p->start = position->start;
-			list_p->end = position->start + read_blocks - 1;
-			read_blocks = 0;
-			break;
-		}else{
-			list_p = (position_des_t *)list->dup(position);
-			read_blocks -= count;
+		if(read_offset > 0)
+		{
+			if(read_offset >= count)
+			{
+				read_offset -= count;
+				continue;
+			}else
+			{
+				list_p->start = position->start + read_offset;
+				if(read_blocks +  read_offset <= count)
+				{
+					list_p->rank = position->rank;
+					list_p->end = position->start + read_blocks + read_offset - 1;
+					read_blocks = 0;
+				}
+				else
+				{
+					list_p->end = position->end;
+					read_blocks -= count;
+				}
+				read_offset = 0;
+			}
+		}
+		else
+		{
+			puts("121233");
+			if(read_blocks <= count)
+			{
+				list_p->rank = position->rank;
+				list_p->start = position->start;
+				list_p->end = position->start + read_blocks - 1;
+				read_blocks = 0;
+			}
+			else
+			{
+				list_p = (position_des_t *)list->dup(position);
+				read_blocks -= count;
+			}
 		}
 		result->list_ops->list_add_node_tail(result, list_p);
 	}
@@ -292,6 +321,10 @@ static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset
 }
 
 static void read_temp_file(event_handler_t *event_handler){
+
+#if DATA_MASTER_DEBUG
+	log_write(LOG_TRACE, "read tmp file start");
+#endif
 
 	client_read_file_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
@@ -307,20 +340,39 @@ static void read_temp_file(event_handler_t *event_handler){
 	uint64_t read_size = c_cmd->read_size;
 	uint64_t offset = c_cmd->offset;
 	uint64_t read_blocks;
-	uint64_t read_index;
 	assert(read_size + offset <= node->file_size);
-	read_index = offset / BLOCK_SIZE + 1;
+	uint64_t read_offset = offset / BLOCK_SIZE;
 	if(offset % BLOCK_SIZE == 0){
 		read_blocks = ceil((double)read_size / BLOCK_SIZE);
 	}else{
-		read_blocks = ceil((double)(read_size + offset) / BLOCK_SIZE) - ceil((double)(offset) / BLOCK_SIZE) + 1;
+		read_blocks = ceil((double)(read_size + offset) / BLOCK_SIZE) - offset / BLOCK_SIZE;
 	}
 
-	list_t *result = get_file_list_location(read_blocks, read_index, list);
+#if DATA_MASTER_DEBUG
+	log_write(LOG_TRACE, "read tmp file read_blocks = %d", read_blocks);
+#endif
+
+	list_t *result = get_file_list_location(read_blocks, read_offset, list);
+#if DATA_MASTER_DEBUG
+	log_write(LOG_TRACE, "read tmp file get_file_list_location");
+#endif
 	void *pos_arrray = list_to_array(result, sizeof(position_des_t));
-	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->tag, list->len * sizeof(position_des_t), ANS);
+#if DATA_MASTER_DEBUG
+	log_write(LOG_TRACE, "read tmp file list_to_array");
+#endif
+	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, list->len * sizeof(position_des_t), ANS);
+#if DATA_MASTER_DEBUG
+	log_write(LOG_TRACE, "read tmp file send_result");
+#endif
 	list_release(result);
+#if DATA_MASTER_DEBUG
+	log_write(LOG_TRACE, "read tmp file list_release");
+#endif
 	zfree(pos_arrray);
+
+#if DATA_MASTER_DEBUG
+	log_write(LOG_TRACE, "read tmp file end");
+#endif
 }
 
 static void delete_temp_file(event_handler_t *event_handler){

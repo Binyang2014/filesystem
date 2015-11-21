@@ -92,6 +92,7 @@ int main(argc, argv)
 	client_read_file_t *c_r_f = get_read_file_cmd(rank);
 	request->op->read_temp_file(request, c_r_f);
 
+
 	log_write(LOG_WARN, "SUCCESS!!!!");
 	mpi_finish();
 	return 0;

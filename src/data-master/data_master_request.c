@@ -25,6 +25,7 @@ static void *append_temp_file(data_master_request_t *request, client_append_file
 {
 	request->client->op->set_send_buff(request->client, c_cmd, sizeof(*c_cmd));
 	request->client->op->execute(request->client, COMMAND_WITH_RETURN);
+	puts("end end end");
 	return request->client->recv_buff;
 }
 

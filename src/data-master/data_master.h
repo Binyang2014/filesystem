@@ -40,10 +40,9 @@ struct data_master{
 struct data_master_op{
 	int (*machine_register)(storage_machine_sta_t *machine_sta);
 	void (*create_temp_file)(char *name);
-	void (*append_temp_file)();
-	void (*read_temp_file)();
-	//unimplemented interface
-	void (*delete_temp_file)(char *name);
+	void (*append_temp_file)(event_handler_t *event_handler);
+	void (*read_temp_file)(event_handler_t *event_handler);
+	void (*delete_temp_file)(char *name); //unimplemented interface
 };
 
 typedef struct data_master data_master_t;
