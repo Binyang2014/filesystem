@@ -12,9 +12,9 @@ LIB = $(LIBDIR)/libcommon.a $(LIBDIR)/libvfs.a $(LIBDIR)/libdataserver.a $(LIBDI
 include $(TOPDIR)/GlobalMakefile
 obj = main.o
 
-system:: filesystem
+system:: fileapp
 
-filesystem: main.o $(LIB)
+fileapp: main.o $(LIB)
 	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -lvfs -lclient -ldataserver -ldatamaster -lmachinerole -o $@ -lm -lpthread
 
 include $(TOPDIR)/GlobalRules

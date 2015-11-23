@@ -31,8 +31,8 @@ int main(argc, argv)
 	size = get_mpi_size();
 
 	map_role_value_t *map_role = NULL;
-	char *file_path = argv[1];
-	char *net_name = argv[2];
+	char *file_path = "filesystem/conf/topo.conf";
+	char *net_name = "eth0";
 
 	log_init("", LOG_TRACE);
 	log_write(LOG_DEBUG, "file open successfully");
