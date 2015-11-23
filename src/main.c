@@ -62,7 +62,7 @@ int main(argc, argv)
 		pthread_join(*thread_client, NULL);
 	} else if (map_role->type == DATA_SERVER) {
 		data_server_t *server = alloc_dataserver(SMALL, rank);
-		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
+//		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
 //		pthread_create(thread_data_server, NULL, dataserver_run, server);
 //		pthread_create(thread_client, NULL, fclient_run, fclient);

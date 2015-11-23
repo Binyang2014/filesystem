@@ -165,18 +165,22 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 	void* ptr_temp;
 
 	//allocate message queue
-	if((data_server->buff_node_queue = alloc_basic_queue(sizeof(list_node_t*), BUFF_NODE_SIZE + 1))
-			== NULL)
+	if((data_server->buff_node_queue = alloc_basic_queue(sizeof(list_node_t*), BUFF_NODE_SIZE + 1))== NULL)
+	{
 		err_sys("error when allocate buffer");
-	if((data_server->m_data_buff= alloc_basic_queue(sizeof(msg_data_t*), init_length + 1))
-			== NULL)
+	}
+	if((data_server->m_data_buff= alloc_basic_queue(sizeof(msg_data_t*), init_length + 1))== NULL)
+	{
 		err_sys("error when allocate buffer");
-	if((data_server->common_msg_buff = alloc_basic_queue(sizeof(common_msg_t*), init_length + 1))
-			== NULL)
+	}
+	if((data_server->common_msg_buff = alloc_basic_queue(sizeof(common_msg_t*), init_length + 1))== NULL)
+	{
 		err_sys("error when allocate buffer");
-	if((data_server->file_buff = alloc_basic_queue(sizeof(dataserver_file_t*), init_length + 1))
-			== NULL)
+	}
+	if((data_server->file_buff = alloc_basic_queue(sizeof(dataserver_file_t*), init_length + 1))== NULL)
+	{
 		err_sys("error when allocate buffer");
+	}
 	// if((data_server->reply_message_buff = alloc_basic_queue(sizeof(void*), init_length + 1))
 	// 		== NULL)
 	// 	err_sys("error when allocate buffer");
@@ -210,34 +214,33 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 
 	//allocate for data server array map structure
 	summary_table.hash_table_size = F_ARR_SIZE;
-	if((summary_table.blocks_arr = (uint32_t* )zmalloc(sizeof(uint32_t)	* F_ARR_SIZE))
-			== NULL)
+	if((summary_table.blocks_arr = (uint32_t* )zmalloc(sizeof(uint32_t)	* F_ARR_SIZE))== NULL)
+	{
 		err_sys("error when allocate buffer");
-	if((summary_table.chunks_arr = (uint64_t* )zmalloc(sizeof(uint64_t)*
-			F_ARR_SIZE)) == NULL)
+	}
+	if((summary_table.chunks_arr = (uint64_t* )zmalloc(sizeof(uint64_t) * F_ARR_SIZE)) == NULL)
+	{
 		err_sys("error when allocate buffer");
-	if((data_server->f_arr_bitmap = (unsigned long*)zmalloc(sizeof(unsigned long) *
-			F_ARR_SIZE / BITS_PER_LONG)) == NULL)
+	}
+	if((data_server->f_arr_bitmap = (unsigned long*)zmalloc(sizeof(unsigned long) * F_ARR_SIZE / BITS_PER_LONG)) == NULL)
+	{
 		err_sys("error when allocate buffer");
+	}
 
 	//initial data server buffer by set value
 	for(i = 0; i < init_length; i++)
 	{
 		ptr_temp = &msg_data_arr[i];
-		data_server->m_data_buff->basic_queue_op->push(data_server->m_data_buff,
-				&ptr_temp);
+		data_server->m_data_buff->basic_queue_op->push(data_server->m_data_buff, &ptr_temp);
 
 		ptr_temp = &common_msg_arr[i];
-		data_server->common_msg_buff->basic_queue_op->push(data_server->common_msg_buff,
-				&ptr_temp);
+		data_server->common_msg_buff->basic_queue_op->push(data_server->common_msg_buff, &ptr_temp);
 
 		ptr_temp = &file_arr[i];
-		data_server->file_buff->basic_queue_op->push(data_server->file_buff,
-				&ptr_temp);
+		data_server->file_buff->basic_queue_op->push(data_server->file_buff, &ptr_temp);
 
 		ptr_temp = &f_map_arr[i];
-		data_server->f_arr_buff->basic_queue_op->push(data_server->f_arr_buff,
-				&ptr_temp);
+		data_server->f_arr_buff->basic_queue_op->push(data_server->f_arr_buff, &ptr_temp);
 	}
 	for(i = 0; i < BUFF_NODE_SIZE; i++)
 	{
@@ -245,8 +248,7 @@ void set_data_server_buff(data_server_t* data_server, int init_length)
 		list_node_arr[i].value = NULL;
 		list_node_arr[i].next = NULL;
 		list_node_arr[i].prev = NULL;
-		data_server->buff_node_queue->basic_queue_op->push(data_server->buff_node_queue,
-				&ptr_temp);
+		data_server->buff_node_queue->basic_queue_op->push(data_server->buff_node_queue, &ptr_temp);
 	}
 }
 

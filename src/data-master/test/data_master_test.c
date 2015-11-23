@@ -89,9 +89,9 @@ int main(argc, argv)
 		client_append_file_t *c_a_f = get_append_file_cmd(rank);
 		request->op->append_temp_file(request, c_a_f);
 		puts("test append tmp file");
-//
-//		client_read_file_t *c_r_f = get_read_file_cmd(rank);
-//		request->op->read_temp_file(request, c_r_f);
+
+		client_read_file_t *c_r_f = get_read_file_cmd(rank);
+		request->op->read_temp_file(request, c_r_f);
 
 		request->op->stop_master(request);
 		puts("test stop master rank 1");

@@ -96,8 +96,7 @@ static void add_to_watch_list(zclient_t *zclient, int watch_type, int watch_code
 	watch_list->list_ops->list_add_node_tail(watch_list, watch_node);
 }
 
-static int create_znode(zclient_t *zclient, const sds path, const sds data,
-		znode_type_t type, sds return_name)
+static int create_znode(zclient_t *zclient, const sds path, const sds data, znode_type_t type, sds return_name)
 {
 	rpc_client_t *rpc_client;
 	zoo_create_znode_t *create_msg;
@@ -118,14 +117,16 @@ static int create_znode(zclient_t *zclient, const sds path, const sds data,
 	rpc_client->op->set_send_buff(rpc_client, create_msg, sizeof(zoo_create_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_sim_t));
-	if(zreturn->return_code & ZOK && return_name != NULL)
+	//TODO this have been modified
+	if(((zreturn->return_code & ZOK) && return_name) != NULL)
+	{
 		sds_cpy(return_name, zreturn->data);
+	}
 
 	return zreturn->return_code;
 }
 
-static int create_parent(zclient_t *zclient, const sds path, const sds data, znode_type_t
-		type, sds return_name)
+static int create_parent(zclient_t *zclient, const sds path, const sds data, znode_type_t type, sds return_name)
 {
 	rpc_client_t *rpc_client;
 	zoo_create_znode_t *create_msg;
@@ -146,8 +147,10 @@ static int create_parent(zclient_t *zclient, const sds path, const sds data, zno
 	rpc_client->op->set_send_buff(rpc_client, create_msg, sizeof(zoo_create_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_sim_t));
-	if(zreturn->return_code & ZOK && return_name != NULL)
+	if(((zreturn->return_code & ZOK) && return_name) != NULL)
+	{
 		sds_cpy(return_name, zreturn->data);
+	}
 
 	return zreturn->return_code;
 }
@@ -176,8 +179,7 @@ static int delete_znode(zclient_t *zclient, const sds path, int version)
 	return zreturn->return_code;
 }
 
-static int set_znode(zclient_t *zclient, const sds path, const sds data, int
-		version)
+static int set_znode(zclient_t *zclient, const sds path, const sds data, int version)
 {
 	rpc_client_t *rpc_client;
 	zoo_set_znode_t *set_msg;
@@ -203,8 +205,7 @@ static int set_znode(zclient_t *zclient, const sds path, const sds data, int
 }
 
 static int get_znode(zclient_t *zclient, const sds path, sds return_data,
-		znode_status_t *status, int watch_flag, watch_handler_t watch_handler,
-		void*args)
+		znode_status_t *status, int watch_flag, watch_handler_t watch_handler, void*args)
 {
 	rpc_client_t *rpc_client;
 	zoo_get_znode_t *get_msg;
@@ -234,8 +235,9 @@ static int get_znode(zclient_t *zclient, const sds path, sds return_data,
 			zstatus_dup(status, &zreturn->status);
 	}
 	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR))
-		add_to_watch_list(zclient, watch_flag, get_msg->watch_code,
-				watch_handler, args);
+	{
+		add_to_watch_list(zclient, watch_flag, get_msg->watch_code, watch_handler, args);
+	}
 
 	return zreturn->return_code;
 }
@@ -321,10 +323,14 @@ static void *handle_watch_event(void *args)
 		watch_key.watch_code = atoi(watch_ret_msg->ret_data);
 		//This is a stop zclient message
 		if(watch_key.watch_code == -1)
+		{
 			continue;
+		}
 		node = watch_list->list_ops->list_search_key(watch_list, &watch_key);
 		if(node == NULL)
+		{
 			continue;
+		}
 		watch_node = node->value;
 		watch_node->watch_handler(watch_node->args);
 		//delete node from list
@@ -343,8 +349,7 @@ static void *get_watch_event(void *args)
 	while(!zclient->client_stop)
 	{
 		recv_msg(watch_ret_msg, ANY_SOURCE, WATCH_TAG, sizeof(watch_ret_msg_t));
-		zclient->recv_queue->op->syn_queue_push(zclient->recv_queue,
-				watch_ret_msg);
+		zclient->recv_queue->op->syn_queue_push(zclient->recv_queue, watch_ret_msg);
 	}
 	zfree(watch_ret_msg);
 	zclient_stop_commit = 1;

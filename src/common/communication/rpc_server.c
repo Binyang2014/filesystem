@@ -250,7 +250,9 @@ void destroy_rpc_server(rpc_server_t *server)
 	log_write(LOG_DEBUG, "destroy rpc server server com = %d", server->server_commit_cancel);
 	//wait client receive ack message
 	while(server->server_commit_cancel != 1)
+	{
 		usleep(500);
+	}
 
 #if RPC_SERVER_DEBUG
 	log_write(LOG_DEBUG, "destroy rpc server start");
