@@ -1,1 +1,1 @@
-mpirun -np 2 ./src/filesystem ./src/topo.conf eth0
+mpirun -np 2 ./src/fileapp ./src/topo.conf eth0
