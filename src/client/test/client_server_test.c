@@ -85,12 +85,6 @@ void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 	}
 	switch(common_msg.operation_code)
 	{
-		case SERVER_STOP:
-			init_server_stop_handler(event_handler, local_server,
-					&common_msg);
-			event_handler->handler = server_stop_handler;
-			break;
-
 		case CREATE_TEMP_FILE_CODE:
 			event_handler->handler = create_file_handler;
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
