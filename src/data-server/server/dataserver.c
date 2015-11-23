@@ -58,10 +58,14 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 {
 	data_server = (data_server_t* )zmalloc(sizeof(data_server_t));
 	if(data_server == NULL)
+	{
 		err_sys("error while allocate data server");
+	}
 
 	if( (data_server->d_super_block = vfs_init(t_size, dev_num)) == NULL )
+	{
 		err_quit("error in init_dataserver function");
+	}
 
 	//get_current_imformation(data_server);
 	data_server->machine_id = dev_num;
@@ -69,8 +73,7 @@ data_server_t* alloc_dataserver(total_size_t t_size, int dev_num)
 	set_data_server_buff(data_server, THREAD_POOL_SIZE);
 
 	//init rpc server
-	data_server->rpc_server = create_rpc_server(THREAD_POOL_SIZE,
-			MSG_QUEUE_SIZE, dev_num, m_resolve);
+	data_server->rpc_server = create_rpc_server(THREAD_POOL_SIZE, MSG_QUEUE_SIZE, dev_num, m_resolve);
 
 	//init many kinds of locks
 	return data_server;

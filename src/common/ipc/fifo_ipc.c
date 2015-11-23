@@ -9,8 +9,11 @@ int create_fifo(const char *path, mode_t mode)
 	int ret;
 
 	ret = mkfifo(path, mode);
+	printf("mkfifo code = %d\n", ret);
 	if(ret != 0)
+	{
 		log_write(LOG_DEBUG, "error when create fifo");
+	}
 	return ret;
 }
 

@@ -645,7 +645,9 @@ fclient_t *create_fclient(int client_id, int target, int tag)
 	fclient_t *fclient = zmalloc(sizeof(fclient_t));
 
 	if(fclient == NULL)
+	{
 		return NULL;
+	}
 	fclient->rpc_client = create_rpc_client(client_id, target, tag);
 	fclient->data_master_id = target;
 	create_fifo(FIFO_PATH_S_TO_C, S_IRWXU);

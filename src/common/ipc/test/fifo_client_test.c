@@ -8,8 +8,8 @@ int main()
 {
 	int fd;
 
-	fd = open_fifo(FIFO_PATH, O_RDWR);
+	fd = open_fifo(FIFO_PATH_C_TO_S, O_RDWR);
 	read(fd, String, 20);
-	printf("string is %s", String);
+	printf("string is %s\n", String);
 	return 0;
 }
