@@ -42,7 +42,10 @@ static void server_start(rpc_server_t *server)
 	while(!server->server_thread_cancel)
 	{
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
-		server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
+		if(((common_msg_t *)server->recv_buff)->operation_code == SERVER_STOP)
+			server_stop(server);
+		else
+			server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
 	}
 	//no more message need to send
 	server_stop_send_queue(server);
@@ -84,7 +87,15 @@ void force_server_stop(event_handler_t *event_handler)
 
 static void server_stop(rpc_server_t *server)
 {
+	stop_server_msg_t* stop_server_msg;
+
 	server->server_thread_cancel = 1;
+	stop_server_msg = (stop_server_msg_t *)MSG_COMM_TO_CMD(server->recv_buff);
+	acc_msg_t *acc_msg = (acc_msg_t*)zmalloc(sizeof(acc_msg_t));
+
+	acc_msg->op_status = ACC_OK;
+	server->op->send_result(acc_msg, stop_server_msg->source, stop_server_msg->tag, IGNORE_LENGTH, ACC);
+	zfree(acc_msg);
 }
 
 static void server_stop_send_queue(rpc_server_t *server)
@@ -109,7 +120,6 @@ static void server_stop_send_queue(rpc_server_t *server)
 static void server_stop2(rpc_server_t *server)
 {
 	server_stop_send_queue(server);
-	server->server_commit_cancel = 1;
 
 #if RPC_SERVER_DEBUG
 	log_write(LOG_DEBUG, "finished server stop2");
@@ -217,7 +227,6 @@ rpc_server_t *create_rpc_server(int thread_num, int queue_size,
 	this->send_buff = NULL;
 	this->server_id = server_id;
 	this->server_thread_cancel = 0;
-	this->server_commit_cancel = 0;
 	this->thread_pool = alloc_thread_pool(thread_num, this->request_queue, resolve_handler);
 
 	this->op = zmalloc(sizeof(rpc_server_op_t));
@@ -247,11 +256,6 @@ rpc_server_t *create_rpc_server2(int thread_num, int recv_qsize, int send_qsize,
 
 void destroy_rpc_server(rpc_server_t *server)
 {
-	log_write(LOG_DEBUG, "destroy rpc server server com = %d", server->server_commit_cancel);
-	//wait client receive ack message
-	while(server->server_commit_cancel != 1)
-		usleep(500);
-
 #if RPC_SERVER_DEBUG
 	log_write(LOG_DEBUG, "destroy rpc server start");
 #endif
@@ -279,54 +283,4 @@ void destroy_rpc_server(rpc_server_t *server)
 #if RPC_SERVER_DEBUG
 	log_write(LOG_DEBUG, "free rpc server memory");
 #endif
-}
-
-/*--------------------TO STOP SERVER---------------------*/
-int init_server_stop_handler(event_handler_t *event_handler, void* server, void* common_msg)
-{
-	list_t *list;
-	void *cmd_msg;
-
-	event_handler->special_struct = server;
-	event_handler->event_buffer_list = list_create();
-	if( (list = event_handler->event_buffer_list) == NULL )
-	{
-		log_write(LOG_ERR, "error when allocate list");
-		return -1;
-	}
-	list_set_free_method(list, zfree);
-	cmd_msg = zmalloc(MAX_CMD_MSG_LEN);
-	memcpy(cmd_msg, MSG_COMM_TO_CMD(common_msg), MAX_CMD_MSG_LEN);
-	list->list_ops->list_add_node_head(list, cmd_msg);
-	return 0;
-}
-
-void server_stop_handler(event_handler_t *event_handler)
-{
-	rpc_server_t *server = event_handler->special_struct;
-	list_t *list = event_handler->event_buffer_list;
-	stop_server_msg_t *stop_server_msg = list_node_value(list->list_ops->list_index(list, 0));
-	acc_msg_t *acc_msg = (acc_msg_t*)zmalloc(sizeof(acc_msg_t));
-
-	log_write(LOG_INFO, "This server will be stoped soon!!!");
-	if(server->server_thread_cancel == 0)
-	{
-		server->op->server_stop(server);
-	}
-	//mark it, and will tell destroy functoin later
-	else
-	{
-		server->server_commit_cancel = -1;
-	}
-
-	acc_msg->op_status = ACC_OK;
-	server->op->send_result(acc_msg, stop_server_msg->source, stop_server_msg->tag, IGNORE_LENGTH, ACC);
-	zfree(acc_msg);
-	list_release(list);
-	event_handler->event_buffer_list = NULL;
-	//tell destory function to destroy this server
-	if(server->server_commit_cancel == -1)
-	{
-		server->server_commit_cancel = 1;
-	}
 }

@@ -206,10 +206,6 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 		//invoke a thread to excuse
 		return d_write_handler;
 
-	case SERVER_STOP:
-		init_server_stop_handler(event_handler, data_server->rpc_server, &t_common_msg);
-		return server_stop_handler;
-
 	default:
 		return NULL;
 	}

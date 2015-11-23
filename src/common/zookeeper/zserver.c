@@ -716,10 +716,6 @@ static void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 			init_znode_handler(event_handler, local_zserver, &common_msg);
 			event_handler->handler = delete_znode_handler;
 			break;
-		case SERVER_STOP:
-			init_server_stop_handler(event_handler, local_zserver->rpc_server, &common_msg);
-			event_handler->handler = server_stop_handler;
-			break;
 		default:
 			event_handler->handler = NULL;
 			break;
