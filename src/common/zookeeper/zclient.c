@@ -225,14 +225,15 @@ static int get_znode(zclient_t *zclient, const sds path, sds return_data,
 	//recv zsever return and put it into recv buffer
 	rpc_client->op->set_send_buff(rpc_client, get_msg, sizeof(zoo_get_znode_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
-	recv_msg(zreturn, rpc_client->target, rpc_client->tag,
-			sizeof(zreturn_complex_t));
+	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_complex_t));
 
 	if(zreturn->return_code & ZOK)
 	{
 		sds_cpy(return_data, zreturn->data);
 		if(status != NULL)
+		{
 			zstatus_dup(status, &zreturn->status);
+		}
 	}
 	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR))
 	{
@@ -295,8 +296,9 @@ static int exists_znode(zclient_t *zclient, const sds path, znode_status_t
 	if(status != NULL && (zreturn->return_code & ZOK))
 		zstatus_dup(status, &zreturn->status);
 	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR))
-		add_to_watch_list(zclient, watch_flag, exists_msg->watch_code,
-				watch_handler, args);
+	{
+		add_to_watch_list(zclient, watch_flag, exists_msg->watch_code, watch_handler, args);
+	}
 
 	return zreturn->return_code;
 }
@@ -373,13 +375,16 @@ static void stop_zclient(zclient_t *zclient)
 	strcpy(watch_ret_msg->ret_data, "-1");
 	usleep(500);
 	if(!zclient_stop_commit)
-		send_msg(watch_ret_msg, zclient->client_id, WATCH_TAG,
-				sizeof(watch_ret_msg_t));
+	{
+		send_msg(watch_ret_msg, zclient->client_id, WATCH_TAG, sizeof(watch_ret_msg_t));
+	}
 	while(!zclient_stop_commit);
 	pthread_join(zclient->recv_watch_tid, NULL);
 
 	while(!zclient->recv_queue->queue->basic_queue_op->is_empty(zclient->recv_queue->queue))
+	{
 		usleep(50);
+	}
 	pthread_cancel(zclient->watch_tid);
 	pthread_join(zclient->watch_tid, NULL);
 	pthread_mutex_unlock(zclient->recv_queue->queue_mutex);
@@ -408,8 +413,7 @@ zclient_t *create_zclient(int client_id)
 	this->watch_list = list_create();
 	list_set_free_method(this->watch_list, watch_node_free);
 	list_set_match_method(this->watch_list, watch_node_match);
-	this->recv_queue = alloc_syn_queue(ZCLIENT_RECV_QUEUE_SIZE,
-			sizeof(watch_ret_msg_t));
+	this->recv_queue = alloc_syn_queue(ZCLIENT_RECV_QUEUE_SIZE, sizeof(watch_ret_msg_t));
 	this->rpc_client = create_rpc_client(client_id, -1, -1);
 
 	this->op = zmalloc(sizeof(zclient_op_t));
@@ -434,6 +438,8 @@ void destroy_zclient(zclient_t *zclient)
 	zfree(zclient->recv_buff);
 	zfree(zclient->send_buff);
 	if(zclient->rpc_client != NULL)
+	{
 		destroy_rpc_client(zclient->rpc_client);
+	}
 	zfree(zclient);
 }

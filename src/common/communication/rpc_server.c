@@ -43,9 +43,13 @@ static void server_start(rpc_server_t *server)
 	{
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
 		if(((common_msg_t *)server->recv_buff)->operation_code == SERVER_STOP)
+		{
 			server_stop(server);
+		}
 		else
+		{
 			server->request_queue->op->syn_queue_push(server->request_queue, server->recv_buff);
+		}
 	}
 	//no more message need to send
 	server_stop_send_queue(server);
@@ -60,29 +64,6 @@ static void server_start2(rpc_server_t *server)
 	{
 		pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
 	}
-}
-
-void send_server_stop_cmd(rpc_server_t *server)
-{
-	usleep(50);
-	server_stop(server);
-
-	stop_server_msg_t* stop_server_msg = NULL;
-	stop_server_msg = zmalloc(sizeof(stop_server_msg_t));
-	stop_server_msg->operation_code = SERVER_STOP;
-	stop_server_msg->source = 0;
-	stop_server_msg->tag = CMD_TAG;
-	mpi_send(stop_server_msg, get_mpi_rank(), CMD_TAG, sizeof(stop_server_msg_t));
-
-#if RPC_SERVER_DEBUG
-	log_write(LOG_DEBUG, "finished send server stop cmd");
-#endif
-}
-
-void force_server_stop(event_handler_t *event_handler)
-{
-	rpc_server_t *server = event_handler->special_struct;
-	server_stop2(server);
 }
 
 static void server_stop(rpc_server_t *server)
