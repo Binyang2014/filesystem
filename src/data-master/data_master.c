@@ -428,10 +428,6 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			event_handler->handler = delete_temp_file;
 			break;
-		case SERVER_STOP:
-			init_server_stop_handler(event_handler, local_master->rpc_server, &common_msg);
-			event_handler->handler = server_stop_handler;
-			break;
 		default:
 			event_handler->handler = NULL;
 	}

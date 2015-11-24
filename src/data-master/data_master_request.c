@@ -4,6 +4,7 @@
  *  Created on: 2015年11月12日
  *      Author: ron
  */
+#include <stdio.h>
 #include "data_master_request.h"
 #include "zmalloc.h"
 

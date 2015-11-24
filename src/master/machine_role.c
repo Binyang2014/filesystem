@@ -301,10 +301,6 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			event_handler->handler = machine_register;
 			break;
-		case SERVER_STOP:
-			event_handler->special_struct = local_allocator->server;
-			event_handler->handler = force_server_stop;
-			break;
 		default:
 			event_handler->handler = NULL;
 	}
