@@ -67,7 +67,7 @@ void mpi_recv(void* msg, int source, int tag, int len, mpi_status_t* status_t)
 	if(status_t != NULL)
 	{
 		status_t->error_num = status.MPI_ERROR;
-		status_t->size = status.count;
+		MPI_Get_count(&status, MPI_CHAR, &status_t->size);
 		status_t->source = status.MPI_SOURCE;
 		status_t->tag = status.MPI_TAG;
 #if MPI_COMMUNICATION_DEBUG
