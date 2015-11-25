@@ -6,17 +6,19 @@
  */
 
 #include <mpi.h>
+#include <unistd.h>
 #include "machine_role.h"
 #include "zmalloc.h"
+#include "mpi_communication.h"
 #include "log.h"
 
 int main(argc, argv)
 	int argc;char ** argv; {
 	int rank, size, provided;
 
-	MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	mpi_init_with_thread(&argc, &argv);
+	rank = get_mpi_rank();
+	size = get_mpi_size();
 
 	map_role_value_t *role = NULL;
 	char *net_name = "eth0";
@@ -31,7 +33,7 @@ int main(argc, argv)
 
 		usleep(50);
 		role = get_role(rank, net_name);
-		//log_write(LOG_DEBUG, "get role successfully, ip = %s and rank = %d and type = %d", role->ip, role->rank, role->type);
+		log_write(LOG_DEBUG, "get role successfully, ip = %s and rank = %d and type = %d", role->ip, role->rank, role->type);
 		zfree(role);
 
 		log_write(LOG_DEBUG, "file end successfully");

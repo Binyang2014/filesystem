@@ -205,14 +205,6 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				return -1;
 			}
 			//send this message again to let server stop
-			send_cmd_msg(client->send_buff, client->target, client->send_buff_len);
-			recv_acc_msg(acc_msg, client->target, client->tag);
-			if(acc_msg->op_status != ACC_OK)
-			{
-				log_write(LOG_ERR, "can not stop server now");
-				zfree(acc_msg);
-				return -1;
-			}
 			log_write(LOG_INFO, "server will stop soon");
 			zfree(acc_msg);
 			break;

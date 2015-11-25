@@ -132,8 +132,7 @@ typedef struct stopclient_msg stopclient_msg_t;
 typedef struct closefile_msg closefile_msg_t;
 typedef union file_msg file_msg_t;
 
-opened_file_t *create_openedfile(const char *file_path, int position, open_mode_t
-		open_mode);
+opened_file_t *create_openedfile(const char *file_path, int position, open_mode_t open_mode);
 void free_file(void *args);
 int match_file(void *ptr, void *key);
 #endif

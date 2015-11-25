@@ -24,7 +24,6 @@ struct rpc_send_msg {
 struct rpc_server {
 	int server_id;
 	int server_thread_cancel;
-	int server_commit_cancel;//let server to stop
 	void *recv_buff;
 	struct rpc_send_msg *send_buff;//this buffer just for queue
 	struct rpc_server_op *op;

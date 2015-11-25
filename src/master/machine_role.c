@@ -301,10 +301,6 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
 			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
 			event_handler->handler = machine_register;
 			break;
-		case SERVER_STOP:
-			event_handler->special_struct = local_allocator->server;
-			event_handler->handler = force_server_stop;
-			break;
 		default:
 			event_handler->handler = NULL;
 	}
@@ -333,6 +329,26 @@ static machine_role_allocator_t *create_machine_role_allocator(size_t size, int 
 	pthread_mutex_init(this->mutex_allocator, NULL);
 
 	return this;
+}
+
+void send_server_stop_cmd(rpc_server_t *server)
+{
+	rpc_client_t *client = create_rpc_client(server->server_id, server->server_id, 781);
+	stop_server_msg_t* stop_server_msg = NULL;
+	stop_server_msg = zmalloc(sizeof(stop_server_msg_t));
+	stop_server_msg->operation_code = SERVER_STOP;
+	stop_server_msg->source = server->server_id;
+	stop_server_msg->tag = 781;
+	client->op->set_send_buff(client, stop_server_msg, sizeof(stop_server_msg_t));
+	if(client->op->execute(client, STOP_SERVER) < 0)
+	{
+		log_write(LOG_TRACE, "something wrong\n");
+	}
+	else
+	{
+		log_write(LOG_DEBUG, "GET ROLE STOP SERVER!!!\n");
+	}
+	destroy_rpc_client(client);
 }
 
 static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
