@@ -38,12 +38,16 @@ static int open_file(const char *path, open_mode_t open_mode, int *fd)
 	openfile_msg.operation_code = FOPEN_OP;
 	path_len = strlen(path);
 	if(path_len > MAX_FILE_PATH)
+	{
 		return FPATH_TOO_LONG;
+	}
 	strcpy(openfile_msg.file_path, path);
 	openfile_msg.open_mode = open_mode;
 
 	if( write(fifo_wfd, &openfile_msg, sizeof(openfile_msg_t)) < 0 )
+	{
 		return -1;
+	}
 	//get return code
 	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg));
 	*fd = file_ret_msg.fd;
@@ -51,8 +55,7 @@ static int open_file(const char *path, open_mode_t open_mode, int *fd)
 	return file_ret_msg.ret_code;
 }
 
-static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode,
-		int *fd)
+static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, int *fd)
 {
 	createfile_msg_t createfile_msg;
 	file_ret_msg_t file_ret_msg;
@@ -61,13 +64,17 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode,
 	createfile_msg.operation_code = FCREATE_OP;
 	path_len = strlen(path);
 	if(path_len > MAX_FILE_PATH)
+	{
 		return FPATH_TOO_LONG;
+	}
 	strcpy(createfile_msg.file_path, path);
 	createfile_msg.open_mode = open_mode;
 	createfile_msg.mode = mode;
 
 	if( write(fifo_wfd, &createfile_msg, sizeof(createfile_msg_t)) < 0 )
+	{
 		return -1;
+	}
 	//get return code
 	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg));
 	log_write(LOG_DEBUG, "the fd is %d", file_ret_msg.fd);
@@ -88,7 +95,9 @@ int init_client()
 		return -1;
 	}
 	else
+	{
 		log_write(LOG_INFO, "connect to server successfully");
+	}
 	return 0;
 }
 
@@ -111,12 +120,16 @@ int f_open(const char *path, open_mode_t open_mode, ...)
 		mode = va_arg(vl, int);
 		va_end(vl);
 		if(create_file(path, open_mode, mode, &fd) != 0)
+		{
 			return -1;
+		}
 	}
 	else
 	{
 		if(open_file(path, open_mode, &fd) != 0)
+		{
 			return -1;
+		}
 	}
 
 	return fd;
@@ -148,7 +161,9 @@ ssize_t f_read(int fd, void *buf, size_t nbytes)
 	write(fifo_wfd, &readfile_msg, sizeof(readfile_msg_t));
 	read(fifo_rfd, &read_times, sizeof(int));
 	for(i = 0; i < read_times; i++)
+	{
 		offset = offset + read(fifo_rfd, buf + offset, nbytes - offset);
+	}
 	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
