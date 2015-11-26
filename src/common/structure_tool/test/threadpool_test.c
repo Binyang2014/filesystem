@@ -68,7 +68,7 @@ int main()
 	thread_pool = alloc_thread_pool(4, queue_syn, resolve_handler);
 
 	thread_pool->tp_ops->start(thread_pool);
-	for(i = 0; i < 10; i++)
+	for(i = 0; i < 6; i++)
 	{
 		common_msg.operation_code = 1;
 		queue_syn->op->syn_queue_push(queue_syn, &common_msg);
