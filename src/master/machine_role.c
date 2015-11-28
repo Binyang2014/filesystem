@@ -353,7 +353,7 @@ void send_server_stop_cmd(rpc_server_t *server)
 
 static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
 #if MACHINE_ROLE_DEBUG
-	log_write(LOG_DEBUG, "destroy_machine_role_allocater");
+	log_write(LOG_DEBUG, "destroy_machine_role_allocater and map size is %d", local_allocator->roles->current_size);
 #endif
 
 	destroy_map(this->roles);

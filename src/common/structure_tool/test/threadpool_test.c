@@ -65,10 +65,10 @@ int main()
 	//log_init("/home/binyang/Program/filesystem/src/common/test", LOG_DEBUG);
 	log_init("", LOG_DEBUG);
 	queue_syn = alloc_syn_queue(10, sizeof(common_msg_t));
-	thread_pool = alloc_thread_pool(4, queue_syn, resolve_handler);
+	thread_pool = alloc_thread_pool(3, queue_syn, resolve_handler);
 
 	thread_pool->tp_ops->start(thread_pool);
-	for(i = 0; i < 6; i++)
+	for(i = 0; i < 3; i++)
 	{
 		common_msg.operation_code = 1;
 		queue_syn->op->syn_queue_push(queue_syn, &common_msg);

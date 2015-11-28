@@ -68,6 +68,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 #if THREAD_POOL_DEBUG
 	log_write(LOG_DEBUG, "thread %d is do handling", thread->id);
 #endif
+	printf("this thread is thread %d\n", thread->id);
 	event_handler->handler(event_handler);
 	return 0;
 }
