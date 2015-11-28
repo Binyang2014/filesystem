@@ -1,1 +1,2 @@
-mpirun -np 2 ./src/fileapp ./src/topo.conf eth0
+mv src/fileapp . | exit 1
+mpirun -f mpifile ./fileapp topo.conf

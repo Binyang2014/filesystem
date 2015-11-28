@@ -31,7 +31,7 @@ int main(argc, argv)
 	size = get_mpi_size();
 
 	map_role_value_t *map_role = NULL;
-	char *file_path = "filesystem/conf/topo.conf";
+	char *file_path = "topo.conf";
 	char *net_name = "eth0";
 
 	log_init("", LOG_TRACE);
