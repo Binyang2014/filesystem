@@ -7,9 +7,22 @@
 #include "list_queue_util.h"
 #include "zmalloc.h"
 
-void *list_to_array(list_t *list, int size) {
-	position_des_t *pos = zmalloc(size * list->len);
-	int index = 0;
+/*
+ * size
+ * offset
+ * write_length
+ * data_server_num
+ * position_des_t *;
+ */
+void *list_to_array(list_t *list, uint64_t *size, uint64_t offset, uint64_t write_len) {
+	uint64_t length = size * list->len + sizeof(uint64_t * 4);
+	position_des_t *pos = zmalloc(length);
+	int index = sizeof(uint64_t);
+	uint64_t *head = pos;
+	*head = length;
+	*(head + 1) = offset;
+	*(head + 2) = write_len;
+	*(head + 3) =  list->len;
 	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	while (list->list_ops->list_has_next(iter)) {
 		position_des_t *p = ((list_node_t *) list->list_ops->list_next(iter))->value;
@@ -17,6 +30,7 @@ void *list_to_array(list_t *list, int size) {
 		index++;
 	}
 	list->list_ops->list_release_iterator(iter);
+	size = length;
 	return pos;
 }
 
@@ -31,8 +45,7 @@ basic_queue_t *list_to_queue(list_t *list, size_t size) {
 	queue->free = list->free;
 	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	while (list->list_ops->list_has_next(iter)) {
-		queue->basic_queue_op->push(queue,
-				(list_node_t*) list->list_ops->list_next(iter)->value);
+		queue->basic_queue_op->push(queue, (list_node_t*) list->list_ops->list_next(iter)->value);
 	}
 
 	return queue;

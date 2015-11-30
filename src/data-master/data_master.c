@@ -220,21 +220,22 @@ static void append_temp_file(event_handler_t *event_handler){
 #endif
 
 	pthread_mutex_lock(local_master->mutex_data_master);
-	list_t *list = allocate_space(c_cmd->write_size, index, local_master->namespace->op->get_file_node(local_master->namespace, file_name));
+	file_node_t *node = local_master->namespace->op->get_file_node(local_master->namespace, file_name);
+	list_t *list = allocate_space(c_cmd->write_size, index, node);
 
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "data master append allocate space end");
 #endif
 
 	assert(list != NULL);
-	int size = list->len;
-	void *pos_arrray = list_to_array(list, sizeof(position_des_t));
+	uint64_t length = sizeof(position_des_t);
+	void *pos_arrray = list_to_array(list, length, node->file_size, c_cmd->write_size);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append list to array size = %d", size);
+	log_write(LOG_TRACE, "data master append list to array size = %d", list->len);
 #endif
 
 	//send write result to client
-	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, size * sizeof(position_des_t), ANS);
+	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, length, ANS);
 
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "data master append send result");

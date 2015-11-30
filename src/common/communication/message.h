@@ -290,21 +290,25 @@ typedef struct client_create_file {
 }client_create_file_t;
 
 typedef struct file_ret {
+	uint64_t offset; //This is offset from beginning
 	uint64_t file_size;
-	uint64_t offset; //This is offset from begining
-
-	uint16_t op_status;
-	uint16_t dataserver_num;
-	uint32_t chunks_num;
-
-	uint16_t data_server_arr[DATA_SERVER_NUM];
-	uint16_t data_server_cnum[DATA_SERVER_NUM];
-	//offset for each data server, this for writing and appending operation
-	uint64_t data_server_offset[DATA_SERVER_NUM];
-	uint64_t data_server_len[DATA_SERVER_NUM];
-
-	uint64_t chunks_id_arr[MAX_COUNT_CID_RET];
+	uint64_t dataserver_num;
 }file_ret_t;
+
+//typedef struct file_ret {
+//	uint64_t offset; //This is offset from beginning
+//	uint64_t file_size;
+//	uint64_t dataserver_num;
+//	//uint32_t chunks_num;
+//
+//	uint16_t *data_server_arr;
+//	uint16_t *data_server_cnum;
+//	//offset for each data server, this for writing and appending operation
+//	uint64_t *data_server_offset;
+//	uint64_t *data_server_len;
+//
+//	uint64_t *chunks_id_arr;
+//}file_ret_t;
 
 typedef struct file_sim_ret {
 	uint16_t op_status;

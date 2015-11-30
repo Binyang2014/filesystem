@@ -67,9 +67,13 @@ static void init_create_msg(client_create_file_t
 		*client_create_file, const createfile_msg_t *createfile_msg)
 {
 	if(createfile_msg->open_mode & CREATE_TEMP)
+	{
 		client_create_file->operation_code = CREATE_TEMP_FILE_CODE;
+	}
 	else if(createfile_msg->open_mode & CREATE_PERSIST)
-		client_create_file->operation_code = CREATE_PERSIST_FILE_CODE;;
+	{
+		client_create_file->operation_code = CREATE_PERSIST_FILE_CODE;
+	}
 	client_create_file->file_mode = createfile_msg->mode;
 	strcpy(client_create_file->file_name, createfile_msg->file_path);
 }
@@ -257,33 +261,38 @@ static void *watch_handler_delete(void *args)
 	return NULL;
 }
 
-
-static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg, file_ret_t *file_ret)
+static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg, void *pos)
 {
 	int dataserver_num;
 	int i, j, index = 0, ret;
 	rpc_client_t *rpc_client;
 	write_c_to_d_t write_msg;
 	char *data_msg;
+	uint64_t *head;
+	file_ret_t *file_ret;
+	position_des_t *position;
 
+	head = (uint64_t *)pos;
+	file_ret = head + 1;//TODO not hard code here
+	position = (position_des_t *)(head + 4);
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
 	write_msg.operation_code = C_D_WRITE_BLOCK_CODE;
 	write_msg.unique_tag = rpc_client->tag;
+	write_msg.offset = file_ret->offset;
 	for(i = 0; i < dataserver_num; i++)
 	{
-		int server_id = file_ret->data_server_arr[i];
+		int server_id = position->rank;
 
 		rpc_client->target = server_id;
-		write_msg.offset = file_ret->data_server_offset[i];
-		write_msg.write_len = file_ret->data_server_len[i];
+		write_msg.chunks_count = position->end - position->start + 1;
+		write_msg.write_len = BLOCK_SIZE * (write_msg.chunks_count) - write_msg.offset;
 		data_msg = zmalloc(write_msg.write_len);
 		read(fclient->fifo_rfd, data_msg, write_msg.write_len);
-		write_msg.chunks_count = file_ret->data_server_cnum[i];
 
-		for(j = 0; j < write_msg.chunks_count; j++)
+		for(j = position->start; j <= position->end; j++)
 		{
-			write_msg.chunks_id_arr[j] = file_ret->chunks_id_arr[index++];
+			write_msg.chunks_id_arr[j - position->start] = j;
 		}
 
 		rpc_client->op->set_send_buff(rpc_client, &write_msg, sizeof(write_c_to_d_t));
@@ -295,6 +304,7 @@ static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg, fil
 			rpc_client->target = fclient->data_master_id;
 			return -1;
 		}
+		write_msg.offset = 0;
 		zfree(data_msg);
 	}
 	rpc_client->target = fclient->data_master_id;
@@ -302,35 +312,43 @@ static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg, fil
 	return 0;
 }
 
-static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, file_ret_t *file_ret)
+static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, void *pos)
 {
 	int dataserver_num;
 	int i, j, index = 0, ret, read_times;
 	rpc_client_t *rpc_client;
 	read_c_to_d_t read_msg;
 	char *data_msg;
+	uint64_t *head;
+	file_ret_t *file_ret;
+	position_des_t *position;
 
+	head = (uint64_t *)pos;
+	file_ret = (file_ret *)(head + 1);
+	position = (position_des_t *)(head + 4);
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
 	read_msg.operation_code = C_D_READ_BLOCK_CODE;
 	read_msg.unique_tag = rpc_client->tag;
 	//send read times to client
 	read_times = dataserver_num;
+	read_msg.offset = file_ret->offset;
 	write(fclient->fifo_wfd, &read_times, sizeof(int));
 	//read data and send data to client
 	for(i = 0; i < dataserver_num; i++)
 	{
-		int server_id = file_ret->data_server_arr[i];
+		int server_id = position[i]->rank;
 
 		rpc_client->target = server_id;
-		read_msg.offset = file_ret->data_server_offset[i];
-		read_msg.read_len = file_ret->data_server_len[i];
-		data_msg = zmalloc(read_msg.read_len);
-		read_msg.chunks_count = file_ret->data_server_cnum[i];
 
-		for(j = 0; j < read_msg.chunks_count; j++)
+		read_msg.chunks_count = position->end - position->start + 1;
+		read_msg.read_len = read_msg.chunks_count * BLOCK_SIZE - read_msg.offset;
+		data_msg = zmalloc(read_msg.read_len);
+
+
+		for(j = position->start; j <= position->end; j++)
 		{
-			read_msg.chunks_id_arr[j] = file_ret->chunks_id_arr[index++];
+			read_msg.chunks_id_arr[j - position->start] = j;
 		}
 
 		rpc_client->op->set_send_buff(rpc_client, &read_msg, sizeof(read_c_to_d_t));
@@ -344,6 +362,7 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, file_ret_
 			rpc_client->target = fclient->data_master_id;
 			return -1;
 		}
+		read_msg.offset = 0;
 		zfree(data_msg);
 	}
 	rpc_client->target = fclient->data_master_id;
@@ -591,7 +610,8 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 	ret_msg.fd = -1;
 	if(ret_msg.ret_code != FSERVER_ERR)
 	{
-		ret_msg.ret_code = code_transfer(((file_ret_t *)rpc_client->recv_buff)->op_status);
+		//TODO code transfer
+		ret_msg.ret_code = FOK;
 	}
 	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
 
@@ -653,8 +673,9 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	//7.copy result to share memory
 	fifo_wfd = fclient->fifo_wfd;
 	ret_msg.fd = -1;
-	if(ret_msg.ret_code != FSERVER_ERR)
-		ret_msg.ret_code = code_transfer(((file_ret_t *)rpc_client->recv_buff)->op_status);
+	if(ret_msg.ret_code != FSERVER_ERR){
+		ret_msg.ret_code = FOK;//TODO code_transfer
+	}
 	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_read_file);
