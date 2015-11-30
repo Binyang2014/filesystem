@@ -44,6 +44,7 @@ int main(argc, argv)
 		map_role = get_role(rank, net_name);
 	}
 	usleep(10);
+	log_write(LOG_DEBUG, "get role success and role id is %d rol ip is %s ", map_role->rank, map_role->ip);
 
 	thread_data_master = (pthread_t *)zmalloc(sizeof(*thread_data_master));
 	thread_data_server = (pthread_t *)zmalloc(sizeof(*thread_data_server));
