@@ -286,7 +286,7 @@ static void machine_register(event_handler_t *event_handler) {
 	log_write(LOG_DEBUG, "register_machine_num = %d", local_allocator->register_machine_num);
 #endif
 	sds_free(key_ip);
-	if(local_allocator->register_machine_num == local_allocator->machine_num - 1){
+	if(local_allocator->register_machine_num == local_allocator->machine_num){
 		allocate_machine_role(local_allocator);
 	}
 }

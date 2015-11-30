@@ -181,19 +181,20 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 }
 
 static void create_temp_file(event_handler_t *event_handler){
-	puts("CTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
 	//assert(exists);
 	client_create_file_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
 
+	puts("TRY LOCK");
 	pthread_mutex_lock(local_master->mutex_data_master);
+	puts("MY LOCK");
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "create tmp file local_master = %d", local_master->namespace->op);
+	log_write(LOG_DEBUG, "create tmp file local_master = %d", local_master->namespace->op);
 #endif
 	assert(!local_master->namespace->op->file_exists(local_master->namespace, file_name));
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "create tmp file and file not exists");
+	log_write(LOG_DEBUG, "create tmp file and file not exists");
 #endif
 	file_sim_ret_t *file_sim_ret = zmalloc(sizeof(file_sim_ret_t));
 	file_sim_ret->op_status = local_master->namespace->op->add_temporary_file(local_master->namespace, file_name);
@@ -201,7 +202,7 @@ static void create_temp_file(event_handler_t *event_handler){
 	local_master->rpc_server->op->send_result(file_sim_ret, c_cmd->source, c_cmd->unique_tag, sizeof(file_sim_ret_t), ANS);
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "create tmp file end");
+	log_write(LOG_DEBUG, "create tmp file end");
 #endif
 	zfree(file_sim_ret);
 }
@@ -455,8 +456,9 @@ static storage_machine_sta_t* get_self_stor()
  */
 void* data_master_init(void *args){
 	data_master_t *master = args;
-	storage_machine_sta_t *re = get_self_stor();
-	local_master->storage_q->op->syn_queue_push(local_master->storage_q, re);
+	printf("DATA MASTER INIT AND ID IS %d\n", master->rank);
+	//storage_machine_sta_t *re = get_self_stor();
+	//local_master->storage_q->op->syn_queue_push(local_master->storage_q, re);
 
 	master->zserver->op->zserver_start(master->zserver);
 	master->rpc_server->op->server_start(master->rpc_server);

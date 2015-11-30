@@ -32,7 +32,7 @@ static c_d_register_t* get_register_cmd(int rank, uint64_t freeblock, int tag, c
 
 int main(argc, argv)
 	int argc;char ** argv; {
-	int data_master_free_blocks = 24;
+	int data_master_free_blocks = 0;
 	int data_server_free_blocks = SMALL;
 	int rank;
 	int size;
@@ -51,7 +51,7 @@ int main(argc, argv)
 	log_write(LOG_DEBUG, "file open successfully");
 
 	if (rank == 0) {
-		map_role = machine_role_allocator_start(size, rank, file_path, net_name);
+		map_role = machine_role_allocator_start(size - 1, rank, file_path, net_name);
 	}else{
 		usleep(50);
 		map_role = get_role(rank, net_name);
@@ -60,19 +60,16 @@ int main(argc, argv)
 	log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
 
 	if (map_role->type == DATA_MASTER) {
+		log_write(LOG_DEBUG, "ROLE DATA_MASTER AND ID IS %d", rank);
 		data_master_t *master = create_data_master(map_role, data_master_free_blocks);
-		data_server_t *server = alloc_dataserver(data_master_free_blocks, rank);
 		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
 		pthread_create(thread_data_master, NULL, data_master_init, master);
-		pthread_create(thread_data_server, NULL, dataserver_run, server);
 		pthread_create(thread_client, NULL, fclient_run, fclient);
 		pthread_join(*thread_data_master, NULL);
-		pthread_join(*thread_data_server, NULL);
 		pthread_join(*thread_client, NULL);
-		zserver->op->zserver_stop(zserver);
-		destroy_zserver(zserver);
 	} else if (map_role->type == DATA_SERVER) {
+		log_write(LOG_DEBUG, "ROLE DATA_SERVER and ID IS %d", rank);
 		usleep(10);
 		c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
 		data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, 169 + rank);
