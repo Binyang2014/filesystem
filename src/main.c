@@ -70,10 +70,10 @@ int main(argc, argv)
 
 		pthread_create(thread_data_master, NULL, data_master_init, master);
 		pthread_create(thread_data_server, NULL, dataserver_run, server);
-		//pthread_create(thread_client, NULL, fclient_run, fclient);
-		//pthread_join(*thread_data_master, NULL);
-		//pthread_join(*thread_data_server, NULL);
-		//pthread_join(*thread_client, NULL);
+		pthread_create(thread_client, NULL, fclient_run, fclient);
+		pthread_join(*thread_data_master, NULL);
+		pthread_join(*thread_data_server, NULL);
+		pthread_join(*thread_client, NULL);
 	} else if (map_role->type == DATA_SERVER) {
 		usleep(10);
 		c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
@@ -86,9 +86,9 @@ int main(argc, argv)
 		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
 		pthread_create(thread_data_server, NULL, dataserver_run, server);
-		//pthread_create(thread_client, NULL, fclient_run, fclient);
-		//pthread_join(*thread_data_server, NULL);
-		//pthread_join(*thread_client, NULL);
+		pthread_create(thread_client, NULL, fclient_run, fclient);
+		pthread_join(*thread_data_server, NULL);
+		pthread_join(*thread_client, NULL);
 	}
 
 	mpi_finish();

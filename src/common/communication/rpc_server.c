@@ -32,7 +32,7 @@ static void server_start(rpc_server_t *server)
 {
 	server->thread_pool->tp_ops->start(server->thread_pool);
 
-	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START");
+	log_write(LOG_DEBUG, "RPC_SERVER && THREAD POOL START AND ID = %d", server->server_id);
 	if(server->send_queue != NULL)
 	{
 		pthread_create(&server->qsend_tid, NULL, send_msg_from_queue, server);
