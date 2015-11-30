@@ -15,6 +15,7 @@
 #include "rpc_server.h"
 #include "machine_role.h"
 #include "syn_tool.h"
+#include "zookeeper.h"
 
 typedef struct {
 	int rank;

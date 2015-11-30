@@ -12,7 +12,6 @@
 #include "list_queue_util.h"
 #include "zmalloc.h"
 #include "log.h"
-#include "zookeeper.h"
 
 /*--------------------Private Declaration------------------*/
 static int has_enough_space();
