@@ -65,18 +65,19 @@ int main(argc, argv)
 
 	if (map_role->type == DATA_MASTER) {
 		data_master_t *master = create_data_master(map_role, data_master_free_blocks);
-		data_server_t *server = alloc_dataserver(data_server_free_blocks, rank);
+		data_server_t *server = alloc_dataserver(data_master_free_blocks, rank);
 		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
 		pthread_create(thread_data_master, NULL, data_master_init, master);
 		pthread_create(thread_data_server, NULL, dataserver_run, server);
-		pthread_create(thread_client, NULL, fclient_run, fclient);
-		pthread_join(*thread_data_master, NULL);
-		pthread_join(*thread_data_server, NULL);
-		pthread_join(*thread_client, NULL);
+		//pthread_create(thread_client, NULL, fclient_run, fclient);
+		//pthread_join(*thread_data_master, NULL);
+		//pthread_join(*thread_data_server, NULL);
+		//pthread_join(*thread_client, NULL);
 	} else if (map_role->type == DATA_SERVER) {
+		usleep(10);
 		c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
-		data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, rank);
+		data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, 169 + rank);
 		request->op->register_to_master(request, re);
 		destroy_data_master_request(request);
 		zfree(re);
@@ -85,9 +86,9 @@ int main(argc, argv)
 		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
 		pthread_create(thread_data_server, NULL, dataserver_run, server);
-		pthread_create(thread_client, NULL, fclient_run, fclient);
-		pthread_join(*thread_data_server, NULL);
-		pthread_join(*thread_client, NULL);
+		//pthread_create(thread_client, NULL, fclient_run, fclient);
+		//pthread_join(*thread_data_server, NULL);
+		//pthread_join(*thread_client, NULL);
 	}
 
 	mpi_finish();

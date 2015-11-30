@@ -182,13 +182,17 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 	uint16_t operation_code;
 	int error;
 
-#ifdef DATASERVER_COMM_DEBUG
-	log_write(LOG_DEBUG, "In m_resolve function\n");
-#endif
-
 	//access queue use syn_queue_push
+#if DATA_SERVER
+	log_write(LOG_DEBUG, "data server m_resolve queue is %d and t_common_msg = %d", syn_queue, t_common_msg);
+#endif
 	syn_queue->op->syn_queue_pop(syn_queue, &t_common_msg);
 	operation_code = t_common_msg.operation_code;
+
+#ifdef DATASERVER_COMM_DEBUG
+	log_write(LOG_DEBUG, "In m_resolve function and operatopn code is %d\n", operation_code);
+#endif
+
 
 	//this function should solve how to initiate event handler, each thread has its' own
 	//event handler and we do not need to care about it
@@ -225,6 +229,9 @@ void *dataserver_run(void *arg)
 	//msg = (char*)malloc(sizeof(char) * MAX_CMD_MSG_LEN);
 	data_server->rpc_server->op->server_start(data_server->rpc_server);
 //	pthread_create(&tid, NULL, heart_beat, msg);
+#if DATA_SERVER_DEABUG
+	log_write(LOG_DEBUG, "server start success and server rank == %d\n", data_server->machine_id);
+#endif
 	return 0;
 }
 
