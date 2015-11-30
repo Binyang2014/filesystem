@@ -181,6 +181,7 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 }
 
 static void create_temp_file(event_handler_t *event_handler){
+	puts("CTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
 	//assert(exists);
 	client_create_file_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
@@ -194,13 +195,15 @@ static void create_temp_file(event_handler_t *event_handler){
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "create tmp file and file not exists");
 #endif
-
-	local_master->namespace->op->add_temporary_file(local_master->namespace, file_name);
+	file_sim_ret_t *file_sim_ret = zmalloc(sizeof(file_sim_ret_t));
+	file_sim_ret->op_status = local_master->namespace->op->add_temporary_file(local_master->namespace, file_name);
 	pthread_mutex_unlock(local_master->mutex_data_master);
+	local_master->rpc_server->op->send_result(file_sim_ret, c_cmd->source, c_cmd->unique_tag, sizeof(file_sim_ret_t), ANS);
+
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "create tmp file end");
 #endif
-	//send result
+	zfree(file_sim_ret);
 }
 
 static void append_temp_file(event_handler_t *event_handler){

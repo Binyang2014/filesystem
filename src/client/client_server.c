@@ -393,7 +393,7 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	client_create_file = zmalloc(sizeof(client_create_file_t));
 	init_create_msg(client_create_file, createfile_msg);
 	client_create_file->unique_tag = rpc_client->tag;
-
+	puts("CTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT");
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_create_file, sizeof(client_create_file_t));
 	if(rpc_client->op->execute(rpc_client, COMMAND_WITH_RETURN) < 0)
