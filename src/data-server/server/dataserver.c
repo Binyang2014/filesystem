@@ -16,6 +16,7 @@
 #include "basic_list.h"
 #include "log.h"
 #include "zmalloc.h"
+#include "data_master_request.h"
 
 //this is a demo, there are many things to add
 //initial flag

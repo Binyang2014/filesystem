@@ -229,7 +229,7 @@ static void append_temp_file(event_handler_t *event_handler){
 
 	assert(list != NULL);
 	uint64_t length = sizeof(position_des_t);
-	void *pos_arrray = list_to_array(list, length, node->file_size, c_cmd->write_size);
+	void *pos_arrray = list_to_array(list, &length, node->file_size, c_cmd->write_size);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "data master append list to array size = %d", list->len);
 #endif
@@ -356,11 +356,12 @@ static void read_temp_file(event_handler_t *event_handler){
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "read tmp file get_file_list_location");
 #endif
-	void *pos_arrray = list_to_array(result, sizeof(position_des_t));
+	uint64_t size = sizeof(position_des_t);
+	void *pos_arrray = list_to_array(result, &size, c_cmd->offset, c_cmd->read_size);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "read tmp file list_to_array");
 #endif
-	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, list->len * sizeof(position_des_t), ANS);
+	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, size, ANS);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "read tmp file send_result");
 #endif

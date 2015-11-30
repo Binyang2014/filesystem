@@ -50,6 +50,7 @@ typedef struct map_role_value map_role_value_t;
 
 
 map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file_path, char *net_name);
+void get_visual_ip(const char *net_name, char *ip);
 
 /*************************** Machine Role Fetcher ****************/
 struct machine_role_fetcher{

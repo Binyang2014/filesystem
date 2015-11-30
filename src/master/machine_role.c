@@ -40,11 +40,11 @@ static void machine_register(event_handler_t *event_handler);
 static void *resolve_handler(event_handler_t *event_handler, void* msg_queue);
 static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path, char *net_name);
 static void destroy_machine_role_allocater(machine_role_allocator_t *this);
-static void get_visual_ip(char *net_name, char *ip);
 static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetcher);
 static machine_role_fetcher_t *create_machine_role_fetcher(int rank, char *net_name);
 static void destroy_machine_role_fetcher(machine_role_fetcher_t *fetcher);
 extern map_role_value_t *get_role(int rank, char *net_name);
+void get_visual_ip(const char *net_name, char *ip);
 
 /*-----------------------------Implementation--------------------*/
 static void map_list_pair_free(void *value) {
@@ -400,7 +400,7 @@ map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file
 
 /*------------------Machine Role Fetcher--------------------*/
 //TODO get machine visual ip
-static void get_visual_ip(char *net_name, char *ip){
+void get_visual_ip(const char *net_name, char *ip){
 	struct ifaddrs * ifAddrStruct = NULL;
 		void * tmpAddrPtr = NULL;
 
