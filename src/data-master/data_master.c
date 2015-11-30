@@ -12,6 +12,7 @@
 #include "list_queue_util.h"
 #include "zmalloc.h"
 #include "log.h"
+#include "zookeeper.h"
 
 /*--------------------Private Declaration------------------*/
 static int has_enough_space();
@@ -454,6 +455,8 @@ void* data_master_init(void *args){
 	data_master_t *master = args;
 	storage_machine_sta_t *re = get_self_stor();
 	local_master->storage_q->op->syn_queue_push(local_master->storage_q, re);
+
+	master->zserver->op->zserver_start(master->zserver);
 	master->rpc_server->op->server_start(master->rpc_server);
 	return 0;
 }
@@ -477,6 +480,7 @@ data_master_t* create_data_master(map_role_value_t *role, uint64_t free_blocks){
 	this->master_rank = role->master_rank;
 	//this->global_id
 
+	this->zserver = create_zserver(role->rank);
 	this->mutex_data_master = zmalloc(sizeof(pthread_mutex_t));
 	pthread_mutex_init(this->mutex_data_master, NULL);
 	return this;
@@ -487,6 +491,7 @@ void destroy_data_master(data_master_t *this){
 	destroy_name_space(this->namespace);
 	zfree(this->storage_q);
 	sds_free(this->visual_ip);
+	destroy_zserver(this->zserver);
 }
 
 

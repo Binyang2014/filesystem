@@ -35,6 +35,7 @@ struct data_master{
 	uint64_t global_id;
 	rpc_server_t *rpc_server;
 	pthread_mutex_t *mutex_data_master; //
+	zserver_t *zserver;
 };
 
 struct data_master_op{

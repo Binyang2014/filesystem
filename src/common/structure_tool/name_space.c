@@ -25,6 +25,7 @@ static int rename_file(name_space_t *space, sds old_name, sds new_name);
 static int delete_file(name_space_t *space, sds file_name);
 static int file_finish_consistent(struct name_space *space, sds file_name);
 static int file_exists(struct name_space *space, sds file_name);
+static void print_name_space(struct name_space *space);
 
 /*-------------------Local Implementation--------------------*/
 static void *list_dup(void *ptr) {
@@ -119,6 +120,20 @@ static int file_exists(struct name_space *space, sds file_name) {
 	return find(space, file_name) != NULL;
 }
 
+static void print_name_space(struct name_space *space)
+{
+	printf("\n==========START PRINT NAME SPACE==========");
+	printf("space->file_num = %d", space->file_num);
+	map_iterator_t *iter = create_map_iterator(space->name_space);
+	while(iter->op->has_next(iter)){
+		file_node_t *node = iter->op->next(iter);
+		printf("file name is %s and file size is %d\n", node->file_name, node->file_size);
+	}
+
+	destroy_map_iterator(iter);
+	printf("\n==========END PRINT NAME SPACE==========");
+}
+
 static list_t *get_file_location(name_space_t *space, sds file_name){
 	file_node_t *node = find(space, file_name);
 
@@ -162,6 +177,7 @@ name_space_t *create_name_space(size_t size) {
 	this->op->get_file_node = get_file_node;
 	this->op->file_exists = file_exists;
 	this->op->append_file = append_file;
+	this->op->print_name_space = print_name_space;
 	return this;
 }
 

@@ -30,11 +30,6 @@ static c_d_register_t* get_register_cmd(int rank, uint64_t freeblock, int tag, c
 	return re;
 }
 
-int main_init(char *file_name){
-
-}
-
-
 int main(argc, argv)
 	int argc;char ** argv; {
 	int data_master_free_blocks = 24;
@@ -43,6 +38,7 @@ int main(argc, argv)
 	int size;
 	char *file_path = "topo.conf";
 	char *net_name = "eth0";
+	zserver_t *zserver;
 	pthread_t *thread_data_master = (pthread_t *)zmalloc(sizeof(*thread_data_master));
 	pthread_t *thread_data_server = (pthread_t *)zmalloc(sizeof(*thread_data_master));
 	pthread_t *thread_client = (pthread_t *)zmalloc(sizeof(*thread_data_master));
@@ -74,6 +70,8 @@ int main(argc, argv)
 		pthread_join(*thread_data_master, NULL);
 		pthread_join(*thread_data_server, NULL);
 		pthread_join(*thread_client, NULL);
+		zserver->op->zserver_stop(zserver);
+		destroy_zserver(zserver);
 	} else if (map_role->type == DATA_SERVER) {
 		usleep(10);
 		c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);

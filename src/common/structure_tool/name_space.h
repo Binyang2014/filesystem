@@ -44,6 +44,7 @@ struct name_space_op {
 	list_t *(*get_file_location)(struct name_space *space, sds file_name);
 	int (*set_file_location)(struct name_space *space, sds file_name, list_t *list);
 	struct file_node* (*get_file_node)(struct name_space *space, sds file_name);
+	void (*print_name_space)(struct name_space *space);
 };
 
 typedef struct name_space name_space_t;
