@@ -585,6 +585,7 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 	client_append_file = zmalloc(sizeof(client_append_file_t));
 	init_append_msg(client_append_file, appendfile_msg, opened_file);
 	client_append_file->unique_tag = rpc_client->tag;
+	client_append_file->source = rpc_client->client_id;
 
 	//3.create write lock on this server
 	lock_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
@@ -651,6 +652,7 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	client_read_file = zmalloc(sizeof(client_read_file_t));
 	init_read_msg(client_read_file, readfile_msg, opened_file);
 	client_read_file->unique_tag = rpc_client->tag;
+	client_read_file->source = rpc_client->client_id;
 
 	//3.create read lock on this server
 	lock_name = sds_new_len(NULL, MAX_RET_DATA_LEN);

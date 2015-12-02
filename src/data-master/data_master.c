@@ -417,6 +417,16 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	common_msg_t *common_msg = zmalloc(sizeof(*common_msg));
 	syn_queue_t* queue = msg_queue;
 	queue->op->syn_queue_pop(queue, common_msg);
+
+		//if this is a zookeeper cmd, pop until there is a data master cmd
+		//	//if may result in a dead thread
+		while(common_msg->operation_code / 1000 == 5)
+		{
+			local_master->zserver->op->zput_request(local_master->zserver, common_msg);
+			//get another cmd message
+			queue->op->syn_queue_pop(queue, common_msg);
+		}
+
 	switch(common_msg->operation_code)
 	{
 		case REGISTER_TO_DATA_MASTER_CODE:
@@ -427,11 +437,11 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = create_temp_file;
 			break;
-		case APPEND_TEMP_FILE_CODE:
+		case APPEND_FILE_CODE:
 			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = append_temp_file;
 			break;
-		case READ_TEMP_FILE_CODE:
+		case READ_FILE_CODE:
 			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = read_temp_file;
 			break;

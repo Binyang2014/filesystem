@@ -58,7 +58,7 @@ int main(argc, argv)
 	}
 	usleep(10);
 	log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
-/*
+
 	if (map_role->type == DATA_MASTER) {
 		log_write(LOG_DEBUG, "ROLE DATA_MASTER AND ID IS %d", rank);
 		data_master_t *master = create_data_master(map_role, data_master_free_blocks);
@@ -85,7 +85,7 @@ int main(argc, argv)
 		pthread_join(*thread_data_server, NULL);
 		pthread_join(*thread_client, NULL);
 	}
-*/
+
 	mpi_finish();
 	return 0;
 }

@@ -112,6 +112,9 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 		log_write(LOG_ERR, "client has not been provided command message");
 		return -1;
 	}
+#if RPC_CLIENT_DEBUG
+	log_write(LOG_DEBUG, "RPC CLIENT SEND CMD");
+#endif
 	send_cmd_msg(client->send_buff, client->target, client->send_buff_len);
 	switch(exe_type)
 	{

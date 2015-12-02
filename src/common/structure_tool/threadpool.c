@@ -57,7 +57,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 	event_handler->thread_pool->tp_ops->promote_a_leader(event_handler->thread_pool, thread);
 
 #if THREAD_POOL_DEBUG
-	log_write(LOG_DEBUG, "Now new leader has been selected");
+	log_write(LOG_DEBUG, "Now new leader has been selected and resolve_handler = %d", event_handler->resolve_handler);
 #endif
 	//Resolve handler for thread
 	handler = event_handler->resolve_handler(event_handler, event_handler->thread_pool->msg_queue);
@@ -66,7 +66,7 @@ static int handle_event(thread_t* thread, event_handler_t* event_handler)
 	event_handler->thread_pool->tp_ops->reactive_handle(event_handler->thread_pool);
 	event_handler->handler = handler;
 #if THREAD_POOL_DEBUG
-	log_write(LOG_DEBUG, "thread %d is do handling", thread->id);
+	log_write(LOG_DEBUG, "thread %d is do handling and handler = %d", thread->id, event_handler->handler);
 #endif
 	event_handler->handler(event_handler);
 	return 0;

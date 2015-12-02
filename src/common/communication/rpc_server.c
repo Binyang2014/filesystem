@@ -41,7 +41,11 @@ static void server_start(rpc_server_t *server)
 	//TODO multi_thread access server_thread_cancel may read error status
 	while(!server->server_thread_cancel)
 	{
+		puts("RECEIVE");
 		recv_common_msg(server->recv_buff, ANY_SOURCE, CMD_TAG);
+#if RPC_SERVER_DEBUG
+log_write(LOG_DEBUG, "RPC Server received a cmd and code = %d", ((common_msg_t *)server->recv_buff)->operation_code);
+#endif
 		if(((common_msg_t *)server->recv_buff)->operation_code == SERVER_STOP)
 		{
 			server_stop(server);
