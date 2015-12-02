@@ -415,15 +415,14 @@ static void printf_mid(zreturn_mid_t *zreturn)
 }
 
 //==========================RESOLVE HANDLER==============================
-static int init_znode_handler(event_handler_t *event_handler, zserver_t
-		*zserver, void* common_msg)
+static int init_znode_handler(event_handler_t *event_handler, zserver_t *zserver, void* common_msg)
 {
 	list_t *list;
 	void *msg;
 
 	event_handler->special_struct = zserver;
 	event_handler->event_buffer_list = list_create();
-	if( (list = event_handler->event_buffer_list) == NULL )
+	if( (list = event_handler->event_buffer_list) == NULL)
 	{
 		log_write(LOG_ERR, "error when allocate list");
 		return -1;
@@ -456,10 +455,11 @@ static void create_znode_handler(event_handler_t *event_handler)
 	zreturn->return_code = return_code;
 	memset(zreturn->data, 0, sizeof(zreturn->data));
 	if(return_code == ZOK)
+	{
 		memcpy(zreturn->data, return_name, sds_len(return_name));
+	}
 
-	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
-			zmsg->unique_tag, sizeof(zreturn_sim_t));
+	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_sim_t));
 #ifdef ZSERVER_DEBUG
 	printf_sim(zreturn);
 #endif

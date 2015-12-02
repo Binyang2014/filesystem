@@ -27,6 +27,10 @@ static data_master_t *local_master;
 
 /*--------------------Private Implementation---------------*/
 
+static void free_common(void *common)
+{
+	zfree(CMD_TO_COMM_MSG(common));
+}
 static uint32_t hash_code(const sds key, size_t size) {
 	size_t len = sds_len(key);
 	/* 'm' and 'r' are mixing constants generated offline.
@@ -203,6 +207,7 @@ static void create_temp_file(event_handler_t *event_handler){
 	log_write(LOG_DEBUG, "create tmp file end");
 #endif
 	zfree(file_sim_ret);
+	free_common(c_cmd);
 }
 
 static void append_temp_file(event_handler_t *event_handler){
@@ -258,6 +263,7 @@ static void append_temp_file(event_handler_t *event_handler){
 	pthread_mutex_unlock(local_master->mutex_data_master);
 
 	zfree(pos_arrray);
+	free_common(c_cmd);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "append tmp file end");
 #endif
@@ -372,7 +378,7 @@ static void read_temp_file(event_handler_t *event_handler){
 	log_write(LOG_TRACE, "read tmp file list_release");
 #endif
 	zfree(pos_arrray);
-
+	free_common(c_cmd);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "read tmp file end");
 #endif
@@ -404,32 +410,33 @@ static void register_to_master(event_handler_t *event_handler){
 	log_write(LOG_DEBUG, "end register and group size = %d", local_master->storage_q->queue->current_size);
 #endif
 	zfree(stor);
+	free_common(cmd);
 }
 
 static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
-	common_msg_t common_msg;
+	common_msg_t *common_msg = zmalloc(sizeof(*common_msg));
 	syn_queue_t* queue = msg_queue;
-	queue->op->syn_queue_pop(queue, &common_msg);
-	switch(common_msg.operation_code)
+	queue->op->syn_queue_pop(queue, common_msg);
+	switch(common_msg->operation_code)
 	{
 		case REGISTER_TO_DATA_MASTER_CODE:
-			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = register_to_master;
 			break;
 		case CREATE_TEMP_FILE_CODE:
-			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = create_temp_file;
 			break;
 		case APPEND_TEMP_FILE_CODE:
-			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = append_temp_file;
 			break;
 		case READ_TEMP_FILE_CODE:
-			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = read_temp_file;
 			break;
 		case DELETE_TMP_FILE_CODE:
-			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = delete_temp_file;
 			break;
 		default:

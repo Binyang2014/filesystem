@@ -12,7 +12,8 @@
 #include "message.h"
 #include "mpi_communication.h"
 
-void common_msg_dup(void *dest, void *source){
+void common_msg_dup(void *dest, void *source)
+{
 	memcpy(dest, source, sizeof(common_msg_t));
 }
 

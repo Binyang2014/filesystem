@@ -285,7 +285,6 @@ static void *get_event_handler_param(event_handler_t *event_handler) {
 static void machine_register(event_handler_t *event_handler) {
 	machine_register_role_t *param = get_event_handler_param(event_handler);
 
-	usleep(2000);
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "register information source = %d, param ip = %s\n", param->source, param->ip);
 #endif
