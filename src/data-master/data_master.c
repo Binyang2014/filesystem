@@ -185,9 +185,7 @@ static void create_temp_file(event_handler_t *event_handler){
 	client_create_file_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
 
-	puts("TRY LOCK");
 	pthread_mutex_lock(local_master->mutex_data_master);
-	puts("MY LOCK");
 #if DATA_MASTER_DEBUG
 	log_write(LOG_DEBUG, "create tmp file local_master = %d", local_master->namespace->op);
 #endif

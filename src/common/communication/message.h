@@ -101,6 +101,8 @@
 #define SERVER_STOP 9000
 
 #define MSG_COMM_TO_CMD(p_common_msg) ((int8_t*)(p_common_msg) + COMMON_MSG_HEAD)
+#define CMD_TO_COMM_MSG(cmd) ((int8_t*)(cmd) - COMMON_MSG_HEAD)
+
 
 //reply message type and it not complete
 typedef enum {

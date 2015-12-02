@@ -393,14 +393,18 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	client_create_file = zmalloc(sizeof(client_create_file_t));
 	init_create_msg(client_create_file, createfile_msg);
 	client_create_file->unique_tag = rpc_client->tag;
-	printf("CTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT = %d", rpc_client->client_id);
+	client_create_file->source = rpc_client->client_id;
+
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_create_file, sizeof(client_create_file_t));
 	if(rpc_client->op->execute(rpc_client, COMMAND_WITH_RETURN) < 0)
 	{
 		ret_msg.ret_code = FSERVER_ERR;
 	}
-
+	
+#if CLIENT_DEBUG
+	log_write(LOG_DEBUG, "client server create temp file success");
+#endif
 	//create znode on server
 	path = sds_new(createfile_msg->file_path);
 	//have not used data structure now
@@ -416,7 +420,9 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	zclient->op->create_parent(zclient, path, "", PERSISTENT, NULL);
 	sds_free(path);
 	sds_free(data);
-
+#if CLIENT_DEBUG
+	log_write(LOG_DEBUG, "client server create lock success");
+#endif
 	//create opened_file structure and add it to list
 	file_list = fclient->file_list;
 	opened_file = create_openedfile(createfile_msg->file_path, 0, createfile_msg->open_mode);

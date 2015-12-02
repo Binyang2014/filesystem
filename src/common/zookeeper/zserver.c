@@ -473,11 +473,13 @@ static void create_znode_handler(event_handler_t *event_handler)
 
 static void create_parent_handler(event_handler_t *event_handler)
 {
+#if ZSERVER_DEBUG
+	log_write(LOG_DEBUG, "zserver create parent handler start");
+#endif
 	sds path, data, return_name;
 	zserver_t *zserver = event_handler->special_struct;
 	list_t *list = event_handler->event_buffer_list;
-	common_msg_t* common_msg = list_node_value(list->list_ops->list_index(list,
-				0));
+	common_msg_t* common_msg = list_node_value(list->list_ops->list_index(list, 0));
 	zoo_create_znode_t *zmsg = (void *)MSG_COMM_TO_CMD(common_msg);
 	int return_code, source;
 	zreturn_sim_t* zreturn = zmalloc(sizeof(zreturn_sim_t));
@@ -489,13 +491,17 @@ static void create_parent_handler(event_handler_t *event_handler)
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_code = create_parent(zserver, path, data, zmsg->znode_type, return_name);
 
+#if ZSERVER_DEBUG
+	log_write(LOG_DEBUG, "zserver create parent handler execute create parent success");
+#endif
 	zreturn->return_code = return_code;
 	memset(zreturn->data, 0, sizeof(zreturn->data));
 	if(return_code == ZOK)
+	{
 		memcpy(zreturn->data, return_name, sds_len(return_name));
+	}
 
-	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
-			zmsg->unique_tag, sizeof(zreturn_sim_t));
+	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_sim_t));
 #ifdef ZSERVER_DEBUG
 	printf_sim(zreturn);
 #endif

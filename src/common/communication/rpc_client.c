@@ -180,6 +180,9 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 		case COMMAND_WITH_RETURN:
 			head_msg = zmalloc(sizeof(head_msg_t));
 			recv_head_msg(head_msg, client->target, client->tag);
+#if RPC_CLIENT_DEBUG
+			log_write(LOG_DEBUG, "rpc client received head and head length = %d", head_msg->len);
+#endif
 			if(head_msg->op_status != ACC_OK)
 			{
 				log_write(LOG_ERR, "server can not deal with this command");
@@ -189,6 +192,9 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			recv_msg_buff = zmalloc(head_msg->len);
 			set_recv_buff(client, recv_msg_buff, head_msg->len);
 			recv_msg(client->recv_buff, client->target, client->tag, head_msg->len);
+#if RPC_CLIENT_DEBUG
+			log_write(LOG_DEBUG, "rpc client received ans");
+#endif
 			zfree(head_msg);
 			break;
 

@@ -38,7 +38,6 @@ int main(argc, argv)
 	int size;
 	char *file_path = "topo.conf";
 	char *net_name = "eth0";
-	zserver_t *zserver;
 	pthread_t *thread_data_master = (pthread_t *)zmalloc(sizeof(*thread_data_master));
 	pthread_t *thread_data_server = (pthread_t *)zmalloc(sizeof(*thread_data_master));
 	pthread_t *thread_client = (pthread_t *)zmalloc(sizeof(*thread_data_master));
@@ -48,17 +47,18 @@ int main(argc, argv)
 	size = get_mpi_size();
 
 	log_init("", LOG_TRACE);
-	log_write(LOG_DEBUG, "file open successfully");
 
-	if (rank == 0) {
+	if (rank == 0) 
+	{
 		map_role = machine_role_allocator_start(size - 1, rank, file_path, net_name);
-	}else{
+	}else
+	{
 		usleep(50);
 		map_role = get_role(rank, net_name);
 	}
 	usleep(10);
 	log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
-
+/*
 	if (map_role->type == DATA_MASTER) {
 		log_write(LOG_DEBUG, "ROLE DATA_MASTER AND ID IS %d", rank);
 		data_master_t *master = create_data_master(map_role, data_master_free_blocks);
@@ -69,7 +69,7 @@ int main(argc, argv)
 		pthread_join(*thread_data_master, NULL);
 		pthread_join(*thread_client, NULL);
 	} else if (map_role->type == DATA_SERVER) {
-		log_write(LOG_DEBUG, "ROLE DATA_SERVER and ID IS %d", rank);
+		log_write(LOG_DEBUG, "ROLE DATA_SERVER and ID IS %d and master rank = %d", rank, map_role->master_rank);
 		usleep(10);
 		c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
 		data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, 169 + rank);
@@ -85,7 +85,7 @@ int main(argc, argv)
 		pthread_join(*thread_data_server, NULL);
 		pthread_join(*thread_client, NULL);
 	}
-
+*/
 	mpi_finish();
 	return 0;
 }

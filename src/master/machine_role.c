@@ -186,6 +186,10 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 		{
 			get_line_param(fp, buf, key, value);
 			map_key = sds_new(value);
+
+#if MACHINE_ROLE_DEBUG
+			log_write(LOG_DEBUG, "put ip = %s in map", map_key);
+#endif
 			allocator->roles->op->put(allocator->roles, map_key, create_data_server_role(current_master, value));
 			sds_free(map_key);
 		}
@@ -215,10 +219,32 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 	log_write(LOG_DEBUG, "start allocate_machine_role and map size = %d", local_allocator->roles->current_size);
 #endif
 
+	char ip[16] = {};
+	get_visual_ip(allocator->net_name, ip);
+	printf("ZERO IP = %s\n", ip);
+	sds t_ip = sds_new(ip);
+	role = (map_role_value_t *)(roles->op->get(roles, t_ip));
+	puts(role->ip);
+	sds_free(t_ip);
+	t_ip = sds_new(role->master_ip);
+	master_role = (map_role_value_t *)(roles->op->get(roles, t_ip));
+	role->rank = 0;
+	role->master_rank = master_role->rank;
+	sds_free(t_ip);
+	map_role_value_t *zero_role = zmalloc(sizeof(*role));
+	memcpy(zero_role, role, sizeof(*role));
+	local_allocator->role = zero_role;
+
+	role = roles->op->get(roles, sds_new("10.1.1.70"));
+	printf("10.1.1.70 id is %d and ip is %s\n", role->rank, role->ip);
+
+	role = roles->op->get(roles, sds_new("10.1.1.75"));
+	printf("10.1.1.75 id is %d and ip is %s\n", role->rank, role->ip);
 	while(iter->op->has_next(iter))
 	{
 
 		role = iter->op->next(iter);
+		printf("--====%d---0-=\n", role->rank);
 
 #if MACHINE_ROLE_DEBUG
 		print_role(role);
@@ -232,7 +258,7 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 		role->master_rank = master_role->rank;
 
 #if MACHINE_ROLE_DEBUG
-		log_write(LOG_DEBUG, "start send role result and target rank is %d", role->rank);
+		log_write(LOG_DEBUG, "start send role result and target rank is %d, ip is %s", role->rank, role->ip);
 #endif
 
 		allocator->server->op->send_result(role, role->rank, MACHINE_ROLE_GET_ROLE, sizeof(*role), ANS);
@@ -259,23 +285,24 @@ static void *get_event_handler_param(event_handler_t *event_handler) {
 static void machine_register(event_handler_t *event_handler) {
 	machine_register_role_t *param = get_event_handler_param(event_handler);
 
+	usleep(2000);
 #if MACHINE_ROLE_DEBUG
-	log_write(LOG_DEBUG, "register information source = %d, ip = %s\n", param->source, param->ip);
+	log_write(LOG_DEBUG, "register information source = %d, param ip = %s\n", param->source, param->ip);
 #endif
-
 	sds key_ip = sds_new(param->ip);
-
 #if MACHINE_ROLE_DEBUG
-	log_write(LOG_DEBUG, "key ip  = %s", key_ip);
+	log_write(LOG_DEBUG, "machine register ip is %s and id = %d", param->ip, param->source);
 #endif
 
+#if MACHINE_ROLE_DEBUG
+	log_write(LOG_DEBUG, "key ip  = %s param ip = %s", key_ip, param->ip);
+#endif
 	map_role_value_t *role = local_allocator->roles->op->get(local_allocator->roles, key_ip);
 
 #if MACHINE_ROLE_DEBUG
-	log_write(LOG_DEBUG, "get role");
+	log_write(LOG_DEBUG, "machine register ip is %d and id = %s", param->source, param->ip);
 #endif
 
-	strcpy(role->ip, param->ip); //copy role ip
 	role->rank = param->source; //copy role rank
 
 	pthread_mutex_lock(local_allocator->mutex_allocator);
@@ -286,19 +313,22 @@ static void machine_register(event_handler_t *event_handler) {
 	log_write(LOG_DEBUG, "register_machine_num = %d", local_allocator->register_machine_num);
 #endif
 	sds_free(key_ip);
-	if(local_allocator->register_machine_num == local_allocator->machine_num){
+	zfree(CMD_TO_COMM_MSG(param));
+	if(local_allocator->register_machine_num == local_allocator->machine_num)
+	{
 		allocate_machine_role(local_allocator);
 	}
 }
 
-static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) {
-	common_msg_t common_msg;
+static void *resolve_handler(event_handler_t *event_handler, void* msg_queue) 
+{
+	common_msg_t *common_msg = zmalloc(sizeof(*common_msg));
 	syn_queue_t* queue = msg_queue;
-	queue->op->syn_queue_pop(queue, &common_msg);
-	switch(common_msg.operation_code)
+	queue->op->syn_queue_pop(queue, common_msg);
+	switch(common_msg->operation_code)
 	{
 		case MACHINE_REGISTER_TO_MASTER:
-			event_handler->special_struct = MSG_COMM_TO_CMD(&common_msg);
+			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = machine_register;
 			break;
 		default:
@@ -323,7 +353,7 @@ static machine_role_allocator_t *create_machine_role_allocator(size_t size, int 
 
 	this->op->get_net_topology = get_net_topology;
 	this->op->machine_register = machine_register;
-	this->server = create_rpc_server(10, 1024, rank, resolve_handler);
+	this->server = create_rpc_server(1, 1024, rank, resolve_handler);
 
 	this->mutex_allocator = zmalloc(sizeof(pthread_mutex_t));
 	pthread_mutex_init(this->mutex_allocator, NULL);
@@ -472,18 +502,10 @@ static void destroy_machine_role_fetcher(machine_role_fetcher_t *fetcher)
 }
 
 map_role_value_t *get_role(int rank, char *net_name){
-	if(rank == 0){
-		map_role_value_t *result = zmalloc(sizeof(*result));
-		result->rank = rank;
-		get_visual_ip(net_name, result->ip);
-		sds ip = sds_new(result->ip);
-		map_role_value_t *role = local_allocator->roles->op->get(local_allocator->roles, ip);
-		result->master_rank = role->master_rank;
-		strcpy(result->master_ip, role->master_ip);
-		result->type = role->type;
-		result->group_size = role->group_size;
-
-		return result;
+	if(rank == 0)
+	{
+		while(local_allocator->role == NULL);
+		return local_allocator->role;
 	}
 
 #if MACHINE_ROLE_FETCHER_DEBUG

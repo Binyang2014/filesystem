@@ -83,9 +83,11 @@ int main(int argc, char *argv[])
 		int ret_num;
 		stop_server_msg_t *stop_server_msg = NULL;
 
+		puts("let us go to create client 嗨");
 		zclient = create_zclient(rank);
+		puts("我才不是0号进程呢，傲娇脸，哼~");
 		zclient->op->start_zclient(zclient);
-
+		printf("this is a fantastic world");
 		path = sds_new("/data/research.bat");
 		data = sds_new("This is first test");
 		return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);

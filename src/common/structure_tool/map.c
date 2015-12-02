@@ -97,10 +97,12 @@ static pair_t *find(map_t *this, const sds key){
 	return NULL;
 }
 
-static int put(map_t *this, sds key, void *value) {
+static int put(map_t *this, sds key, void *value) 
+{
 	pair_t *node = find(this, key);
 
-	if(node == NULL) {
+	if(node == NULL) 
+	{
 		uint32_t h = map_gen_hash_function(key, this->size);
 		list_t *l = *(this->list + h);
 
@@ -113,10 +115,13 @@ static int put(map_t *this, sds key, void *value) {
 		//change key_list
 		this->key_list->list_ops->list_add_node_tail(this->key_list, sds_dup(pair->key));
 		return 1;
-	}else {
-		if(this->value_free) {
+	}else 
+	{
+		if(this->value_free) 
+		{
 			this->value_free(node->value);
-		}else {
+		}else 
+		{
 			zfree(node->value);
 		}
 		node->value = this->value_dup ? this->value_dup(value) : value;
@@ -124,39 +129,42 @@ static int put(map_t *this, sds key, void *value) {
 	}
 }
 
-static void *get(map_t *this, const sds key) {
+static void *get(map_t *this, const sds key) 
+{
 	pair_t *node = find(this, key);
 
 	return node == NULL ? NULL : (this->value_dup ? this->value_dup(node->value) : node->value);
 }
 
-static int contains(map_t *this, sds key) {
+static int contains(map_t *this, sds key) 
+{
 	return find(this, key) != NULL;
 }
 
-static int modify_key(map_t *this, sds old_key, sds new_key) {
+static int modify_key(map_t *this, sds old_key, sds new_key) 
+{
 	uint32_t h = map_gen_hash_function(old_key, this->size);
 
 	list_t *l = *(this->list + h);
 	list_iter_t *iter = l->list_ops->list_get_iterator(l, AL_START_HEAD);
 	list_node_t *node = l->list_ops->list_next(iter);
 	list_node_t *key_list_node;
-	while(node) {
-		if(sds_cmp(((pair_t *)node->value)->key, old_key) == 0) {
+	while(node) 
+	{
+		if(sds_cmp(((pair_t *)node->value)->key, old_key) == 0) 
+		{
 			l->list_ops->list_remove_node(l, node);
 			sds_free(((pair_t *)node->value)->key);
 			put(this, sds_dup(new_key), node->value);
 
 			//change key_list
-			this->key_list->list_ops->list_add_node_tail(this->key_list,
-					sds_dup(new_key));
-			key_list_node = this->key_list->list_ops->list_search_key(this->key_list,
-						old_key);
-			this->key_list->list_ops->list_del_node(this->key_list,
-					key_list_node);
+			this->key_list->list_ops->list_add_node_tail(this->key_list, sds_dup(new_key));
+			key_list_node = this->key_list->list_ops->list_search_key(this->key_list, old_key);
+			this->key_list->list_ops->list_del_node(this->key_list, key_list_node);
 
 			l->list_ops->list_release_iterator(iter);
-			if(this->value_dup) {
+			if(this->value_dup) 
+			{
 				this->key_free(((pair_t *)node->value)->key);
 				this->value_free(((pair_t *)node->value)->value);
 			}
@@ -171,20 +179,23 @@ static int modify_key(map_t *this, sds old_key, sds new_key) {
 	return -1;
 }
 
-static size_t get_size(map_t *this) {
+static size_t get_size(map_t *this) 
+{
 	assert(this->current_size >= 0);
 
 	return this->current_size;
 }
 
-static int del(map_t *this, sds key){
+static int del(map_t *this, sds key)
+{
 	uint32_t h = map_gen_hash_function(key, this->size);
 
 	list_t *l = *(this->list + h);
 	list_iter_t *iter = l->list_ops->list_get_iterator(l, AL_START_HEAD);
 	list_node_t *node = l->list_ops->list_next(iter);
 	list_node_t *key_list_node;
-	while(node) {
+	while(node) 
+	{
 		if(sds_cmp(((pair_t *)node->value)->key, key) == 0) {
 			l->list_ops->list_del_node(l, node);
 			this->current_size--;
