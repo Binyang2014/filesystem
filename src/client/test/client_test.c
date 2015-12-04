@@ -23,8 +23,24 @@ int main()
 	}
 	log_write(LOG_DEBUG, "file open successfully");
 	f_append(fd, buf, sizeof(buf));
+	memset(buf, 0, 21);
 	f_read(fd, read_buf, 21);
-	printf("data is %s\n", read_buf);
+	printf("1data is %s\n", read_buf);
+	memset(buf, 0, 21);
+
+	f_read(fd, read_buf, 21);
+	printf("2data is %s\n", read_buf);
+	memset(buf, 0, 21);
+	f_read(fd, read_buf, 21);
+	printf("3data is %s\n", read_buf);
+	memset(buf, 0, 21);
+
+	f_read(fd, read_buf, 21);
+	printf("4data is %s\n", read_buf);
+
+
+
+
 	f_close(fd);
 
 	//read again
