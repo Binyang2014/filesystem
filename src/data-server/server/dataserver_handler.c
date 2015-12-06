@@ -50,7 +50,7 @@ static int m_read_handler(data_server_t* data_server, int source, int tag, msg_f
 	int ans = 0, msg_blocks, msg_rest, i, temp_ans = 0;
 	off_t offset;
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "start read from data server");
 #endif
 
@@ -95,7 +95,7 @@ static int m_read_handler(data_server_t* data_server, int source, int tag, msg_f
 			temp_ans, DATA);
 	ans = ans + temp_ans;
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "read finished and the bytes of read is %d", ans);
 #endif
 
@@ -132,7 +132,7 @@ static int m_write_handler(data_server_t* data_server, int source, int tag, msg_
 	offset = file_info->offset;
 	msg_blocks = msg_blocks + (msg_rest ? 1 : 0);
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "will receive message from client");
 #endif
 
@@ -148,7 +148,7 @@ static int m_write_handler(data_server_t* data_server, int source, int tag, msg_
 		ans = ans + temp_ans;
 	}
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "write finish and the number of write bytes is %d", ans);
 #endif
 

@@ -130,7 +130,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 	}
 	memcpy(t_buff->value, common_msg, sizeof(common_msg_t));
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "the cmmon_msg is %p", t_buff->value);
 #endif
 
@@ -141,7 +141,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 		return -1;
 	}
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "the data_buff is %p", t_buff->value);
 #endif
 
@@ -152,7 +152,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 		return -1;
 	}
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "the file_info_buff is %p\n", t_buff->value);
 #endif
 
@@ -163,7 +163,7 @@ static int init_rw_event_handler(event_handler_t* event_handler,
 		return -1;
 	}
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "the f_arr_buff is %p", t_buff->value);
 	log_write(LOG_DEBUG, "the buffer size is %d", ((vfs_hashtable_t*)t_buff->value)->hash_table_size);
 	log_write(LOG_DEBUG, "the array buffer is %p", ((vfs_hashtable_t*)t_buff->value)->blocks_arr);
@@ -189,7 +189,7 @@ void* m_resolve(event_handler_t* event_handler, void* msg_queue)
 	syn_queue->op->syn_queue_pop(syn_queue, &t_common_msg);
 	operation_code = t_common_msg.operation_code;
 
-#ifdef DATASERVER_COMM_DEBUG
+#if DATASERVER_COMM_DEBUG
 	log_write(LOG_DEBUG, "In m_resolve function and operatopn code is %d\n", operation_code);
 #endif
 

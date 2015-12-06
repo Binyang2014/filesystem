@@ -693,7 +693,9 @@ static void exists_znode_handler(event_handler_t *event_handler)
 
 static void *resolve_handler(event_handler_t *event_handler, void *msg_queue)
 {
+#if ZSEVER_DEBUG
 	puts("RECEIVE+++++++++++++++++MESSAGR");
+#endif
 	static common_msg_t common_msg;
 	syn_queue_t *queue = msg_queue;
 

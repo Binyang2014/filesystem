@@ -239,7 +239,7 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 	uint32_t block_num;
 	off_t offset_in_group;
 
-#ifdef VFS_RW_DEBUG
+#if VFS_RW_DEBUG
 	char* alloced_block;
 	uint64_t chunk_num;
 #endif
@@ -250,7 +250,7 @@ static int read_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_t
 
 	memcpy(buffer, find_a_block(this->super_block, block_num) + offset_in_group, nbytes);
 
-#ifdef VFS_RW_DEBUG
+#if VFS_RW_DEBUG
 	printf("--------------VFS_RW_DEBUG READ PART------------------\n");
 	alloced_block = find_a_block(this->super_block, block_num);
 	printf("The address of alloced block is %p\n", alloced_block);
@@ -322,7 +322,7 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 	uint32_t block_num;
 	off_t offset_in_group;
 
-#ifdef VFS_RW_DEBUG
+#if VFS_RW_DEBUG
 	char* alloced_block;
 #endif
 
@@ -333,7 +333,7 @@ static int write_n_bytes(dataserver_file_t *this, char* buffer, int nbytes, off_
 	//memcpy do not change super block, so we can put it out
 	memcpy(find_a_block(this->super_block, block_num) + offset_in_group, buffer, nbytes);
 
-#ifdef VFS_RW_DEBUG
+#if VFS_RW_DEBUG
 	uint64_t chunk_num;
 	printf("--------------VFS_RW_DEBUG WRITE PART-----------------\n");
 	alloced_block = find_a_block(this->super_block, block_num);
