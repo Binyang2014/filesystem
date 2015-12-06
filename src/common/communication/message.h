@@ -292,7 +292,7 @@ typedef struct client_create_file {
 
 typedef struct file_ret {
 	uint64_t offset; //This is offset from beginning
-	uint64_t file_size;
+	uint64_t read_write_len;
 	uint64_t dataserver_num;
 }file_ret_t;
 

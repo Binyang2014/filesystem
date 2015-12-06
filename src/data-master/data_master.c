@@ -244,7 +244,7 @@ static void append_temp_file(event_handler_t *event_handler){
 	list_t *list = allocate_space(c_cmd->write_size, index, node);
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append allocate space end");
+	log_write(LOG_TRACE, "data master append allocate space end and allocate size = %d", c_cmd->write_size);
 #endif
 
 	assert(list != NULL);
@@ -266,7 +266,7 @@ static void append_temp_file(event_handler_t *event_handler){
 
 	//set location
 	local_master->namespace->op->set_file_location(local_master->namespace, file_name, list);
-	local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size);
+	assert(local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size) == 0);
 
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "data master append name space append file");
@@ -359,20 +359,26 @@ static void read_temp_file(event_handler_t *event_handler){
 	uint64_t read_size = c_cmd->read_size;
 	uint64_t offset = c_cmd->offset;
 	uint64_t read_blocks;
+#if DATA_MASTER_DEBUG
+	printf("read_size = %d, offset = %d, file->size = %d", read_size, offset, node->file_size);
+#endif
 	assert(read_size + offset <= node->file_size);
 	uint64_t read_offset = offset / BLOCK_SIZE;
-	if(offset % BLOCK_SIZE == 0){
+	if(offset % BLOCK_SIZE == 0)
+	{
 		read_blocks = ceil((double)read_size / BLOCK_SIZE);
-	}else{
+	}else
+	{
 		read_blocks = ceil((double)(read_size + offset) / BLOCK_SIZE) - offset / BLOCK_SIZE;
 	}
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "read tmp file read_blocks = %d", read_blocks);
+	log_write(LOG_TRACE, "read tmp file read_blocks = %d and offset = %d", read_blocks, c_cmd->offset);
 #endif
 
 	list_t *result = get_file_list_location(read_blocks, read_offset, list);
 #if DATA_MASTER_DEBUG
+	print_allocate_list(list);
 	log_write(LOG_TRACE, "read tmp file get_file_list_location");
 #endif
 	uint64_t size = sizeof(position_des_t);
@@ -508,7 +514,7 @@ data_master_t* create_data_master(map_role_value_t *role, uint64_t free_blocks){
 	this->free_blocks = free_blocks;
 	this->visual_ip = sds_new(role->ip);
 	this->master_rank = role->master_rank;
-	//this->global_id
+	this->global_id = 0;
 
 	this->zserver = create_zserver(role->rank);
 	this->mutex_data_master = zmalloc(sizeof(pthread_mutex_t));

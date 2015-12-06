@@ -89,6 +89,7 @@ struct readfile_msg
 	uint16_t operation_code;
 	size_t data_len;
 	int fd;
+	uint64_t offset;
 };
 
 struct removefile_msg

@@ -21,9 +21,9 @@ void *list_to_array(list_t *list, uint64_t *size, uint64_t offset, uint64_t writ
 	int index = 0;
 	uint64_t *head = (uint64_t *)pos;
 	*head = length;
-	*(head + 1) = offset;
+	*(head + 1) = offset % BLOCK_SIZE;
 	*(head + 2) = write_len;
-	*(head + 3) =  list->len;
+	*(head + 3) = list->len;
 	position_des_t *position = (position_des_t *)(head + 4);
 	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	while (list->list_ops->list_has_next(iter)) {

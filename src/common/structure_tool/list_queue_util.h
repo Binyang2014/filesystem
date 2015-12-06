@@ -12,6 +12,7 @@
 #include "basic_queue.h"
 #include "basic_list.h"
 #include "message.h"
+#include "global.h"
 
 void *list_to_array(list_t *list, uint64_t *size, uint64_t offset, uint64_t write_len);
 basic_queue_t *list_to_queue(list_t *list, size_t size);

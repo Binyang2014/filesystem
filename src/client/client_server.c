@@ -92,7 +92,7 @@ static void init_read_msg(client_read_file_t * client_read_file, const
 	client_read_file->operation_code = READ_FILE_CODE;
 	strcpy(client_read_file->file_name, opened_file->f_info.file_path);
 	client_read_file->read_size = readfile_msg->data_len;
-	client_read_file->offset = opened_file->f_info.file_offset;
+	client_read_file->offset = readfile_msg->offset;
 }
 
 static void init_remove_msg(client_remove_file_t *client_remove_file, const
@@ -269,11 +269,13 @@ static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg, voi
 	write_c_to_d_t write_msg;
 	char *data_msg;
 	uint64_t *head;
+	uint64_t write_size;
 	file_ret_t *file_ret;
 	position_des_t *position;
 
 	head = (uint64_t *)pos;
 	file_ret = (file_ret_t *)(head + 1);//TODO not hard code here
+	write_size = file_ret->read_write_len;
 	position = (position_des_t *)(head + 4);
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
@@ -288,6 +290,11 @@ static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg, voi
 		rpc_client->target = server_id;
 		write_msg.chunks_count = posi->end - posi->start + 1;
 		write_msg.write_len = BLOCK_SIZE * (write_msg.chunks_count) - write_msg.offset;
+		if(write_size < write_msg.write_len)
+		{
+			write_msg.write_len = write_size;
+		}
+		write_size -= write_msg.write_len;
 		data_msg = zmalloc(write_msg.write_len);
 		read(fclient->fifo_rfd, data_msg, write_msg.write_len);
 
@@ -321,11 +328,13 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, void *pos
 	read_c_to_d_t read_msg;
 	char *data_msg;
 	uint64_t *head;
+	uint64_t read_size;
 	file_ret_t *file_ret;
 	position_des_t *position;
 
 	head = (uint64_t *)pos;
 	file_ret = (file_ret_t *)(head + 1);
+	read_size = file_ret->read_write_len;
 	position = (position_des_t *)(head + 4);
 	dataserver_num = file_ret->dataserver_num;
 	rpc_client = fclient->rpc_client;
@@ -334,6 +343,7 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, void *pos
 	//send read times to client
 	read_times = dataserver_num;
 	read_msg.offset = file_ret->offset;
+	printf("\n********** offset  = %d *****************\n", file_ret->offset);
 	write(fclient->fifo_wfd, &read_times, sizeof(int));
 	//read data and send data to client
 	for(i = 0; i < dataserver_num; i++)
@@ -345,9 +355,16 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, void *pos
 
 		read_msg.chunks_count = posi->end - posi->start + 1;
 		read_msg.read_len = read_msg.chunks_count * BLOCK_SIZE - read_msg.offset;
+		if(read_size < read_msg.read_len)
+		{
+			read_msg.read_len = read_size;
+		}
+		read_size -= read_msg.read_len;
 		data_msg = zmalloc(read_msg.read_len);
-
-
+#if CLIENT_DEBUG
+log_write(LOG_DEBUG, "client server read data size = %d, count = %d, offset = %d", read_msg.read_len, read_msg.chunks_count, read_msg.offset);
+#endif
+		
 		for(j = posi->start; j <= posi->end; j++)
 		{
 			read_msg.chunks_id_arr[j - posi->start] = j;
@@ -667,6 +684,7 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	pthread_mutex_destroy(mutex);
 	zfree(mutex);
 
+	printf("\n\n*****%d\n\n", client_read_file->offset);
 	//4.send read message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_read_file, sizeof(client_read_file_t));
 	if(rpc_client->op->execute(rpc_client, COMMAND_WITH_RETURN) < 0)
