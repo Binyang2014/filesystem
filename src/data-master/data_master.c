@@ -25,6 +25,19 @@ static data_master_t *local_master;
 /*--------------------API Declaration----------------------*/
 
 
+/*--------------------Test Print---------------------------*/
+static void print_allocate_list(list_t *list)
+{
+	log_write(LOG_DEBUG, "\nprint allocate space start, list->size = %d", list->len);
+	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
+	while(list->list_ops->list_has_next(iter))
+	{
+		position_des_t *p = list->list_ops->list_next(iter)->value;
+		log_write(LOG_DEBUG, "data server id = %d, start = %d, end = %d", p->rank, p->start, p->end);
+	}
+	list->list_ops->list_release_iterator(iter);
+	log_write(LOG_DEBUG, "print allocate space end\n");
+}
 /*--------------------Private Implementation---------------*/
 
 static void free_common(void *common)
@@ -196,7 +209,7 @@ static void create_temp_file(event_handler_t *event_handler){
 	assert(!local_master->namespace->op->file_exists(local_master->namespace, file_name));
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_DEBUG, "create tmp file and file not exists");
+	log_write(LOG_TRACE, "create tmp file and file not exists");
 #endif
 	file_sim_ret_t *file_sim_ret = zmalloc(sizeof(file_sim_ret_t));
 	file_sim_ret->op_status = local_master->namespace->op->add_temporary_file(local_master->namespace, file_name);
@@ -235,6 +248,9 @@ static void append_temp_file(event_handler_t *event_handler){
 #endif
 
 	assert(list != NULL);
+#if DATA_MASTER_DEBUG
+	print_allocate_list(list);
+#endif
 	uint64_t length = sizeof(position_des_t);
 	void *pos_arrray = list_to_array(list, &length, node->file_size, c_cmd->write_size);
 #if DATA_MASTER_DEBUG
@@ -250,11 +266,6 @@ static void append_temp_file(event_handler_t *event_handler){
 
 	//set location
 	local_master->namespace->op->set_file_location(local_master->namespace, file_name, list);
-
-#if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append set file location");
-#endif
-
 	local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size);
 
 #if DATA_MASTER_DEBUG
