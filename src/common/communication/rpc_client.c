@@ -130,7 +130,9 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 			recv_data(client, head_msg->len);
 			acc_msg = zmalloc(sizeof(acc_msg_t));
 			send_acc_msg(acc_msg, client->target, client->tag, ACC_OK);
+#if RPC_CLIENT_DEBUG
 			log_write(LOG_INFO, "finish read operation");
+#endif
 			zfree(head_msg);
 			zfree(acc_msg);
 			break;
@@ -161,7 +163,9 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				zfree(acc_msg);
 				return -1;
 			}
+#if RPC_CLIENT_DEBUG
 			log_write(LOG_INFO, "finish write operation");
+#endif
 			zfree(acc_msg);
 			break;
 
@@ -174,7 +178,9 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				zfree(acc_msg);
 				return -1;
 			}
+#if RPC_CLIENT_DEBUG
 			log_write(LOG_INFO, "command execute successfully");
+#endif
 			zfree(acc_msg);
 			break;
 
@@ -213,8 +219,10 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				zfree(acc_msg);
 				return -1;
 			}
+#if RPC_CLIENT_DEBUG
 			//send this message again to let server stop
 			log_write(LOG_INFO, "server will stop soon");
+#endif
 			zfree(acc_msg);
 			break;
 
@@ -248,8 +256,8 @@ rpc_client_t *create_rpc_client(int client_id, int target, int tag)
 	this->op->set_second_send_buff = set_second_send_buff;
 	return this;
 }
-static void set_recv_buff(struct rpc_client* client, void* buff , uint32_t
-		recv_buff_len)
+
+static void set_recv_buff(struct rpc_client* client, void* buff , uint32_t recv_buff_len)
 {
 	client->recv_buff = buff;
 	client->recv_buff_len = recv_buff_len;
@@ -261,14 +269,14 @@ static void set_send_buff(struct rpc_client* client, void* buff, uint32_t send_b
 	client->send_buff_len = send_buff_len;
 }
 
-static void set_second_send_buff(struct rpc_client* client, void* buff, uint32_t
-		second_send_buff_len)
+static void set_second_send_buff(struct rpc_client* client, void* buff, uint32_t second_send_buff_len)
 {
 	client->second_send_buff = buff;
 	client->second_send_buff_len = second_send_buff_len;
 }
 
-void destroy_rpc_client(rpc_client_t *client) {
+void destroy_rpc_client(rpc_client_t *client) 
+{
 	zfree(client->op);
 	zfree(client);
 }

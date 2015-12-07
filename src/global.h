@@ -32,7 +32,7 @@
 
 #define DEBUG 1
 #define DEBUG_Y DEBUG & 1
-#define DEBUG_N DEBUG & 0
+#define DEBUG_N DEBUG & 1
 //DEBUG
 #define CLIENT_DEBUG DEBUG_Y
 #define RPC_SERVER_DEBUG DEBUG_N

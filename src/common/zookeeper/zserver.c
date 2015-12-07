@@ -111,7 +111,7 @@ static int notice_child(zserver_t *zserver, zvalue_t *value, int notice_type, zv
 	strcpy(ret_msg->ret_data, watch_data.unique_code);
 	zstatus_dup(&ret_msg->status, &watch_node->status);
 	//for debug
-#ifdef ZSERVER_DEBUG
+#if ZSERVER_DEBUG
 	print_watch(ret_msg);
 #endif
 
@@ -460,7 +460,7 @@ static void create_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_sim_t));
-#ifdef ZSERVER_DEBUG
+#if ZSERVER_DEBUG
 	printf_sim(zreturn);
 #endif
 
@@ -502,7 +502,7 @@ static void create_parent_handler(event_handler_t *event_handler)
 	}
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_sim_t));
-#ifdef ZSERVER_DEBUG
+#if ZSERVER_DEBUG
 	printf_sim(zreturn);
 #endif
 
@@ -515,11 +515,13 @@ static void create_parent_handler(event_handler_t *event_handler)
 
 static void delete_znode_handler(event_handler_t *event_handler)
 {
+#if ZSERVER_DEBUG
+log_write(LOG_DEBUG, "start delete znode");
+#endif
 	sds path;
 	zserver_t *zserver = event_handler->special_struct;
 	list_t *list = event_handler->event_buffer_list;
-	common_msg_t* common_msg = list_node_value(list->list_ops->list_index(list,
-				0));
+	common_msg_t* common_msg = list_node_value(list->list_ops->list_index(list, 0));
 	zoo_delete_znode_t *zmsg = (void *)MSG_COMM_TO_CMD(common_msg);
 	int return_code, source;
 	zreturn_base_t* zreturn = zmalloc(sizeof(zreturn_base_t));
@@ -527,15 +529,20 @@ static void delete_znode_handler(event_handler_t *event_handler)
 
 	source = common_msg->source;
 	path = sds_new((const char *)zmsg->path);
-	if(zmsg->version == (uint16_t)-1)
+	if(zmsg->version == (uint16_t) - 1)
+	{
 		return_code =  delete_znode(zserver, path, -1);
+	}
 	else
+	{
 		return_code =  delete_znode(zserver, path, zmsg->version);
-
+	}
+#if ZSERVER_DEBUG
+	log_write(LOG_DEBUG, "delete znode handler send zreturn code to queue");
+#endif
 	zreturn->return_code = return_code;
-	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
-			zmsg->unique_tag, sizeof(zreturn_base_t));
-#ifdef ZERVER_DEBUG
+	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_base_t));
+#if ZERVER_DEBUG
 	printf_base(zreturn);
 #endif
 
@@ -568,7 +575,7 @@ static void set_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_base_t));
-#ifdef ZSERVER_DEBUG
+#if ZSERVER_DEBUG
 	printf_base(zreturn);
 #endif
 
@@ -610,7 +617,7 @@ static void get_znode_handler(event_handler_t *event_handler)
 	}
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_complex_t));
-#ifdef ZERVER_DEBUG
+#if ZERVER_DEBUG
 	printf_complex(zreturn);
 #endif
 
@@ -643,7 +650,7 @@ static void get_children_handler(event_handler_t *event_handler)
 		memcpy(zreturn->data, return_data, sds_len(return_data));
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_sim_t));
-#ifdef ZSERVER_DEBUG
+#if ZSERVER_DEBUG
 	printf_sim(zreturn);
 #endif
 
@@ -681,7 +688,7 @@ static void exists_znode_handler(event_handler_t *event_handler)
 
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
 			zmsg->unique_tag, sizeof(zreturn_mid_t));
-#ifdef ZERVER_DEBUG
+#if ZERVER_DEBUG
 	printf_mid(zreturn);
 #endif
 
