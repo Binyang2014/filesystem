@@ -21,7 +21,9 @@ int main()
 		log_write(LOG_ERR, "open file failed");
 		exit(1);
 	}
+	f_close(fd);
 	log_write(LOG_DEBUG, "file open successfully");
+	f_open("temp/a.txt", RDWR);
 	f_append(fd, buf, sizeof(buf));
 	memset(buf, 0, 21);
 	f_read(fd, read_buf, 21);
