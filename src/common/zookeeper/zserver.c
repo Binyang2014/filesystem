@@ -542,13 +542,13 @@ log_write(LOG_DEBUG, "start delete znode");
 #endif
 	zreturn->return_code = return_code;
 	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_base_t));
-#if ZERVER_DEBUG
+#if ZSERVER_DEBUG
 	printf_base(zreturn);
 #endif
 
-	sds_free(path);
-	zfree(zreturn);
-	list_release(list);
+	//sds_free(path);
+	//zfree(zreturn);
+	//list_release(list);
 }
 
 static void set_znode_handler(event_handler_t *event_handler)
@@ -573,8 +573,7 @@ static void set_znode_handler(event_handler_t *event_handler)
 
 	zreturn->return_code = return_code;
 
-	rpc_server->op->send_to_queue(rpc_server, zreturn, source,
-			zmsg->unique_tag, sizeof(zreturn_base_t));
+	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_base_t));
 #if ZSERVER_DEBUG
 	printf_base(zreturn);
 #endif

@@ -648,6 +648,9 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 //read data from data_server
 static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 {
+#if CLIENT_DEBUG
+	log_write(LOG_DEBUG, "client server f_read start");
+#endif
 	rpc_client_t *rpc_client = NULL;
 	client_read_file_t *client_read_file = NULL;
 	int fifo_wfd, fd;
@@ -658,7 +661,10 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	sds lock_name;
 	file_ret_msg_t ret_msg;
 
-	log_write(LOG_DEBUG, "read a file");
+#if CLIENT_DEBUG
+	log_write(LOG_DEBUG, "READ A FILE");
+#endif
+
 	//1.find right structure
 	fd = readfile_msg->fd;
 	file_list = fclient->file_list;
@@ -683,8 +689,9 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	pthread_mutex_unlock(mutex);
 	pthread_mutex_destroy(mutex);
 	zfree(mutex);
-
-	printf("\n\n*****%d\n\n", client_read_file->offset);
+#if CLIENT_DEBUG
+	log_write(LOG_DEBUG, "client f_read and offset = %d", client_read_file->offset);
+#endif
 	//4.send read message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_read_file, sizeof(client_read_file_t));
 	if(rpc_client->op->execute(rpc_client, COMMAND_WITH_RETURN) < 0)
@@ -695,19 +702,32 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 	//5.recv data from dataserver and send to fifo
 	read_data(fclient, readfile_msg, rpc_client->recv_buff);
 
+#if CLIENT_DEBUG
+log_write(LOG_DEBUG, "client server read data");
+#endif
+
 	//6.delete lock
 	zclient->op->delete_znode(zclient, lock_name, -1);
-
+#if CLIENT_DEBUG
+log_write(LOG_DEBUG, "client server delete lock");
+#endif
 	//7.copy result to share memory
 	fifo_wfd = fclient->fifo_wfd;
 	ret_msg.fd = -1;
-	if(ret_msg.ret_code != FSERVER_ERR){
+	if(ret_msg.ret_code != FSERVER_ERR)
+	{
 		ret_msg.ret_code = FOK;//TODO code_transfer
 	}
 	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
 
+#if CLIENT_DEBUG
+log_write(LOG_DEBUG, "client server write to memory");
+#endif
 	zfree(client_read_file);
-	zfree(rpc_client->recv_buff);
+//	zfree(rpc_client->recv_buff);
+#if CLIENT_DEBUG
+log_write(LOG_DEBUG, "client server end f_read");
+#endif
 }
 
 //create file client server and need to know data-master id and tag

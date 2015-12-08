@@ -150,7 +150,9 @@ static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag, i
 	syn_queue_t *send_queue = server->send_queue;
 	rpc_send_msg_t *rpc_send_msg = server->send_buff;
 	assert(rpc_send_msg->msg == NULL);
-
+#if RPC_SERVER_DEBUG
+	log_write(LOG_DEBUG, "rpc server send to queue haha");
+#endif
 	rpc_send_msg->dst = dst;
 	rpc_send_msg->tag = tag;
 	rpc_send_msg->length = len;
@@ -158,6 +160,9 @@ static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag, i
 	memcpy(rpc_send_msg->msg, param, len);
 	send_queue->op->syn_queue_push(send_queue, rpc_send_msg);
 	rpc_send_msg->msg = NULL;
+#if RPC_SERVER_DEBUG
+	log_write(LOG_DEBUG, "rpc server send to queue end");
+#endif
 }
 
 static void clean_up(void *rpc_send_msg)
@@ -174,10 +179,16 @@ static void* send_msg_from_queue(void* server)
 	pthread_cleanup_push(clean_up, rpc_send_msg);
 	while(1)
 	{
+#if RPC_SERVER_DEBUG
+	log_write(LOG_DEBUG, "rpc server send message from queue start");
+#endif
 		send_queue->op->syn_queue_pop(send_queue, rpc_send_msg);
 		send_msg(rpc_send_msg->msg, rpc_send_msg->dst, rpc_send_msg->tag, rpc_send_msg->length);
 		zfree(rpc_send_msg->msg);
 		rpc_send_msg->msg = NULL;
+#if RPC_SERVER_DEBUG
+	log_write(LOG_DEBUG, "rpc server send message from queue end");
+#endif
 	}
 
 	pthread_cleanup_pop(0);

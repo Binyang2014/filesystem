@@ -378,7 +378,7 @@ static void read_temp_file(event_handler_t *event_handler){
 
 	list_t *result = get_file_list_location(read_blocks, read_offset, list);
 #if DATA_MASTER_DEBUG
-	print_allocate_list(list);
+	print_allocate_list(result);
 	log_write(LOG_TRACE, "read tmp file get_file_list_location");
 #endif
 	uint64_t size = sizeof(position_des_t);
