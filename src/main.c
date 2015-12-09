@@ -57,34 +57,34 @@ int main(argc, argv)
 		map_role = get_role(rank, net_name);
 	}
 	usleep(10);
-	log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
+	//log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
 
-	if (map_role->type == DATA_MASTER) {
-		log_write(LOG_DEBUG, "ROLE DATA_MASTER AND ID IS %d", rank);
-		data_master_t *master = create_data_master(map_role, data_master_free_blocks);
-		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
+	//if (map_role->type == DATA_MASTER) {
+		//log_write(LOG_DEBUG, "ROLE DATA_MASTER AND ID IS %d", rank);
+		//data_master_t *master = create_data_master(map_role, data_master_free_blocks);
+		//fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
-		pthread_create(thread_data_master, NULL, data_master_init, master);
-		pthread_create(thread_client, NULL, fclient_run, fclient);
-		pthread_join(*thread_data_master, NULL);
-		pthread_join(*thread_client, NULL);
-	} else if (map_role->type == DATA_SERVER) {
-		log_write(LOG_DEBUG, "ROLE DATA_SERVER and ID IS %d and master rank = %d", rank, map_role->master_rank);
-		usleep(10);
-		c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
-		data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, 169 + rank);
-		request->op->register_to_master(request, re);
-		destroy_data_master_request(request);
-		zfree(re);
+		//pthread_create(thread_data_master, NULL, data_master_init, master);
+		//pthread_create(thread_client, NULL, fclient_run, fclient);
+		//pthread_join(*thread_data_master, NULL);
+		//pthread_join(*thread_client, NULL);
+	//} else if (map_role->type == DATA_SERVER) {
+		//log_write(LOG_DEBUG, "ROLE DATA_SERVER and ID IS %d and master rank = %d", rank, map_role->master_rank);
+		//usleep(10);
+		//c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
+		//data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, 169 + rank);
+		//request->op->register_to_master(request, re);
+		//destroy_data_master_request(request);
+		//zfree(re);
 
-		data_server_t *server = alloc_dataserver(data_server_free_blocks, rank);
-		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
+		//data_server_t *server = alloc_dataserver(data_server_free_blocks, rank);
+		//fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
 
-		pthread_create(thread_data_server, NULL, dataserver_run, server);
-		pthread_create(thread_client, NULL, fclient_run, fclient);
-		pthread_join(*thread_data_server, NULL);
-		pthread_join(*thread_client, NULL);
-	}
+		//pthread_create(thread_data_server, NULL, dataserver_run, server);
+		//pthread_create(thread_client, NULL, fclient_run, fclient);
+		//pthread_join(*thread_data_server, NULL);
+		//pthread_join(*thread_client, NULL);
+	//}
 
 	mpi_finish();
 	return 0;

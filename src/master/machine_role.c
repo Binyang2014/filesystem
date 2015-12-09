@@ -11,6 +11,7 @@
 #include <assert.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
+#include <regex.h>
 #include "log.h"
 #include "machine_role.h"
 #include "syn_tool.h"
@@ -431,29 +432,37 @@ map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file
 //TODO get machine visual ip
 void get_visual_ip(const char *net_name, char *ip){
 	struct ifaddrs * ifAddrStruct = NULL;
-		void * tmpAddrPtr = NULL;
+	void * tmpAddrPtr = NULL;
+	const char *pattern = "^10\..*$";
+	regex_t reg;
+	regmatch_t pmatch[1];
+	const size_t nmatch;
+	regcomp(&reg, pattern, REG_EXTENDED);
 
-		getifaddrs(&ifAddrStruct);
-		while (ifAddrStruct != NULL) {
-			if (ifAddrStruct->ifa_addr->sa_family == AF_INET) { // check it is IP4
-				// is a valid IP4 Address
-				tmpAddrPtr =
-						&((struct sockaddr_in *) ifAddrStruct->ifa_addr)->sin_addr;
-				inet_ntop(AF_INET, tmpAddrPtr, ip, INET_ADDRSTRLEN);
-				if(strcmp(ifAddrStruct->ifa_name, net_name) == 0){
-					return;
-				}
-			} else if (ifAddrStruct->ifa_addr->sa_family == AF_INET6) { // check it is IP6
-				// is a valid IP6 Address
-				tmpAddrPtr =
-						&((struct sockaddr_in *) ifAddrStruct->ifa_addr)->sin_addr;
-				inet_ntop(AF_INET6, tmpAddrPtr, ip, INET6_ADDRSTRLEN);
-				if(strcmp(ifAddrStruct->ifa_name, net_name) == 0){
-					return;
-				}
+	getifaddrs(&ifAddrStruct);
+	while (ifAddrStruct != NULL) 
+	{
+		if (ifAddrStruct->ifa_addr->sa_family == AF_INET) 
+		{ // check it is IP4
+			// is a valid IP4 Address
+			tmpAddrPtr = &((struct sockaddr_in *) ifAddrStruct->ifa_addr)->sin_addr;
+			inet_ntop(AF_INET, tmpAddrPtr, ip, INET_ADDRSTRLEN);
+			if(regexec(&reg, ip, nmatch, pmatch, 0) == 0){
+				regfree(&reg);
+				return;
 			}
-			ifAddrStruct = ifAddrStruct->ifa_next;
+		} else if (ifAddrStruct->ifa_addr->sa_family == AF_INET6) 
+		{ // check it is IP6
+			// is a valid IP6 Address
+			tmpAddrPtr = &((struct sockaddr_in *) ifAddrStruct->ifa_addr)->sin_addr;
+			inet_ntop(AF_INET6, tmpAddrPtr, ip, INET6_ADDRSTRLEN);
+			if(regexec(&reg, ip, nmatch, pmatch, 0) == 0){
+				regfree(&reg);
+				return;
+			};
 		}
+			ifAddrStruct = ifAddrStruct->ifa_next;
+	}
 }
 
 static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetcher){
