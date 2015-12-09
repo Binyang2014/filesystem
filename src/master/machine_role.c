@@ -447,11 +447,15 @@ void get_visual_ip(const char *net_name, char *ip){
 			// is a valid IP4 Address
 			tmpAddrPtr = &((struct sockaddr_in *) ifAddrStruct->ifa_addr)->sin_addr;
 			inet_ntop(AF_INET, tmpAddrPtr, ip, INET_ADDRSTRLEN);
-			if(regexec(&reg, ip, nmatch, pmatch, 0) == 0){
-				regfree(&reg);
+#if MACHINE_ROLE_DEBUG
+		log_write(LOG_DEBUG, "machine role get visual ip = %s", ip);
+#endif
+			if(regexec(&reg, ip, nmatch, pmatch, 0) == 0)
+			{
 				return;
 			}
-		} else if (ifAddrStruct->ifa_addr->sa_family == AF_INET6) 
+		} 
+		/*else if (ifAddrStruct->ifa_addr->sa_family == AF_INET6) 
 		{ // check it is IP6
 			// is a valid IP6 Address
 			tmpAddrPtr = &((struct sockaddr_in *) ifAddrStruct->ifa_addr)->sin_addr;
@@ -460,8 +464,8 @@ void get_visual_ip(const char *net_name, char *ip){
 				regfree(&reg);
 				return;
 			};
-		}
-			ifAddrStruct = ifAddrStruct->ifa_next;
+		}*/
+		ifAddrStruct = ifAddrStruct->ifa_next;
 	}
 }
 
@@ -470,10 +474,12 @@ static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetc
 	role->source = fetcher->rank;
 	get_visual_ip(fetcher->net_name, role->ip);
 
+	while(1);
 #if MACHINE_ROLE_FETCHER_DEBUG
 	log_write(LOG_DEBUG, "get_visual_ip = %s\n", role->ip);
 #endif
-
+	
+	while(1);
 	role->operation_code = MACHINE_REGISTER_TO_MASTER;
 	role->unique_tag = MACHINE_ROLE_GET_ROLE;
 	fetcher->client->op->set_send_buff(fetcher->client, role, sizeof(*role));
