@@ -436,22 +436,23 @@ void get_visual_ip(const char *net_name, char *ip){
 	const char *pattern = "^10\..*$";
 	regex_t reg;
 	regmatch_t pmatch[1];
-	const size_t nmatch;
+	const size_t nmatch = 1;
 	regcomp(&reg, pattern, REG_EXTENDED);
 
 	getifaddrs(&ifAddrStruct);
-	while (ifAddrStruct != NULL) 
+	while (ifAddrStruct)
 	{
-		if (ifAddrStruct->ifa_addr->sa_family == AF_INET) 
+		if (ifAddrStruct->ifa_addr->sa_family == AF_INET)
 		{ // check it is IP4
 			// is a valid IP4 Address
 			tmpAddrPtr = &((struct sockaddr_in *) ifAddrStruct->ifa_addr)->sin_addr;
 			inet_ntop(AF_INET, tmpAddrPtr, ip, INET_ADDRSTRLEN);
 #if MACHINE_ROLE_DEBUG
-		log_write(LOG_DEBUG, "machine role get visual ip = %s", ip);
+			log_write(LOG_DEBUG, "machine role get visual ip = %s", ip);
 #endif
 			if(regexec(&reg, ip, nmatch, pmatch, 0) == 0)
 			{
+				regfree(&reg);
 				return;
 			}
 		} 
@@ -473,13 +474,10 @@ static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetc
 	machine_register_role_t *role = zmalloc(sizeof(*role));
 	role->source = fetcher->rank;
 	get_visual_ip(fetcher->net_name, role->ip);
-
-	while(1);
 #if MACHINE_ROLE_FETCHER_DEBUG
 	log_write(LOG_DEBUG, "get_visual_ip = %s\n", role->ip);
 #endif
 	
-	while(1);
 	role->operation_code = MACHINE_REGISTER_TO_MASTER;
 	role->unique_tag = MACHINE_ROLE_GET_ROLE;
 	fetcher->client->op->set_send_buff(fetcher->client, role, sizeof(*role));
