@@ -97,7 +97,8 @@ static void *get_event_handler_param(event_handler_t *event_handler) {
 	return event_handler->special_struct;
 }
 
-static int has_enough_space(uint64_t block_num){
+static int has_enough_space(uint64_t block_num)
+{
 	if(block_num < local_master->free_size){
 		return 1;
 	}else{
@@ -105,13 +106,15 @@ static int has_enough_space(uint64_t block_num){
 	}
 }
 
-static void *position_dup(const void *ptr){
+static void *position_dup(const void *ptr)
+{
 	position_des_t *position = zmalloc(sizeof(*position));
 	memcpy(position, ptr, sizeof(*position));
 	return position;
 }
 
-static void position_free(void *ptr){
+static void position_free(void *ptr)
+{
 	zfree(ptr);
 }
 
@@ -119,7 +122,8 @@ static void position_free(void *ptr){
  * allocate file space
  * first judge whether there is enough space, if not break the process
  */
-static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node){
+static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
+{
 	uint64_t allocate_size;
 	if((node->file_size) % BLOCK_SIZE == 0){
 		allocate_size = ceil((double)write_size / BLOCK_SIZE);
