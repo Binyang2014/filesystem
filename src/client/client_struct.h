@@ -29,6 +29,8 @@
 #define FREMOVE_OP 0006
 #define FSTOP_OP 0007
 
+#define MSG_QUEUE_S_TO_C 8713
+#define MSG_QUEUE_C_TO_S 5317
 //==============ABOUT FILE LIST STRUCTURE=============
 struct data_node
 {
