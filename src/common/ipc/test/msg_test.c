@@ -7,6 +7,7 @@ int main()
 {
 	void *msg, *msg_r;
 	int i, msqid;
+	char send[5], recv[5];
 
 	msg = create_message(1, 5);
 	msg_r = create_message(1, 5);
@@ -18,6 +19,15 @@ int main()
 	msq_read(msqid, msg_r, 5);
 	for(i = 0; i < 5; i++)
 		printf("%c ", ((char *)MSG_TEXT_PTR(msg))[i]);
+	printf("\n");
+	
+//=============================other test=======================
+	for(i = 0; i < 5; i++)
+		send[i] = '1' + i;
+	m_write(msqid, send, sizeof(send));
+	m_read(msqid, recv, sizeof(recv));
+	for(i = 0; i < 5; i++)
+		printf("%c ", recv[i]);
 	printf("\n");
 	remove_msq(msqid);
 	zfree(msg);
