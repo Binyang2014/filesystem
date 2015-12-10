@@ -2,7 +2,7 @@ TOPDIR = ../../..
 TESTDIR = ./test
 
 include $(TOPDIR)/GlobalMakefile
-object = fifo_ipc.o
+object = fifo_ipc.o msg_ipc.o
 target = $(TOPDIR)/lib/libcommon.a
 
 $(target): $(object)

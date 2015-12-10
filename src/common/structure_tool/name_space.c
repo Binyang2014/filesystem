@@ -13,10 +13,7 @@
 #include <assert.h>
 #include "name_space.h"
 #include "zmalloc.h"
-
-#define FILE_EXISTS 400
-#define FILE_NOT_EXISTS 404
-#define FILE_OPERATE_SUCCESS 0
+#include "message.h"
 
 /*-------------------Private Declaration----------------------*/
 static file_node_t *find(name_space_t *space, sds name);
@@ -28,7 +25,8 @@ static int file_exists(struct name_space *space, sds file_name);
 static void print_name_space(struct name_space *space);
 
 /*-------------------Local Implementation--------------------*/
-static void *list_dup(void *ptr) {
+static void *list_dup(void *ptr)
+{
 	pair_t *pair = zmalloc(sizeof(*pair));
 	pair_t *tmp = ptr;
 	pair->key = sds_dup(tmp->key);
@@ -38,13 +36,15 @@ static void *list_dup(void *ptr) {
 	return pair;
 }
 
-static void list_free(void *ptr) {
+static void list_free(void *ptr)
+{
 	pair_t *pair = ptr;
 	sds_free(pair->key);
 	zfree(pair->value);
 }
 
-static file_node_t *add_file(name_space_t *space, sds file_name, enum file_type_enum type) {
+static file_node_t *add_file(name_space_t *space, sds file_name, enum file_type_enum type)
+{
 	file_node_t *node = find(space, file_name);
 	if(node != NULL) {
 		return NULL; //TODO
@@ -60,13 +60,16 @@ static file_node_t *add_file(name_space_t *space, sds file_name, enum file_type_
 }
 
 /*-------------------Private Implementation--------------------*/
-static file_node_t *find(name_space_t *space, sds name) {
+static file_node_t *find(name_space_t *space, sds name)
+{
 	return space->name_space->op->get(space->name_space, name);
 }
 
-static int add_temporary_file(name_space_t *space, sds file_name) {
+static int add_temporary_file(name_space_t *space, sds file_name)
+{
 	file_node_t *node = add_file(space, file_name, TEMPORARY_FILE);
-	if(node == NULL) {
+	if(node == NULL)
+	{
 		return FILE_EXISTS;
 	}
 
@@ -74,7 +77,8 @@ static int add_temporary_file(name_space_t *space, sds file_name) {
 	return FILE_OPERATE_SUCCESS;
 }
 
-static int add_persistent_file(name_space_t *space, sds file_name) {
+static int add_persistent_file(name_space_t *space, sds file_name)
+{
 	int file_exists = access(file_name, F_OK);
 	if(file_exists) {
 		return FILE_EXISTS;
@@ -88,7 +92,8 @@ static int add_persistent_file(name_space_t *space, sds file_name) {
 	return FILE_OPERATE_SUCCESS;
 }
 
-static int append_file(name_space_t *space, sds file_name, uint64_t append_size) {
+static int append_file(name_space_t *space, sds file_name, uint64_t append_size)
+{
 	file_node_t *node = find(space, file_name);
 	if(node == NULL) {
 		return FILE_NOT_EXISTS;
@@ -98,15 +103,18 @@ static int append_file(name_space_t *space, sds file_name, uint64_t append_size)
 	return FILE_OPERATE_SUCCESS;
 }
 
-static int rename_file(name_space_t *space, sds old_name, sds new_name) {
+static int rename_file(name_space_t *space, sds old_name, sds new_name)
+{
 	return space->name_space->op->modify_key(space->name_space, old_name, new_name);
 }
 
-static int delete_file(name_space_t *space, sds file_name) {
+static int delete_file(name_space_t *space, sds file_name)
+{
 	return space->name_space->op->del(space->name_space, file_name);
 }
 
-static int file_finish_consistent(struct name_space *space, sds file_name) {
+static int file_finish_consistent(struct name_space *space, sds file_name)
+{
 	file_node_t *node = find(space, file_name);
 
 	if(node == NULL) {
@@ -116,7 +124,8 @@ static int file_finish_consistent(struct name_space *space, sds file_name) {
 	return node->consistent_size == node->file_size;
 }
 
-static int file_exists(struct name_space *space, sds file_name) {
+static int file_exists(struct name_space *space, sds file_name)
+{
 	return find(space, file_name) != NULL;
 }
 
@@ -134,7 +143,8 @@ static void print_name_space(struct name_space *space)
 	printf("\n==========END PRINT NAME SPACE==========");
 }
 
-static list_t *get_file_location(name_space_t *space, sds file_name){
+static list_t *get_file_location(name_space_t *space, sds file_name)
+{
 	file_node_t *node = find(space, file_name);
 
 	assert(node != NULL);
@@ -142,7 +152,8 @@ static list_t *get_file_location(name_space_t *space, sds file_name){
 	return node->position;
 }
 
-static void set_file_location(name_space_t *space, sds file_name, list_t *list){
+static void set_file_location(name_space_t *space, sds file_name, list_t *list)
+{
 	file_node_t *node = find(space, file_name);
 
 	assert(node != NULL);
@@ -155,13 +166,15 @@ static void set_file_location(name_space_t *space, sds file_name, list_t *list){
 	}
 }
 
-struct file_node* get_file_node(name_space_t *space, sds file_name){
+struct file_node* get_file_node(name_space_t *space, sds file_name)
+{
 	return find(space, file_name);
 }
 
 
 /*--------------------API Implementation-------------------*/
-name_space_t *create_name_space(size_t size) {
+name_space_t *create_name_space(size_t size)
+{
 	name_space_t *this = zmalloc(sizeof(*this));
 
 	this->name_space = create_map(size, NULL, NULL, list_dup, list_free);
@@ -181,17 +194,9 @@ name_space_t *create_name_space(size_t size) {
 	return this;
 }
 
-void destroy_name_space(name_space_t *this) {
+void destroy_name_space(name_space_t *this)
+{
 	zfree(this->op);
 	destroy_map(this->name_space);
 	zfree(this);
 }
-
-
-/*------------------T	E	S	T-----------------*/
-
-#if defined(GLOBAL_TEST) || defined(NAME_SPACE_TEST)
-int main() {
-
-}
-#endif

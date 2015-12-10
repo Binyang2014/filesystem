@@ -17,6 +17,11 @@
 #include <stdint.h>
 #include "global.h"
 
+//name space result code
+#define FILE_EXISTS 400
+#define FILE_NOT_EXISTS 404
+#define FILE_OPERATE_SUCCESS 0
+
 //some define about message source(ip address) and message tag(port number)
 #define ANY_SOURCE -1
 #define ANY_TAG -1
@@ -104,7 +109,8 @@
 #define CMD_TO_COMM_MSG(cmd) ((int8_t*)(cmd) - COMMON_MSG_HEAD)
 
 //reply message type and it not complete
-typedef enum {
+typedef enum
+{
 	ACC,
 	DATA,
 	ANS,
@@ -112,7 +118,8 @@ typedef enum {
 	HEAD
 }msg_type_t;
 
-typedef enum machine_role{
+typedef enum machine_role
+{
 	MASTER,
 	SUB_MASTER,
 	DATA_MASTER,
@@ -120,7 +127,8 @@ typedef enum machine_role{
 }machine_role_e;
 
 /*-------------------------POSITION START----------------------*/
-typedef struct{
+typedef struct
+{
 	int rank;
 	uint64_t start;
 	uint64_t end;
@@ -129,7 +137,8 @@ typedef struct{
 
 
 /*-------------------------ROLE ALLOCATOR----------------------*/
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version; //use to idetify specific message
 	uint16_t unique_tag;
@@ -138,11 +147,13 @@ typedef struct {
 	machine_role_e role_type;
 }machine_register_role_t;
 
-typedef struct {
+typedef struct
+{
 	int waiting_struction;
 }machine_wait_role_t;
 
-typedef struct {
+typedef struct
+{
 	char ip[16];
 	enum machine_role role;
 	int data_master_rank;
@@ -151,7 +162,8 @@ typedef struct {
 }machine_role_t;
 
 /*------------------------COMMON MESSAGE-----------------------*/
-typedef struct {
+typedef struct
+{
 	int source;
 	uint16_t operation_code;
 	uint16_t transfer_version;
@@ -159,20 +171,23 @@ typedef struct {
 }common_msg_t;
 
 /*----------------------ACCEPT AESSAGE-------------------------*/
-typedef struct {
+typedef struct
+{
 	uint32_t op_status;
 	uint32_t reserved;
 }acc_msg_t;
 
 /*-----------------------MESSAGE HEAD--------------------------*/
-typedef struct {
+typedef struct
+{
 	uint32_t len;
 	uint32_t op_status;//status of last message
 	uint64_t options;
 }head_msg_t;
 
 /*----------------------STOP SERVER MESSAGE---------------------*/
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	int source;
@@ -281,7 +296,8 @@ typedef struct {
 /*
  * structure instruction of create file
  */
-typedef struct client_create_file {
+typedef struct client_create_file
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t file_mode;
@@ -290,7 +306,8 @@ typedef struct client_create_file {
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_create_file_t;
 
-typedef struct file_ret {
+typedef struct file_ret
+{
 	uint64_t offset; //This is offset from beginning
 	uint64_t read_write_len;
 	uint64_t dataserver_num;
@@ -311,11 +328,13 @@ typedef struct file_ret {
 //	uint64_t *chunks_id_arr;
 //}file_ret_t;
 
-typedef struct file_sim_ret {
+typedef struct file_sim_ret
+{
 	uint16_t op_status;
 }file_sim_ret_t;
 
-typedef struct client_read_file {
+typedef struct client_read_file
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t unique_tag;
@@ -328,7 +347,8 @@ typedef struct client_read_file {
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_read_file_t;
 
-typedef struct client_append_file {
+typedef struct client_append_file
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t unique_tag;
@@ -340,7 +360,8 @@ typedef struct client_append_file {
 	char file_name[FILE_NAME_MAX_LENGTH + 1];
 }client_append_file_t;
 
-typedef struct client_remove_file {
+typedef struct client_remove_file
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t unique_tag;
@@ -351,7 +372,8 @@ typedef struct client_remove_file {
 /*
  * data server send heart beat to master
  */
-typedef struct d_server_heart_beat {
+typedef struct d_server_heart_beat
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	int id;
@@ -362,12 +384,14 @@ typedef struct d_server_heart_beat {
 //	int8_t data[BLOCK_SIZE];
 //}c_d_block_data_t;
 
-typedef struct c_d_block_data{
+typedef struct c_d_block_data
+{
 	//block_location block_info;
 	int8_t data[BLOCK_SIZE];
 }c_d_block_data_t;
 
-typedef struct c_d_register{
+typedef struct c_d_register
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t unique_tag;
@@ -401,7 +425,8 @@ typedef struct c_d_register{
  */
 
 //read message from client to data server
-typedef struct {
+typedef struct
+{
 	//64 bits
 	uint16_t operation_code;
 	uint16_t transfer_version;
@@ -417,7 +442,8 @@ typedef struct {
 }read_c_to_d_t;
 
 //read and write use this message
-typedef struct {
+typedef struct
+{
 	uint32_t len;//data len in this package
 	uint32_t offset;//form the beginning chunks
 
@@ -429,7 +455,8 @@ typedef struct {
 }msg_data_t;
 
 //origin write operation, do not support insert
-typedef struct {
+typedef struct
+{
 	//64 bits
 	uint16_t operation_code;
 	uint16_t transfer_version;
@@ -445,7 +472,8 @@ typedef struct {
 //you can use this structure to insert text to a file
 //if a message can not contain enough block_ids, you can send a serials messages
 // and the seqno and tail is useful for this condition.
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t unique_tag;
 
@@ -455,7 +483,8 @@ typedef struct {
 }write_c_to_d_ins_t;
 
 //block struct
-typedef struct block{
+typedef struct block
+{
 	uint64_t file_seq; //file split sequence
 	uint64_t block_global_id;
 }block_t;
@@ -463,7 +492,8 @@ typedef struct block{
 /*-------------------DATA_SERVER MESSAGE STRUCTURE END----------------*/
 
 /*----------------------ZOO KEEPER MESSAGE----------------------------*/
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t znode_type;
@@ -473,7 +503,8 @@ typedef struct {
 	char data[ZOO_MAX_DATA_LEN];
 }zoo_create_znode_t;
 
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t version;
@@ -482,7 +513,8 @@ typedef struct {
 	char path[ZOO_PATH_MAX_LEN];
 }zoo_delete_znode_t;
 
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t version;
@@ -493,7 +525,8 @@ typedef struct {
 }zoo_set_znode_t;
 
 //watch return message will send with an unique code
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t watch_flag;
@@ -504,7 +537,8 @@ typedef struct {
 	char path[ZOO_PATH_MAX_LEN];
 }zoo_exists_znode_t;
 
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 	uint16_t watch_flag;
@@ -515,7 +549,8 @@ typedef struct {
 	char path[ZOO_PATH_MAX_LEN];
 }zoo_get_znode_t;
 
-typedef struct {
+typedef struct
+{
 	uint16_t operation_code;
 	uint16_t transfer_version;
 
