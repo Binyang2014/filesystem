@@ -398,9 +398,17 @@ static void read_temp_file(event_handler_t *event_handler){
 #endif
 }
 
-static void delete_temp_file(event_handler_t *event_handler){
-	//well this may be much more difficult
-	//delete file node info and free space
+static void printf_server(storage_machine_sta_t *server)
+{
+	puts("This is the print master cmd");
+}
+
+static void printf_master(event_handler_t *event_handler)
+{
+	puts("*************start print data master*************");
+
+
+	puts("**************end print data master**************");
 }
 
 static void register_to_master(event_handler_t *event_handler){
@@ -434,12 +442,11 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 
 		//if this is a zookeeper cmd, pop until there is a data master cmd
 		//	//if may result in a dead thread
-		while(common_msg->operation_code / 1000 == 5)
-		{
-			local_master->zserver->op->zput_request(local_master->zserver, common_msg);
-			//get another cmd message
-			queue->op->syn_queue_pop(queue, common_msg);
-		}
+	while(common_msg->operation_code / 1000 == 5)
+	{
+		local_master->zserver->op->zput_request(local_master->zserver, common_msg);
+		queue->op->syn_queue_pop(queue, common_msg);
+	}
 
 	switch(common_msg->operation_code)
 	{
@@ -469,25 +476,9 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	return event_handler->handler;
 }
 
-
-static storage_machine_sta_t* get_self_stor()
-{
-	storage_machine_sta_t *re = zmalloc(sizeof(*re));
-	re->free_blocks = local_master->free_blocks;
-	re->rank = local_master->rank;
-	re->visual_ip = sds_new(local_master->visual_ip);
-	return re;
-}
-/**
- * TODO
- * start server
- *
- */
 void* data_master_init(void *args){
 	data_master_t *master = args;
 	printf("DATA MASTER INIT AND ID IS %d\n", master->rank);
-	//storage_machine_sta_t *re = get_self_stor();
-	//local_master->storage_q->op->syn_queue_push(local_master->storage_q, re);
 
 	master->zserver->op->zserver_start(master->zserver);
 	master->rpc_server->op->server_start(master->rpc_server);
