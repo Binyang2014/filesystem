@@ -206,18 +206,15 @@ static void create_temp_file(event_handler_t *event_handler){
 #if DATA_MASTER_DEBUG
 	log_write(LOG_DEBUG, "create tmp file local_master = %d", local_master->namespace->op);
 #endif
-	assert(!local_master->namespace->op->file_exists(local_master->namespace, file_name));
 
-#if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "create tmp file and file not exists");
-#endif
 	file_sim_ret_t *file_sim_ret = zmalloc(sizeof(file_sim_ret_t));
+
 	file_sim_ret->op_status = local_master->namespace->op->add_temporary_file(local_master->namespace, file_name);
 	pthread_mutex_unlock(local_master->mutex_data_master);
 	local_master->rpc_server->op->send_result(file_sim_ret, c_cmd->source, c_cmd->unique_tag, sizeof(file_sim_ret_t), ANS);
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_DEBUG, "create tmp file end");
+	log_write(LOG_DEBUG, "create tmp file end and create result = %d", file_sim_ret->op_status);
 #endif
 	zfree(file_sim_ret);
 	free_common(c_cmd);

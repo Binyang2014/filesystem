@@ -18,8 +18,7 @@ static int fifo_wfd;
 static int fifo_rfd;
 
 static int open_file(const char *path, open_mode_t open_mode, int *fd);
-static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode,
-		int *fd);
+static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, int *fd);
 /*static void read_tmp_file();
 static void read_persistent_file();
 static void delete_tmp_file();

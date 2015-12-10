@@ -14,25 +14,19 @@
 
 static int get_fd(fclient_t *fclient);
 static void init_create_msg(client_create_file_t *, const createfile_msg_t *);
-static void init_append_msg(client_append_file_t *, const appendfile_msg_t *,
-		const opened_file_t *);
-static void init_read_msg(client_read_file_t *, const readfile_msg_t *, const
-		opened_file_t *);
+static void init_append_msg(client_append_file_t *, const appendfile_msg_t *, const opened_file_t *);
+static void init_read_msg(client_read_file_t *, const readfile_msg_t *, const opened_file_t *);
 static void init_remove_msg(client_remove_file_t *, const removefile_msg_t *);
 //static void init_file_struct(opened_file_t *opened_file, const file_ret_t *file_ret);
 static int code_transfer(uint32_t op_status);
 
-static int add_write_lock(zclient_t *zclient, const char *file_path,
-		pthread_mutex_t *mutex, sds lock_name);
-static int add_read_lock(zclient_t *zclient, const char *file_path,
-		pthread_mutex_t *mutex, sds lock_name);
+static int add_write_lock(zclient_t *zclient, const char *file_path, pthread_mutex_t *mutex, sds lock_name);
+static int add_read_lock(zclient_t *zclient, const char *file_path, pthread_mutex_t *mutex, sds lock_name);
 static void *watch_handler_delete(void *args);
 
 
-static int append_data(fclient_t *fclient, appendfile_msg_t *writefile_msg,
-		void *file_ret);
-static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg,
-		void *file_ret);
+static int append_data(fclient_t *fclient, appendfile_msg_t *writefile_msg, void *file_ret);
+static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, void *file_ret);
 
 static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg);
 static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg);
@@ -477,6 +471,7 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 	client_remove_file = zmalloc(sizeof(client_remove_file_t));
 	init_remove_msg(client_remove_file, removefile_msg);
 	client_remove_file->unique_tag = rpc_client->tag;
+	//client_remove_file->
 
 	//send create message to data master
 	rpc_client->op->set_send_buff(rpc_client, client_remove_file, sizeof(client_remove_file_t));
@@ -749,8 +744,7 @@ fclient_t *create_fclient(int client_id, int target, int tag)
 	fclient->zclient = create_zclient(client_id);
 	set_zclient(fclient->zclient, target, tag);
 	//init bitmap and set bitmap to zero
-	fclient->bitmap = (unsigned long *)zmalloc(sizeof(unsigned long) *
-			MAX_FD_NUMBER / BITS_PER_LONG);
+	fclient->bitmap = (unsigned long *)zmalloc(sizeof(unsigned long) * MAX_FD_NUMBER / BITS_PER_LONG);
 	bitmap_empty(fclient->bitmap, MAX_FD_NUMBER);
 	//init file list
 	fclient->file_list = list_create();
