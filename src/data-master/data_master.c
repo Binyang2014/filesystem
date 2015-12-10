@@ -470,10 +470,6 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = read_temp_file;
 			break;
-		case DELETE_TMP_FILE_CODE:
-			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
-			event_handler->handler = delete_temp_file;
-			break;
 		default:
 			event_handler->handler = NULL;
 	}
