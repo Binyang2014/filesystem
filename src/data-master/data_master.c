@@ -147,7 +147,8 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 		list->list_ops->list_add_node_tail(list, position);
 	}
 
-	if(allocate_size == 0){
+	if(allocate_size == 0)
+	{
 		return list;
 	}
 	basic_queue_t *queue = local_master->storage_q->queue;
@@ -156,11 +157,13 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 	storage_machine_sta_t *st;
 	do{
 		st = get_queue_element(queue, t_index);
-		if(st->free_blocks){
+		if(st->free_blocks)
+		{
 			position = zmalloc(sizeof(position_des_t));
 			position->rank = st->rank;
 			position->start = start_global_id;
-			if(st->free_blocks < allocate_size){
+			if(st->free_blocks < allocate_size)
+			{
 				position->end = start_global_id + st->free_blocks - 1;
 				start_global_id = position->end + 1;
 
@@ -181,7 +184,8 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 	}while(t_index != end && allocate_size != 0);
 
 	t_index = index;
-	if(allocate_size == 0){
+	if(allocate_size == 0)
+	{
 		local_master->free_size -= tmp_al_size;
 		return list;
 	}else{
@@ -255,20 +259,20 @@ static void append_temp_file(event_handler_t *event_handler){
 	uint64_t length = sizeof(position_des_t);
 	void *pos_arrray = list_to_array(list, &length, node->file_size, c_cmd->write_size);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append list to array size = %d", list->len);
+	log_write(LOG_TRACE, "data master append list to array size = %d, length = %lld", list->len, length);
 #endif
 
 	//send write result to client
 	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, length, ANS);
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append send result");
+	log_write(LOG_TRACE, "data master append send result, name = %s", file_name);
 #endif
 
 	//set location
 	local_master->namespace->op->set_file_location(local_master->namespace, file_name, list);
 	assert(local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size) == 0);
-
+	
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "data master append name space append file");
 #endif
@@ -331,7 +335,7 @@ static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset
 			}
 			else
 			{
-				list_p = (position_des_t *)list->dup(position);
+				memcpy(list_p, position, sizeof(position_des_t));
 				read_blocks -= count;
 			}
 		}
@@ -391,7 +395,8 @@ static void read_temp_file(event_handler_t *event_handler){
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "read tmp file send_result");
 #endif
-	list_release(result);
+	//TODO why here bug?
+	//list_release(result);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "read tmp file list_release");
 #endif

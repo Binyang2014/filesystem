@@ -158,10 +158,13 @@ static void set_file_location(name_space_t *space, sds file_name, list_t *list)
 
 	assert(node != NULL);
 
-	if(node->position == NULL){
+	if(node->position == NULL)
+	{
 		node->position = list;
-	}else{
+	}else
+	{
 		list_t *list_head = node->position;
+		puts(node->file_name);
 		list_head->list_ops->list_merge_list(list_head, list);
 	}
 }
