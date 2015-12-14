@@ -128,10 +128,12 @@ static void printf_master(event_handler_t *event_handler)
 	puts("*************start print data master*************");
 	printf("master ip is %s, master rank is %d, master free is %d\n", local_master->visual_ip, local_master->rank, local_master->free_size);
 	printf("ip\trank\tfree\tused\n");
+	storage_machine_sta_t server;
 	basic_queue_iterator itor = create_basic_queue_iterator(local_master->storage_q->queue);
 	while(itor->has_next(itor))
 	{
-		printf_server(itor->next(itor));
+		itor->next(itor, &server);
+		printf_server(&server);
 	}
 	puts("**************end print data master**************");
 }
