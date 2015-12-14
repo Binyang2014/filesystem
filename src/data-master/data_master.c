@@ -118,6 +118,24 @@ static void position_free(void *ptr)
 	zfree(ptr);
 }
 
+static void printf_server(storage_machine_sta_t *server)
+{
+	pritnf("%s\t%d\t%d\t%d\t\n", server->visual_ip, server->rank, server->free_blocks, server->used_blocks);
+}
+
+static void printf_master(event_handler_t *event_handler)
+{
+	puts("*************start print data master*************");
+	printf("master ip is %s, master rank is %d, master free is %d\n", local_master->visual_ip, local_master->rank, local_master->free_size);
+	printf("ip\trank\tfree\tused\n");
+	basic_queue_iterator itor = create_basic_queue_iterator(local_master->storage_q->queue);
+	while(itor->has_next(itor))
+	{
+		printf_server(itor->next(itor));
+	}
+	puts("**************end print data master**************");
+}
+
 /**
  * allocate file space
  * first judge whether there is enough space, if not break the process
@@ -125,7 +143,8 @@ static void position_free(void *ptr)
 static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 {
 	uint64_t allocate_size;
-	if((node->file_size) % BLOCK_SIZE == 0){
+	if((node->file_size) % BLOCK_SIZE == 0)
+	{
 		allocate_size = ceil((double)write_size / BLOCK_SIZE);
 	}else{
 		allocate_size = ceil((double)(write_size + node->file_size) / BLOCK_SIZE) - ceil((double)(node->file_size) / BLOCK_SIZE);
@@ -141,7 +160,8 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 	list->free = position_free;
 	list->dup = position_dup;
 	position_des_t *position = zmalloc(sizeof(position_des_t));
-	if((node->file_size) % BLOCK_SIZE != 0){
+	if((node->file_size) % BLOCK_SIZE != 0)
+	{
 		memcpy(position, node->position->tail->value, sizeof(position_des_t));
 		position->start = position->end;
 		list->list_ops->list_add_node_tail(list, position);
@@ -190,9 +210,11 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 		return list;
 	}else{
 		list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
-		while(list->list_ops->list_has_next(iter)){
+		while(list->list_ops->list_has_next(iter))
+		{
 			position_des_t *position = ((list_node_t *)list->list_ops->list_next(iter))->value;
-			do{
+			do
+			{
 				st = get_queue_element(queue, t_index++);
 			}while(st->rank != position->rank);
 			int allocated_c = position->end - position->start + 1;
@@ -226,6 +248,10 @@ static void create_temp_file(event_handler_t *event_handler){
 #endif
 	zfree(file_sim_ret);
 	free_common(c_cmd);
+
+#if DATA_MASTER_PRINT
+	printf_master(NULL);
+#endif
 }
 
 static void append_temp_file(event_handler_t *event_handler){
@@ -282,6 +308,10 @@ static void append_temp_file(event_handler_t *event_handler){
 	free_common(c_cmd);
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "append tmp file end");
+#endif
+
+#if DATA_MASTER_PRINT
+	printf_master(NULL);
 #endif
 }
 
@@ -405,19 +435,10 @@ static void read_temp_file(event_handler_t *event_handler){
 #if DATA_MASTER_DEBUG
 	log_write(LOG_TRACE, "read tmp file end");
 #endif
-}
 
-static void printf_server(storage_machine_sta_t *server)
-{
-	puts("This is the print master cmd");
-}
-
-static void printf_master(event_handler_t *event_handler)
-{
-	puts("*************start print data master*************");
-
-
-	puts("**************end print data master**************");
+#if DATA_MASTER_PRINT
+	printf_master(NULL);
+#endif
 }
 
 static void register_to_master(event_handler_t *event_handler){
