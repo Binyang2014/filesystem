@@ -44,6 +44,16 @@ static void free_common(void *common)
 {
 	zfree(CMD_TO_COMM_MSG(common));
 }
+
+static void dup_stor(void *dest, void *source)
+{
+	memcpy(dest, source, sizeof(storage_machine_sta_t));
+}
+
+static void free_stor(void *ptr)
+{
+	zfree(ptr);
+}
 static uint32_t hash_code(const sds key, size_t size) {
 	size_t len = sds_len(key);
 	/* 'm' and 'r' are mixing constants generated offline.
@@ -127,7 +137,7 @@ static void printf_master(event_handler_t *event_handler)
 {
 	puts("*************start print data master*************");
 	printf("master ip is %s, master rank is %d, master free is %d\n", local_master->visual_ip, local_master->rank, local_master->free_size);
-	printf("ip\trank\tfree\tused\n");
+	printf("ip\t\trank\tfree\tused\n");
 	storage_machine_sta_t server;
 	basic_queue_iterator *itor = create_basic_queue_iterator(local_master->storage_q->queue);
 	while(itor->has_next(itor))
@@ -525,6 +535,8 @@ data_master_t* create_data_master(map_role_value_t *role, uint64_t free_blocks){
 	//TODO thread num must be 1
 	this->rpc_server = create_rpc_server(1, 1024, role->rank, resolve_handler);
 	this->storage_q = alloc_syn_queue(role->group_size, sizeof(storage_machine_sta_t));
+	queue_set_free(this->storage_q->queue, free_stor);
+	queue_set_dup(this->storage_q->queue, dup_stor);
 	this->rank = role->rank;
 	this->free_size = 0;
 	this->free_blocks = free_blocks;

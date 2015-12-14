@@ -30,7 +30,7 @@
 //线程池大小
 #define D_THREAD_SIZE	(1<<4)
 
-#define DEBUG 1
+#define DEBUG 0
 #define DEBUG_Y DEBUG & 1
 #define DEBUG_N DEBUG & 0
 //DEBUG
@@ -49,7 +49,7 @@
 #define ZSERVER_DEBUG DEBUG_Y
 #define ZCLIENT_DEBUG DEBUG_Y
 
-#define DATA_MASTER_PRINT DEBUG_Y
+#define DATA_MASTER_PRINT 1
 
 //define for file access mode
 #define RUSR 0400
