@@ -22,7 +22,7 @@
 static c_d_register_t* get_register_cmd(int rank, uint64_t freeblock, int tag, char *net_name)
 {
 	c_d_register_t *re = zmalloc(sizeof(*re));
-	re->free_block =  (1 << freeblock) / BLOCK_SIZE;
+	re->free_block =  (1 << freeblock) / BLOCK_SIZE - 8;
 	re->source = rank;
 	get_visual_ip(net_name, re->ip);
 	re->operation_code = REGISTER_TO_DATA_MASTER_CODE;
