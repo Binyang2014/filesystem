@@ -11,7 +11,6 @@
 #include "client_struct.h"
 #include "rpc_client.h"
 #include "basic_list.h"
-#include "fifo_ipc.h"
 #include "bitmap.h"
 #include "sds.h"
 
@@ -20,8 +19,8 @@
 struct fclient
 {
 	rpc_client_t *rpc_client;
-	int fifo_rfd;
-	int fifo_wfd;
+	int msg_rfd;
+	int msg_wfd;
 	zclient_t *zclient;
 	list_t *file_list;
 	unsigned long *bitmap;

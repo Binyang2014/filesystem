@@ -11,6 +11,7 @@
 #include "client_server.h"
 #include "zmalloc.h"
 #include "message.h"
+#include "msg_ipc.h"
 
 static int get_fd(fclient_t *fclient);
 static void init_create_msg(client_create_file_t *, const createfile_msg_t *);
@@ -131,7 +132,7 @@ static int add_write_lock(zclient_t *zclient, const char *file_path, pthread_mut
 	data = sds_new("This is a write lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_parent(zclient, path, data, EPHEMERAL_SQUENTIAL, return_name);
+	ret_num = zclient->op->create_znode(zclient, path, data, EPHEMERAL_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
 	path = sds_cpy(path, file_path);
@@ -188,7 +189,7 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 	data = sds_new("This is a read lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_parent(zclient, path, data, EPHEMERAL_SQUENTIAL, return_name);
+	ret_num = zclient->op->create_znode(zclient, path, data, EPHEMERAL_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
 	path = sds_cpy(path, file_path);
@@ -290,7 +291,7 @@ static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg, voi
 		}
 		write_size -= write_msg.write_len;
 		data_msg = zmalloc(write_msg.write_len);
-		read(fclient->fifo_rfd, data_msg, write_msg.write_len);
+		m_read(fclient->msg_rfd, data_msg, write_msg.write_len);
 
 		for(j = posi->start; j <= posi->end; j++)
 		{
@@ -338,7 +339,7 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, void *pos
 	read_times = dataserver_num;
 	read_msg.offset = file_ret->offset;
 	printf("\n********** offset  = %d *****************\n", file_ret->offset);
-	write(fclient->fifo_wfd, &read_times, sizeof(int));
+	m_write(fclient->msg_wfd, &read_times, sizeof(int));
 	//read data and send data to client
 	for(i = 0; i < dataserver_num; i++)
 	{
@@ -367,7 +368,7 @@ log_write(LOG_DEBUG, "client server read data size = %d, count = %d, offset = %d
 		rpc_client->op->set_send_buff(rpc_client, &read_msg, sizeof(read_c_to_d_t));
 		rpc_client->op->set_recv_buff(rpc_client, data_msg, read_msg.read_len);
 		ret = rpc_client->op->execute(rpc_client, READ_C_TO_D);
-		write(fclient->fifo_wfd, data_msg, read_msg.read_len);
+		m_write(fclient->msg_wfd, data_msg, read_msg.read_len);
 		if(ret < 0)
 		{
 			zfree(data_msg);
@@ -391,7 +392,7 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 {
 	rpc_client_t *rpc_client = NULL;
 	client_create_file_t *client_create_file = NULL;
-	int fifo_wfd;
+	int msg_wfd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
 	zclient_t *zclient = NULL;
@@ -443,13 +444,13 @@ static void f_create(fclient_t *fclient, createfile_msg_t *createfile_msg)
 	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 
 	//copy result to fd
-	fifo_wfd = fclient->fifo_wfd;
+	msg_wfd = fclient->msg_wfd;
 	ret_msg.fd = opened_file->fd;
 	if(ret_msg.ret_code != FSERVER_ERR)
 	{
 		ret_msg.ret_code = code_transfer(((file_sim_ret_t*)rpc_client->recv_buff)->op_status);
 	}
-	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
+	m_write(msg_wfd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_create_file);
 	zfree(rpc_client->recv_buff);
@@ -459,7 +460,7 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 {
 	rpc_client_t *rpc_client = NULL;
 	client_remove_file_t *client_remove_file = NULL;
-	int fifo_wfd;
+	int msg_wfd;
 	zclient_t *zclient = NULL;
 	sds path;
 	file_ret_msg_t ret_msg;
@@ -490,13 +491,13 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 	sds_free(path);
 
 	//copy result to share memory
-	fifo_wfd = fclient->fifo_wfd;
+	msg_wfd = fclient->msg_wfd;
 	ret_msg.fd = -1;
 	if(ret_msg.ret_code != FSERVER_ERR)
 	{
 		ret_msg.ret_code = code_transfer(((file_sim_ret_t*)rpc_client->recv_buff)->op_status);
 	}
-	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
+	m_write(msg_wfd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_remove_file);
 	zfree(rpc_client->recv_buff);
@@ -507,7 +508,7 @@ static void f_remove(fclient_t *fclient, removefile_msg_t *removefile_msg)
 //from zserver.
 static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 {
-	int fifo_wfd;
+	int msg_wfd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
 	zclient_t *zclient = NULL;
@@ -538,18 +539,18 @@ static void f_open(fclient_t *fclient, openfile_msg_t *openfile_msg)
 	file_list->list_ops->list_add_node_tail(file_list, opened_file);
 
 	//copy result to share memory
-	fifo_wfd = fclient->fifo_wfd;
+	msg_wfd = fclient->msg_wfd;
 	ret_msg.fd = opened_file->fd;
 	if(ret_msg.ret_code != FSERVER_ERR)
 	{
 		ret_msg.ret_code = FOK;
 	}
-	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
+	m_write(msg_wfd, &ret_msg, sizeof(file_ret_msg_t));
 }
 
 static void f_close(fclient_t *fclient, closefile_msg_t *closefile_msg)
 {
-	int fifo_wfd, fd;
+	int msg_wfd, fd;
 	list_node_t *file_node = NULL;
 	list_t *file_list = NULL;
 	file_ret_msg_t ret_msg;
@@ -567,10 +568,10 @@ static void f_close(fclient_t *fclient, closefile_msg_t *closefile_msg)
 	bitmap_clear(fclient->bitmap, fd, 1);
 
 	//4.copy return number to fifo
-	fifo_wfd = fclient->fifo_wfd;
+	msg_wfd = fclient->msg_wfd;
 	ret_msg.fd = -1;
 	ret_msg.ret_code = 0;
-	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
+	m_write(msg_wfd, &ret_msg, sizeof(file_ret_msg_t));
 }
 
 //write data to data_server, only support append now
@@ -578,7 +579,7 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 {
 	rpc_client_t *rpc_client = NULL;
 	client_append_file_t *client_append_file = NULL;
-	int fifo_wfd, fd;
+	int msg_wfd, fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
 	zclient_t *zclient = NULL;
@@ -627,14 +628,14 @@ static void f_append(fclient_t *fclient, appendfile_msg_t *appendfile_msg)
 	zclient->op->delete_znode(zclient, lock_name, -1);
 
 	//7.copy result to share memory
-	fifo_wfd = fclient->fifo_wfd;
+	msg_wfd = fclient->msg_wfd;
 	ret_msg.fd = -1;
 	if(ret_msg.ret_code != FSERVER_ERR)
 	{
 		//TODO code transfer
 		ret_msg.ret_code = FOK;
 	}
-	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
+	m_write(msg_wfd, &ret_msg, sizeof(file_ret_msg_t));
 
 	zfree(client_append_file);
 	zfree(rpc_client->recv_buff);
@@ -648,7 +649,7 @@ static void f_read(fclient_t *fclient, readfile_msg_t *readfile_msg)
 #endif
 	rpc_client_t *rpc_client = NULL;
 	client_read_file_t *client_read_file = NULL;
-	int fifo_wfd, fd;
+	int msg_wfd, fd;
 	opened_file_t *opened_file = NULL;
 	list_t *file_list = NULL;
 	zclient_t *zclient = NULL;
@@ -707,13 +708,13 @@ log_write(LOG_DEBUG, "client server read data");
 log_write(LOG_DEBUG, "client server delete lock");
 #endif
 	//7.copy result to share memory
-	fifo_wfd = fclient->fifo_wfd;
+	msg_wfd = fclient->msg_wfd;
 	ret_msg.fd = -1;
 	if(ret_msg.ret_code != FSERVER_ERR)
 	{
 		ret_msg.ret_code = FOK;//TODO code_transfer
 	}
-	write(fifo_wfd, &ret_msg, sizeof(file_ret_msg_t));
+	m_write(msg_wfd, &ret_msg, sizeof(file_ret_msg_t));
 
 #if CLIENT_DEBUG
 log_write(LOG_DEBUG, "client server write to memory");
@@ -736,10 +737,8 @@ fclient_t *create_fclient(int client_id, int target, int tag)
 	}
 	fclient->rpc_client = create_rpc_client(client_id, target, tag);
 	fclient->data_master_id = target;
-	create_fifo(FIFO_PATH_S_TO_C, S_IRWXU);
-	fclient->fifo_wfd = open_fifo(FIFO_PATH_S_TO_C, O_RDWR);
-	create_fifo(FIFO_PATH_C_TO_S, S_IRWXU);
-	fclient->fifo_rfd = open_fifo(FIFO_PATH_C_TO_S, O_RDWR);
+	fclient->msg_wfd = create_msq(MSG_QUEUE_S_TO_C, RUSR | WUSR | RGRP | WGRP);
+	fclient->msg_rfd = create_msq(MSG_QUEUE_C_TO_S, RUSR | WUSR | RGRP | WGRP);
 
 	fclient->zclient = create_zclient(client_id);
 	set_zclient(fclient->zclient, target, tag);
@@ -756,10 +755,8 @@ fclient_t *create_fclient(int client_id, int target, int tag)
 
 void destroy_fclient(fclient_t *fclient)
 {
-	close_fifo(fclient->fifo_rfd);
-	close_fifo(fclient->fifo_wfd);
-	remove_fifo(FIFO_PATH_S_TO_C);
-	remove_fifo(FIFO_PATH_C_TO_S);
+	remove_msq(fclient->msg_rfd);
+	remove_msq(fclient->msg_wfd);
 	destroy_rpc_client(fclient->rpc_client);
 
 	fclient->zclient->op->stop_zclient(fclient->zclient);
@@ -773,18 +770,18 @@ void destroy_fclient(fclient_t *fclient)
 void *fclient_run(void *args)
 {
 	fclient_t *fclient = (fclient_t *)args;
-	int fifo_rfd, fifo_wfd, ret = 0, client_stop = 0;
+	int msg_rfd, msg_wfd, ret = 0, client_stop = 0;
 	file_msg_t file_msg;
 	zclient_t *zclient = NULL;
 
 	log_write(LOG_INFO, "===client server start run===");
-	fifo_rfd = fclient->fifo_rfd;
-	fifo_wfd = fclient->fifo_wfd;
+	msg_rfd = fclient->msg_rfd;
+	msg_wfd = fclient->msg_wfd;
 	zclient = fclient->zclient;
 	zclient->op->start_zclient(zclient);
 	while(!client_stop)
 	{
-		read(fifo_rfd, &file_msg, sizeof(file_msg));
+		m_read(msg_rfd, &file_msg, sizeof(file_msg));
 		switch(file_msg.closefile_msg.operation_code)
 		{
 			case FCREATE_OP:
@@ -797,7 +794,7 @@ void *fclient_run(void *args)
 				break;
 			case FAPPEND_OP:
 				log_write(LOG_DEBUG, "client server handle append operation");
-				write(fifo_wfd, &ret, sizeof(int));
+				m_write(msg_wfd, &ret, sizeof(int));
 				f_append(fclient, &(file_msg.appendfile_msg));
 				break;
 			case FREAD_OP:
