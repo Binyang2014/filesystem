@@ -151,7 +151,7 @@ static void send_to_queue(rpc_server_t *server, void *param, int dst, int tag, i
 	rpc_send_msg_t *rpc_send_msg = server->send_buff;
 	assert(rpc_send_msg->msg == NULL);
 #if RPC_SERVER_DEBUG
-	log_write(LOG_DEBUG, "rpc server send to queue haha");
+	log_write(LOG_DEBUG, "rpc server send to queue");
 #endif
 	rpc_send_msg->dst = dst;
 	rpc_send_msg->tag = tag;

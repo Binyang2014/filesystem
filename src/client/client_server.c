@@ -131,13 +131,14 @@ static int add_write_lock(zclient_t *zclient, const char *file_path, pthread_mut
 	data = sds_new("This is a write lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_parent(zclient, path, data, EPHEMERAL_SQUENTIAL, return_name);
+	ret_num = zclient->op->create_parent(zclient, path, data, PERSISTENT_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
 	path = sds_cpy(path, file_path);
 	path = sds_cat(path, ":lock");
 	ret_num = zclient->op->get_children(zclient, path, return_data);
 	children = sds_split_len(return_data, strlen(return_data), " ", 1, &count);
+	log_write(DEBUG, "lock name is %s, count number is %d", lock_name, count);
 	//no more other lock
 	if(count == 1)
 	{
@@ -152,18 +153,36 @@ static int add_write_lock(zclient_t *zclient, const char *file_path, pthread_mut
 			begin--;
 		}
 		begin = begin + 1;
+		log_write(DEBUG, "begin path is %s", children[i]);
 
 		for(i = 0; i < count; i++)
 		{
-			if(strcpy(children[i], begin) == 0)
+			log_write(DEBUG, "children path is %s", children[i]);
+			if(strcmp(children[i], begin) == 0)
 			{
 				break;
 			}
 		}
-		path = sds_cpy(path, file_path);
-		path = sds_cat(path, ":lock/");
-		path = sds_cat(path, children[i - 1]);
-		zclient->op->exists_znode(zclient, path, NULL, NOTICE_DELETE, watch_handler_delete, mutex);
+		//it is not first element
+		if(i != 0)
+		{
+			int ret_num;
+			path = sds_cpy(path, file_path);
+			path = sds_cat(path, ":lock/");
+			path = sds_cat(path, children[i - 1]);
+			log_write(DEBUG, "watch path is %s", path);
+			ret_num = zclient->op->exists_znode(zclient, path, NULL, NOTICE_DELETE, watch_handler_delete, mutex);
+			if(ret_num != ZOK)
+			{
+				log_write(DEBUG, "release path first is %s", lock_name);
+				pthread_mutex_unlock(mutex);
+			}
+		}
+		else
+		{
+			log_write(DEBUG, "release path second is %s", lock_name);
+			pthread_mutex_unlock(mutex);
+		}
 	}
 
 	sds_free(path);
@@ -188,7 +207,7 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 	data = sds_new("This is a read lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	ret_num = zclient->op->create_parent(zclient, path, data, EPHEMERAL_SQUENTIAL, return_name);
+	ret_num = zclient->op->create_parent(zclient, path, data, PERSISTENT_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
 	path = sds_cpy(path, file_path);
@@ -212,7 +231,7 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 
 		for(i = 0; i < count; i++)
 		{
-			if(strcpy(children[i], begin) == 0)
+			if(strcmp(children[i], begin) == 0)
 			{
 				break;
 			}
@@ -230,10 +249,15 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 		}
 		else
 		{
+			int ret_num;
 			path = sds_cpy(path, file_path);
 			path = sds_cat(path, ":lock/");
 			path = sds_cat(path, children[j]);
-			zclient->op->exists_znode(zclient, path, NULL, NOTICE_DELETE, watch_handler_delete, mutex);
+			ret_num = zclient->op->exists_znode(zclient, path, NULL, NOTICE_DELETE, watch_handler_delete, mutex);
+			if(ret_num != ZOK)
+			{
+				pthread_mutex_unlock(mutex);
+			}
 		}
 	}
 
