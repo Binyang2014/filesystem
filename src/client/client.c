@@ -12,10 +12,10 @@
 #include "log.h"
 #include "client.h"
 #include "zmalloc.h"
-#include "msg_ipc.h"
+#include "fifo_ipc.h"
 
-static int msg_wfd;
-static int msg_rfd;
+static int fifo_wfd;
+static int fifo_rfd;
 
 static int open_file(const char *path, open_mode_t open_mode, int *fd);
 static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, int *fd);
@@ -43,12 +43,12 @@ static int open_file(const char *path, open_mode_t open_mode, int *fd)
 	strcpy(openfile_msg.file_path, path);
 	openfile_msg.open_mode = open_mode;
 
-	if( m_write(msg_wfd, &openfile_msg, sizeof(openfile_msg_t)) < 0 )
+	if( write(fifo_wfd, &openfile_msg, sizeof(openfile_msg_t)) < 0 )
 	{
 		return -1;
 	}
 	//get return code
-	m_read(msg_rfd, &file_ret_msg, sizeof(file_ret_msg));
+	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg));
 	*fd = file_ret_msg.fd;
 
 	return file_ret_msg.ret_code;
@@ -70,12 +70,12 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, i
 	createfile_msg.open_mode = open_mode;
 	createfile_msg.mode = mode;
 
-	if( m_write(msg_wfd, &createfile_msg, sizeof(createfile_msg_t)) < 0 )
+	if( write(fifo_wfd, &createfile_msg, sizeof(createfile_msg_t)) < 0 )
 	{
 		return -1;
 	}
 	//get return code
-	m_read(msg_rfd, &file_ret_msg, sizeof(file_ret_msg));
+	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg));
 	log_write(LOG_DEBUG, "the fd is %d", file_ret_msg.fd);
 	*fd = file_ret_msg.fd;
 
@@ -86,9 +86,9 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, i
 
 int init_client()
 {
-	msg_wfd = open_msq(MSG_QUEUE_C_TO_S, RUSR | WUSR | RGRP | WGRP);
-	msg_rfd = open_msq(MSG_QUEUE_S_TO_C, RUSR | WUSR | RGRP | WGRP);
-	if(msg_wfd < 0 || msg_rfd < 0)
+	fifo_wfd = open_fifo(FIFO_PATH_C_TO_S, O_RDWR);
+	fifo_rfd = open_fifo(FIFO_PATH_S_TO_C, O_RDWR);
+	if(fifo_wfd < 0 || fifo_rfd < 0)
 	{
 		log_write(LOG_ERR, "could not connect to client server");
 		return -1;
@@ -102,7 +102,8 @@ int init_client()
 
 void close_client()
 {
-	log_write(LOG_INFO, "close client");
+	close_fifo(fifo_wfd);
+	close_fifo(fifo_rfd);
 }
 
 int f_open(const char *path, open_mode_t open_mode, ...)
@@ -140,8 +141,8 @@ int f_close(int fd)
 
 	closefile_msg.operation_code = FCLOSE_OP;
 	closefile_msg.fd = fd;
-	m_write(msg_wfd, &closefile_msg, sizeof(closefile_msg_t));
-	m_read(msg_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
+	write(fifo_wfd, &closefile_msg, sizeof(closefile_msg_t));
+	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
 
@@ -156,13 +157,13 @@ ssize_t f_read(int fd, void *buf, size_t nbytes)
 	readfile_msg.data_len = nbytes;
 	readfile_msg.fd = fd;
 
-	m_write(msg_wfd, &readfile_msg, sizeof(readfile_msg_t));
-	m_read(msg_rfd, &read_times, sizeof(int));
+	write(fifo_wfd, &readfile_msg, sizeof(readfile_msg_t));
+	read(fifo_rfd, &read_times, sizeof(int));
 	for(i = 0; i < read_times; i++)
 	{
-		offset = offset + m_read(msg_rfd, buf + offset, nbytes - offset);
+		offset = offset + read(fifo_rfd, buf + offset, nbytes - offset);
 	}
-	m_read(msg_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
+	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
 
@@ -176,10 +177,10 @@ ssize_t f_append(int fd, const void *buf, size_t nbytes)
 	appendfile_msg.data_len = nbytes;
 	appendfile_msg.fd = fd;
 
-	m_write(msg_wfd, &appendfile_msg, sizeof(appendfile_msg_t));
-	m_read(msg_rfd, &ret, sizeof(int));
-	m_write(msg_wfd, buf, nbytes);
-	m_read(msg_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
+	write(fifo_wfd, &appendfile_msg, sizeof(appendfile_msg_t));
+	read(fifo_rfd, &ret, sizeof(int));
+	write(fifo_wfd, buf, nbytes);
+	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
 
@@ -191,7 +192,7 @@ int f_remove(const char *pathname)
 	removefile_msg.operation_code = FREMOVE_OP;
 	strcpy(removefile_msg.file_path, pathname);
 
-	m_write(msg_wfd, &removefile_msg, sizeof(removefile_msg_t));
-	m_read(msg_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
+	write(fifo_wfd, &removefile_msg, sizeof(removefile_msg_t));
+	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
 	return file_ret_msg.ret_code;
 }
