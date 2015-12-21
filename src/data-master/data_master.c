@@ -28,15 +28,21 @@ static data_master_t *local_master;
 /*--------------------Test Print---------------------------*/
 static void print_allocate_list(list_t *list)
 {
+#if DATA_MASTER_DEBUG
 	log_write(LOG_DEBUG, "\nprint allocate space start, list->size = %d", list->len);
+#endif
 	list_iter_t *iter = list->list_ops->list_get_iterator(list, AL_START_HEAD);
 	while(list->list_ops->list_has_next(iter))
 	{
 		position_des_t *p = list->list_ops->list_next(iter)->value;
+#if DATA_MASTER_DEBUG
 		log_write(LOG_DEBUG, "data server id = %d, start = %d, end = %d", p->rank, p->start, p->end);
+#endif
 	}
 	list->list_ops->list_release_iterator(iter);
+#if DATA_MASTER_DEBUG
 	log_write(LOG_DEBUG, "print allocate space end\n");
+#endif
 }
 /*--------------------Private Implementation---------------*/
 
@@ -54,7 +60,8 @@ static void free_stor(void *ptr)
 {
 	zfree(ptr);
 }
-static uint32_t hash_code(const sds key, size_t size) {
+static uint32_t hash_code(const sds key, size_t size)
+{
 	size_t len = sds_len(key);
 	/* 'm' and 'r' are mixing constants generated offline.
 	   They're not really 'magic', they just happen to work well.  */
@@ -67,7 +74,8 @@ static uint32_t hash_code(const sds key, size_t size) {
 
 	/* Mix 4 bytes at a time into the hash */
 	const unsigned char *data = (const unsigned char *)key;
-	while(len >= 4) {
+	while(len >= 4)
+	{
 		uint32_t k = *(uint32_t*)data;
 		k *= m;
 		k ^= k >> r;
@@ -103,15 +111,18 @@ static uint32_t hash_code(const sds key, size_t size) {
 /**
  * Thread pool handler parameter
  */
-static void *get_event_handler_param(event_handler_t *event_handler) {
+static void *get_event_handler_param(event_handler_t *event_handler)
+{
 	return event_handler->special_struct;
 }
 
 static int has_enough_space(uint64_t block_num)
 {
-	if(block_num < local_master->free_size){
+	if(block_num < local_master->free_size)
+	{
 		return 1;
-	}else{
+	}else
+	{
 		return 0;
 	}
 }
@@ -158,7 +169,8 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 	if((node->file_size) % BLOCK_SIZE == 0)
 	{
 		allocate_size = ceil((double)write_size / BLOCK_SIZE);
-	}else{
+	}else
+	{
 		allocate_size = ceil((double)(write_size + node->file_size) / BLOCK_SIZE) - ceil((double)(node->file_size) / BLOCK_SIZE);
 	}
 	uint64_t tmp_al_size = allocate_size;
@@ -202,7 +214,8 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 				allocate_size -= st->free_blocks;
 				st->used_blocks += st->free_blocks;
 				st->free_blocks = 0;
-			}else{
+			}else
+			{
 				position->end = start_global_id + allocate_size - 1;
 				start_global_id = position->end + 1;
 
@@ -239,8 +252,8 @@ static list_t *allocate_space(uint64_t write_size, int index, file_node_t *node)
 	}
 }
 
-static void create_temp_file(event_handler_t *event_handler){
-	//assert(exists);
+static void create_temp_file(event_handler_t *event_handler)
+{
 	client_create_file_t *c_cmd = get_event_handler_param(event_handler);
 	sds file_name = sds_new(c_cmd->file_name);
 
@@ -261,15 +274,15 @@ static void create_temp_file(event_handler_t *event_handler){
 	zfree(file_sim_ret);
 	free_common(c_cmd);
 
-#if DATA_MASTER_PRINT
+#if DATA_MASTER_DEBUG
 	printf_master(NULL);
 #endif
 }
 
-static void append_temp_file(event_handler_t *event_handler){
-
+static void append_temp_file(event_handler_t *event_handler)
+{
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "append tmp file start");
+	log_write(LOG_DEBUG, "append tmp file start");
 #endif
 
 	client_append_file_t *c_cmd = get_event_handler_param(event_handler);
@@ -279,7 +292,7 @@ static void append_temp_file(event_handler_t *event_handler){
 	int index = hash_code(file_name, local_master->group_size);
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append tmp file file exists");
+	log_write(LOG_DEBUG, "data master append tmp file file exists");
 #endif
 
 	pthread_mutex_lock(local_master->mutex_data_master);
@@ -287,7 +300,7 @@ static void append_temp_file(event_handler_t *event_handler){
 	list_t *list = allocate_space(c_cmd->write_size, index, node);
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append allocate space end and allocate size = %d", c_cmd->write_size);
+	log_write(LOG_DEBUG, "data master append allocate space end and allocate size = %d", c_cmd->write_size);
 #endif
 
 	assert(list != NULL);
@@ -297,14 +310,14 @@ static void append_temp_file(event_handler_t *event_handler){
 	uint64_t length = sizeof(position_des_t);
 	void *pos_arrray = list_to_array(list, &length, node->file_size, c_cmd->write_size);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append list to array size = %d, length = %lld", list->len, length);
+	log_write(LOG_DEBUG, "data master append list to array size = %d, length = %lld", list->len, length);
 #endif
 
 	//send write result to client
 	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, length, ANS);
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append send result, name = %s", file_name);
+	log_write(LOG_DEBUG, "data master append send result, name = %s", file_name);
 #endif
 
 	//set location
@@ -312,14 +325,14 @@ static void append_temp_file(event_handler_t *event_handler){
 	assert(local_master->namespace->op->append_file(local_master->namespace, file_name, c_cmd->write_size) == 0);
 	
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "data master append name space append file");
+	log_write(LOG_DEBUG, "data master append name space append file");
 #endif
 	pthread_mutex_unlock(local_master->mutex_data_master);
 
 	zfree(pos_arrray);
 	free_common(c_cmd);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "append tmp file end");
+	log_write(LOG_DEBUG, "append tmp file end");
 #endif
 
 #if DATA_MASTER_PRINT
@@ -337,7 +350,9 @@ static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset
 	position_des_t *list_p;
 
 	int count = 0; //how many blocks this position can read
+#if DATA_MASTER_DEBUG
 	log_write(LOG_DEBUG, "read_blocks = %d, read_offset = %d, list = %d", read_blocks, read_offset, ((position_des_t *)(list->head)));
+#endif
 	while(read_blocks > 0)
 	{
 		position = (position_des_t *)((list_node_t *)list->list_ops->list_next(iter)->value);
@@ -386,10 +401,10 @@ static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset
 	return result;
 }
 
-static void read_temp_file(event_handler_t *event_handler){
-
+static void read_temp_file(event_handler_t *event_handler)
+{
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "read tmp file start");
+	log_write(LOG_DEBUG, "read tmp file start");
 #endif
 
 	client_read_file_t *c_cmd = get_event_handler_param(event_handler);
@@ -420,32 +435,32 @@ static void read_temp_file(event_handler_t *event_handler){
 	}
 
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "read tmp file read_blocks = %d and offset = %d", read_blocks, c_cmd->offset);
+	log_write(LOG_DEBUG, "read tmp file read_blocks = %d and offset = %d", read_blocks, c_cmd->offset);
 #endif
 
 	list_t *result = get_file_list_location(read_blocks, read_offset, list);
 #if DATA_MASTER_DEBUG
 	print_allocate_list(result);
-	log_write(LOG_TRACE, "read tmp file get_file_list_location");
+	log_write(LOG_DEBUG, "read tmp file get_file_list_location");
 #endif
 	uint64_t size = sizeof(position_des_t);
 	void *pos_arrray = list_to_array(result, &size, c_cmd->offset, c_cmd->read_size);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "read tmp file list_to_array");
+	log_write(LOG_DEBUG, "read tmp file list_to_array");
 #endif
 	local_master->rpc_server->op->send_result(pos_arrray, c_cmd->source, c_cmd->unique_tag, size, ANS);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "read tmp file send_result");
+	log_write(LOG_DEBUG, "read tmp file send_result");
 #endif
 	//TODO why here bug?
 	//list_release(result);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "read tmp file list_release");
+	log_write(LOG_DEBUG, "read tmp file list_release");
 #endif
 	zfree(pos_arrray);
 	free_common(c_cmd);
 #if DATA_MASTER_DEBUG
-	log_write(LOG_TRACE, "read tmp file end");
+	log_write(LOG_DEBUG, "read tmp file end");
 #endif
 
 #if DATA_MASTER_PRINT
@@ -453,8 +468,13 @@ static void read_temp_file(event_handler_t *event_handler){
 #endif
 }
 
-static void register_to_master(event_handler_t *event_handler){
+static void delete_temp_file(event_handler_t *event_handler)
+{
 
+}
+
+static void register_to_master(event_handler_t *event_handler)
+{
 	c_d_register_t *cmd = get_event_handler_param(event_handler);
 	storage_machine_sta_t *stor = zmalloc(sizeof(*stor));
 	stor->rank = cmd->source;
@@ -477,13 +497,14 @@ static void register_to_master(event_handler_t *event_handler){
 	free_common(cmd);
 }
 
-static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
+static void *resolve_handler(event_handler_t* event_handler, void* msg_queue)
+{
 	common_msg_t *common_msg = zmalloc(sizeof(*common_msg));
 	syn_queue_t* queue = msg_queue;
 	queue->op->syn_queue_pop(queue, common_msg);
 
-		//if this is a zookeeper cmd, pop until there is a data master cmd
-		//	//if may result in a dead thread
+	//if this is a zookeeper cmd, pop until there is a data master cmd
+	//if may result in a dead thread
 	while(common_msg->operation_code / 1000 == 5)
 	{
 		local_master->zserver->op->zput_request(local_master->zserver, common_msg);
@@ -514,7 +535,8 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue) {
 	return event_handler->handler;
 }
 
-void* data_master_init(void *args){
+void* data_master_init(void *args)
+{
 	data_master_t *master = args;
 	printf("DATA MASTER INIT AND ID IS %d\n", master->rank);
 
@@ -523,16 +545,14 @@ void* data_master_init(void *args){
 	return 0;
 }
 
-/**
- *
- */
-data_master_t* create_data_master(map_role_value_t *role, uint64_t free_blocks){
+data_master_t* create_data_master(map_role_value_t *role, uint64_t free_blocks)
+{
 	data_master_t *this = zmalloc(sizeof(*this));
 	local_master = this;
 
 	this->group_size =  role->group_size;
 	this->namespace = create_name_space(1024);
-	//TODO thread num must be 1
+	//thread number must be 1, non-order execute will cause problem
 	this->rpc_server = create_rpc_server(1, 1024, role->rank, resolve_handler);
 	this->storage_q = alloc_syn_queue(role->group_size, sizeof(storage_machine_sta_t));
 	queue_set_free(this->storage_q->queue, free_stor);
@@ -550,7 +570,8 @@ data_master_t* create_data_master(map_role_value_t *role, uint64_t free_blocks){
 	return this;
 }
 
-void destroy_data_master(data_master_t *this){
+void destroy_data_master(data_master_t *this)
+{
 	this->rpc_server->op->server_stop(this->rpc_server);
 	destroy_name_space(this->namespace);
 	zfree(this->storage_q);

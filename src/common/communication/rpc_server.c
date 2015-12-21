@@ -108,7 +108,6 @@ static void server_stop2(rpc_server_t *server)
 #if RPC_SERVER_DEBUG
 	log_write(LOG_DEBUG, "finished server stop2");
 #endif
-
 }
 
 //only data message and ans message need len
@@ -129,7 +128,6 @@ static int send_result(void *param, int dst, int tag, int len, msg_type_t type)
 			head_msg.len = len;
 
 			send_head_msg(&head_msg, dst, tag);
-//			log_write(LOG_DEBUG, "dst = %d and tag = %d", dst, tag);
 			send_msg(param, dst, tag, head_msg.len);
 			break;
 		case CMD:

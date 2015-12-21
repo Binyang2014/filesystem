@@ -62,7 +62,8 @@ static void map_list_pair_free(void *value) {
 /**
  * char * to integer
  */
-static inline int local_atoi(char *c) {
+static inline int local_atoi(char *c)
+{
 	int s = 0;
 	char *p = c;
 	while(*p){
@@ -79,7 +80,8 @@ static inline int local_atoi(char *c) {
  * @key save key
  * @value save value
  */
-static inline void get_param(char *p, char *key, char *value, int *line_type) {
+static inline void get_param(char *p, char *key, char *value, int *line_type)
+{
 	int index = 0;
 
 	char *line = p;
@@ -112,7 +114,8 @@ static inline void get_param(char *p, char *key, char *value, int *line_type) {
  * get key and value
  * skip blank and comment line
  */
-static void inline get_line_param(FILE *fp, char *buf, char *key, char *value) {
+static void inline get_line_param(FILE *fp, char *buf, char *key, char *value)
+{
 	int type = 0;
 	do {
 		char *c = fgets(buf, LINE_LENGTH, fp);
@@ -124,7 +127,8 @@ static void inline get_line_param(FILE *fp, char *buf, char *key, char *value) {
 /**
  * get param and translate it into integer
  */
-static void inline read_conf_int(FILE *fp, char *buf, char *key, char *value, int *v) {
+static void inline read_conf_int(FILE *fp, char *buf, char *key, char *value, int *v)
+{
 	get_line_param(fp, buf, key, value);
 	*v = local_atoi(value);
 }
@@ -132,12 +136,14 @@ static void inline read_conf_int(FILE *fp, char *buf, char *key, char *value, in
 /**
  * get param and translate it into string
  */
-static void inline read_conf_str(FILE *fp, char *buf, char *key, char *value, char *v) {
+static void inline read_conf_str(FILE *fp, char *buf, char *key, char *value, char *v)
+{
 	get_line_param(fp, buf, key, value);
 	strcpy(v, value);
 }
 
-static inline map_role_value_t *create_role(char *master_ip, char *ip, machine_role_e type){
+static inline map_role_value_t *create_role(char *master_ip, char *ip, machine_role_e type)
+{
 	map_role_value_t *role = zmalloc(sizeof(*role));
 	role->type = type;
 	strcpy(role->master_ip, master_ip);
@@ -145,17 +151,20 @@ static inline map_role_value_t *create_role(char *master_ip, char *ip, machine_r
 	return role;
 }
 
-static inline map_role_value_t *create_data_master_role(char *master_ip, char *ip, size_t group_size) {
+static inline map_role_value_t *create_data_master_role(char *master_ip, char *ip, size_t group_size)
+{
 	map_role_value_t *role =  create_role(master_ip, ip, DATA_MASTER);
 	role->group_size = group_size;
 	return role;
 }
 
-static inline map_role_value_t *create_data_server_role(char *master_ip, char *ip) {
+static inline map_role_value_t *create_data_server_role(char *master_ip, char *ip)
+{
 	return create_role(master_ip, ip, DATA_SERVER);
 }
 
-static void get_net_topology(machine_role_allocator_t *allocator) {
+static void get_net_topology(machine_role_allocator_t *allocator)
+{
 	FILE *fp = fopen(allocator->file_path, "r");
 
 	//verify file exists
@@ -200,7 +209,8 @@ static void get_net_topology(machine_role_allocator_t *allocator) {
 }
 
 
-static void print_role(map_role_value_t *role){
+static void print_role(map_role_value_t *role)
+{
 	log_write(LOG_DEBUG, "role ip = %s", role->ip);
 	log_write(LOG_DEBUG, "role rank = %d", role->rank);
 }
@@ -208,7 +218,8 @@ static void print_role(map_role_value_t *role){
 /**
  * distribute the machine role
  */
-static void allocate_machine_role(machine_role_allocator_t *allocator) {
+static void allocate_machine_role(machine_role_allocator_t *allocator)
+{
 	map_t *roles = local_allocator->roles;
 
 
@@ -222,10 +233,8 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 
 	char ip[16] = {};
 	get_visual_ip(allocator->net_name, ip);
-	printf("ZERO IP = %s\n", ip);
 	sds t_ip = sds_new(ip);
 	role = (map_role_value_t *)(roles->op->get(roles, t_ip));
-	puts(role->ip);
 	sds_free(t_ip);
 	t_ip = sds_new(role->master_ip);
 	master_role = (map_role_value_t *)(roles->op->get(roles, t_ip));
@@ -236,22 +245,17 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 	memcpy(zero_role, role, sizeof(*role));
 	local_allocator->role = zero_role;
 
-	role = roles->op->get(roles, sds_new("10.1.1.70"));
-	printf("10.1.1.70 id is %d and ip is %s\n", role->rank, role->ip);
-
-	role = roles->op->get(roles, sds_new("10.1.1.75"));
-	printf("10.1.1.75 id is %d and ip is %s\n", role->rank, role->ip);
 	while(iter->op->has_next(iter))
 	{
 
 		role = iter->op->next(iter);
-		printf("--====%d---0-=\n", role->rank);
 
 #if MACHINE_ROLE_DEBUG
 		print_role(role);
 #endif
 
-		if(role->rank == 0){
+		if(role->rank == 0)
+		{
 			continue;
 		}
 		sds master_ip = sds_new(role->master_ip);
@@ -276,14 +280,16 @@ static void allocate_machine_role(machine_role_allocator_t *allocator) {
 #endif
 }
 
-static void *get_event_handler_param(event_handler_t *event_handler) {
+static void *get_event_handler_param(event_handler_t *event_handler)
+{
 	return event_handler->special_struct;
 }
 
 /**
  * get machine role
  */
-static void machine_register(event_handler_t *event_handler) {
+static void machine_register(event_handler_t *event_handler)
+{
 	machine_register_role_t *param = get_event_handler_param(event_handler);
 
 #if MACHINE_ROLE_DEBUG
@@ -340,7 +346,8 @@ static void *resolve_handler(event_handler_t *event_handler, void* msg_queue)
 /**
  * create allocator
  */
-static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path, char *net_name) {
+static machine_role_allocator_t *create_machine_role_allocator(size_t size, int rank, char *file_path, char *net_name)
+{
 	machine_role_allocator_t *this = zmalloc(sizeof(machine_role_allocator_t));
 	strcpy(this->file_path, file_path);
 	local_allocator = this;
@@ -381,7 +388,8 @@ void send_server_stop_cmd(rpc_server_t *server)
 	destroy_rpc_client(client);
 }
 
-static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
+static void destroy_machine_role_allocater(machine_role_allocator_t *this)
+{
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "destroy_machine_role_allocater and map size is %d", local_allocator->roles->current_size);
 #endif
@@ -409,7 +417,8 @@ static void destroy_machine_role_allocater(machine_role_allocator_t *this) {
 	zfree(this);
 }
 
-map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file_path, char *net_name){
+map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file_path, char *net_name)
+{
 #if MACHINE_ROLE_DEBUG
 	log_write(LOG_DEBUG, "start create role allocator");
 #endif
@@ -430,7 +439,8 @@ map_role_value_t *machine_role_allocator_start(size_t size, int rank, char *file
 
 /*------------------Machine Role Fetcher--------------------*/
 //TODO get machine visual ip
-void get_visual_ip(const char *net_name, char *ip){
+void get_visual_ip(const char *net_name, char *ip)
+{
 	struct ifaddrs * ifAddrStruct = NULL;
 	void * tmpAddrPtr = NULL;
 	const char *pattern = "^10\..*$";
@@ -470,7 +480,8 @@ void get_visual_ip(const char *net_name, char *ip){
 	}
 }
 
-static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetcher){
+static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetcher)
+{
 	machine_register_role_t *role = zmalloc(sizeof(*role));
 	role->source = fetcher->rank;
 	get_visual_ip(fetcher->net_name, role->ip);
@@ -496,7 +507,8 @@ static map_role_value_t* register_to_zero_rank(struct machine_role_fetcher *fetc
 	return fetcher->client->recv_buff;
 }
 
-static machine_role_fetcher_t *create_machine_role_fetcher(int rank, char *net_name){
+static machine_role_fetcher_t *create_machine_role_fetcher(int rank, char *net_name)
+{
 	machine_role_fetcher_t *fetcher = zmalloc(sizeof(*fetcher));
 	fetcher->rank = rank;
 	fetcher->client = create_rpc_client(rank, 0, MACHINE_ROLE_GET_ROLE);
@@ -513,7 +525,8 @@ static void destroy_machine_role_fetcher(machine_role_fetcher_t *fetcher)
 	zfree(fetcher->op);
 }
 
-map_role_value_t *get_role(int rank, char *net_name){
+map_role_value_t *get_role(int rank, char *net_name)
+{
 	if(rank == 0)
 	{
 		while(local_allocator->role == NULL);

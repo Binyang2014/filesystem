@@ -57,8 +57,7 @@ static void send_data(rpc_client_t* client, uint32_t len)
 {
 	msg_data_t* data_msg;
 	void* send_buff = client->second_send_buff;
-	uint32_t msg_offset = 0, offset = 0, send_buff_len =
-		client->second_send_buff_len;
+	uint32_t msg_offset = 0, offset = 0, send_buff_len = client->second_send_buff_len;
 	int send_count, rest_bytes, i;
 	write_c_to_d_t* cmd_msg;
 
@@ -80,7 +79,9 @@ static void send_data(rpc_client_t* client, uint32_t len)
 		data_msg->seqno = i;
 		data_msg->tail = 0;
 		if(rest_bytes == 0 && i == send_count - 1)
+		{
 			data_msg->tail = 1;
+		}
 		memcpy(data_msg->data, send_buff + offset, data_msg->len);
 		msg_offset = msg_offset + data_msg->len;
 		offset = offset + data_msg->len;
@@ -147,10 +148,10 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 				zfree(acc_msg);
 				return -1;
 			}
-			if(client->second_send_buff != NULL &&
-					client->second_send_buff_len > 0)
-				send_data(client,
-						((write_c_to_d_t*)client->send_buff)->write_len);
+			if(client->second_send_buff != NULL && client->second_send_buff_len > 0)
+			{
+				send_data(client, ((write_c_to_d_t*)client->send_buff)->write_len);
+			}
 			else
 			{
 				log_write(LOG_ERR, "client does not offer data yet");

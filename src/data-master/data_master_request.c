@@ -82,5 +82,3 @@ void destroy_data_master_request(data_master_request_t *request)
 	zfree(request);
 	request = NULL;
 }
-
-
