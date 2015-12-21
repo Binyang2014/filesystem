@@ -546,9 +546,9 @@ log_write(LOG_DEBUG, "start delete znode");
 	printf_base(zreturn);
 #endif
 
-	//sds_free(path);
-	//zfree(zreturn);
-	//list_release(list);
+	sds_free(path);
+	zfree(zreturn);
+	list_release(list);
 }
 
 static void set_znode_handler(event_handler_t *event_handler)

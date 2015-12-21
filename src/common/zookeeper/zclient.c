@@ -77,7 +77,8 @@ static void watch_node_free(void* watch_node)
 {
 	watch_node_t *node = watch_node;
 
-	zfree(node->args);
+	//user should delete args by theirself, We do not free this space
+	//zfree(node->args);
 	zfree(node);
 }
 
@@ -118,7 +119,7 @@ static int create_znode(zclient_t *zclient, const sds path, const sds data, znod
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag, sizeof(zreturn_sim_t));
 	//TODO this have been modified
-	if(((zreturn->return_code & ZOK) && return_name) != NULL)
+	if(((zreturn->return_code & ZOK) && return_name) != 0)
 	{
 		sds_cpy(return_name, zreturn->data);
 	}
@@ -157,7 +158,7 @@ static int create_parent(zclient_t *zclient, const sds path, const sds data, zno
 #if ZCLIENT_DEBUG
 	log_write(LOG_DEBUG, "Zclient create parent receive zserver create parent ans");
 #endif
-	if(((zreturn->return_code & ZOK) && return_name) != NULL)
+	if(((zreturn->return_code & ZOK) && return_name) != 0)
 	{
 		sds_cpy(return_name, zreturn->data);
 	}
@@ -305,8 +306,9 @@ static int exists_znode(zclient_t *zclient, const sds path, znode_status_t
 
 	if(status != NULL && (zreturn->return_code & ZOK))
 		zstatus_dup(status, &zreturn->status);
-	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR))
+	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR) && !(zreturn->return_code &ZNO_EXISTS))
 	{
+		log_write(DEBUG, "watch code is %d", exists_msg->watch_code);
 		add_to_watch_list(zclient, watch_flag, exists_msg->watch_code, watch_handler, args);
 	}
 
@@ -341,8 +343,11 @@ static void *handle_watch_event(void *args)
 		node = watch_list->list_ops->list_search_key(watch_list, &watch_key);
 		if(node == NULL)
 		{
-			continue;
+			usleep(50);
+			node = watch_list->list_ops->list_search_key(watch_list, &watch_key);
 		}
+		if(node == NULL)
+			continue;
 		watch_node = node->value;
 		watch_node->watch_handler(watch_node->args);
 		//delete node from list

@@ -116,6 +116,12 @@ int main(int argc, char *argv[])
 		else
 			printf("retrun name is %s\n", return_name);
 
+		ret_num = zclient->op->delete_znode(zclient, path, -1);
+		if(ret_num != ZOK)
+			printf("something wrong happens\n");
+		else
+			printf("retrun name is %s\n", return_name);
+
 		path = sds_cpy(path, "/data/research.bat");
 		ret_num = zclient->op->get_znode(zclient, path, return_data,
 				NULL, 0, NULL, NULL);
