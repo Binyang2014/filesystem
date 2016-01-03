@@ -12,6 +12,7 @@
 #include "zmalloc.h"
 #include "message.h"
 
+extern void user_func();
 static fclient_t *fclient;
 static int get_fd(fclient_t *fclient);
 static void init_create_msg(client_create_file_t *, const createfile_msg_t *);
@@ -305,6 +306,7 @@ static int append_data(fclient_t *fclient, appendfile_msg_t *appendfile_msg,
 	write_msg.unique_tag = rpc_client->tag;
 	write_msg.offset = file_ret->offset;
 	data_msg = data;
+
 	for(i = 0; i < dataserver_num; i++)
 	{
 		position_des_t *posi = position + i;
@@ -379,7 +381,7 @@ static int read_data(fclient_t *fclient, readfile_msg_t *readfile_msg, void *pos
 		}
 		read_size -= read_msg.read_len;
 #if CLIENT_DEBUG
-log_write(LOG_DEBUG, "client server read data size = %d, count = %d, offset = %d", read_msg.read_len, read_msg.chunks_count, read_msg.offset);
+		log_write(LOG_DEBUG, "client server read data size = %d, count = %d, offset = %d", read_msg.read_len, read_msg.chunks_count, read_msg.offset);
 #endif
 		
 		for(j = posi->start; j <= posi->end; j++)
@@ -393,14 +395,16 @@ log_write(LOG_DEBUG, "client server read data size = %d, count = %d, offset = %d
 		data_msg = data_msg + read_msg.read_len;
 		if(ret < 0)
 		{
-			rpc_client->op->set_recv_buff(rpc_client, file_ret, sizeof(file_ret));
+			rpc_client->op->set_recv_buff(rpc_client, pos, sizeof(file_ret) +
+					sizeof(uint64_t) + dataserver_num * sizeof(position_des_t));
 			rpc_client->target = fclient->data_master_id;
 			return -1;
 		}
 		read_msg.offset = 0;
 	}
+	rpc_client->op->set_recv_buff(rpc_client, pos, sizeof(file_ret) +
+			sizeof(uint64_t) + dataserver_num * sizeof(position_des_t));
 	rpc_client->target = fclient->data_master_id;
-	rpc_client->op->set_recv_buff(rpc_client, file_ret, sizeof(file_ret));
 
 	return 0;
 }
@@ -416,7 +420,7 @@ int fs_create(createfile_msg_t *createfile_msg, int *ret_fd)
 	list_t *file_list = NULL;
 	zclient_t *zclient = NULL;
 	sds path, data;
-	int ret_code;
+	int ret_code = FOK;
 
 	log_write(LOG_DEBUG, "creating a file to store data");
 	//construct client_create_file message
@@ -480,7 +484,7 @@ int fs_remove(removefile_msg_t *removefile_msg)
 	client_remove_file_t *client_remove_file = NULL;
 	zclient_t *zclient = NULL;
 	sds path;
-	int ret_code;
+	int ret_code = FOK;
 
 	log_write(LOG_DEBUG, "removing a file");
 	//1.send message to data master to delete file
@@ -528,7 +532,7 @@ int fs_open(openfile_msg_t *openfile_msg, int *ret_fd)
 	zclient_t *zclient = NULL;
 	sds path, return_data;
 	znode_status_t zstatus;
-	int ret_code;;
+	int ret_code = FOK;
 
 	log_write(LOG_DEBUG, "open a file to store data");
 
@@ -590,7 +594,7 @@ int fs_append(appendfile_msg_t *appendfile_msg, const char *data)
 	zclient_t *zclient = NULL;
 	pthread_mutex_t *mutex;
 	sds lock_name;
-	int ret_code;
+	int ret_code = FOK;
 
 	log_write(LOG_DEBUG, "append a file to store data");
 	//1.find right structure
@@ -659,7 +663,7 @@ int fs_read(readfile_msg_t *readfile_msg, char *data)
 	zclient_t *zclient = NULL;
 	pthread_mutex_t *mutex;
 	sds lock_name;
-	int ret_code;
+	int ret_code = FOK;
 
 #if CLIENT_DEBUG
 	log_write(LOG_DEBUG, "READ A FILE");
@@ -703,13 +707,13 @@ int fs_read(readfile_msg_t *readfile_msg, char *data)
 	read_data(fclient, readfile_msg, rpc_client->recv_buff, data);
 
 #if CLIENT_DEBUG
-log_write(LOG_DEBUG, "client server read data");
+	log_write(LOG_DEBUG, "client server read data");
 #endif
 
 	//6.delete lock
 	zclient->op->delete_znode(zclient, lock_name, -1);
 #if CLIENT_DEBUG
-log_write(LOG_DEBUG, "client server delete lock");
+	log_write(LOG_DEBUG, "client server delete lock");
 #endif
 	//7.copy result to share memory
 	if(ret_code != FSERVER_ERR)
@@ -718,7 +722,7 @@ log_write(LOG_DEBUG, "client server delete lock");
 	}
 
 #if CLIENT_DEBUG
-log_write(LOG_DEBUG, "client server write to memory");
+	log_write(LOG_DEBUG, "client server write to memory");
 #endif
 	zfree(client_read_file);
 	zfree(rpc_client->recv_buff);

@@ -114,7 +114,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 		return -1;
 	}
 #if RPC_CLIENT_DEBUG
-	log_write(LOG_DEBUG, "RPC CLIENT SEND CMD, buff = %d, target = %d, len = %d, type is %d", 
+	log_write(LOG_DEBUG, "RPC CLIENT SEND CMD, buff = %p, target = %d, len = %d, type is %d", 
 			client->send_buff, client->target, client->send_buff_len, exe_type);
 #endif
 	send_cmd_msg(client->send_buff, client->target, client->send_buff_len);

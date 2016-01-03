@@ -32,6 +32,7 @@ static int open_file(const char *path, open_mode_t open_mode, int *fd)
 	openfile_msg.open_mode = open_mode;
 
 	ret_code = fs_open(&openfile_msg, fd);
+	log_write(LOG_DEBUG, "the fd is %d", *fd);
 
 	return ret_code;
 }
