@@ -54,13 +54,6 @@ struct opened_file
 	int version;
 };
 
-//======================ABOUT FILE RETURE MESSAGE=================
-struct file_ret_msg
-{
-	int ret_code;
-	int fd;
-};
-
 //====================ABOUT FILE OPERATION MESSAGE================
 struct openfile_msg
 {
