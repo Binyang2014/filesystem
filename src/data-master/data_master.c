@@ -147,7 +147,7 @@ static void printf_server(storage_machine_sta_t *server)
 static void printf_master(event_handler_t *event_handler)
 {
 	puts("*************start print data master*************");
-	printf("master ip is %s, master rank is %d, master free is %d\n", local_master->visual_ip, local_master->rank, local_master->free_size);
+	printf("master rank is %d, master free is %d\n", local_master->rank, local_master->free_size);
 	printf("ip\t\trank\tfree\tused\n");
 	storage_machine_sta_t server;
 	basic_queue_iterator *itor = create_basic_queue_iterator(local_master->storage_q->queue);
@@ -335,9 +335,9 @@ static void append_temp_file(event_handler_t *event_handler)
 	log_write(LOG_DEBUG, "append tmp file end");
 #endif
 
-#if DATA_MASTER_PRINT
-	printf_master(NULL);
-#endif
+//#if DATA_MASTER_PRINT
+//	printf_master(NULL);
+//#endif
 }
 
 static list_t* get_file_list_location(uint64_t read_blocks, uint64_t read_offset, list_t *list)
@@ -463,9 +463,9 @@ static void read_temp_file(event_handler_t *event_handler)
 	log_write(LOG_DEBUG, "read tmp file end");
 #endif
 
-#if DATA_MASTER_PRINT
-	printf_master(NULL);
-#endif
+//#if DATA_MASTER_PRINT
+//	printf_master(NULL);
+//#endif
 }
 
 static void delete_temp_file(event_handler_t *event_handler)
@@ -528,6 +528,10 @@ static void *resolve_handler(event_handler_t* event_handler, void* msg_queue)
 		case READ_FILE_CODE:
 			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
 			event_handler->handler = read_temp_file;
+			break;
+		case PRINT_DATA_MASTER:
+			event_handler->special_struct = MSG_COMM_TO_CMD(common_msg);
+			event_handler->handler = printf_master;
 			break;
 		default:
 			event_handler->handler = NULL;
