@@ -11,13 +11,13 @@ ${ld}/libmachinerole.a ${ld}/libvfs.a
 
 default::
 	cd src;\
-	make CFLAG=-DWRITE_SPEED_TEST || exit 1;\
-	make CFLAG=-DWRITE_SPEED_TEST system || exit 1;\
+	make $(params) || exit 1;\
+	make $(params) system || exit 1;\
 	
 install::
 
 clean::
-	rm -rf filesystem;\
+	rm -rf ./src/fileapp*;\
 	rm -rf ./lib/*.a;\
 	cd src;\
 	make clean || exit 1;\

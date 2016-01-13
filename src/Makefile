@@ -15,7 +15,7 @@ obj = main.o
 system:: fileapp
 
 fileapp: main.o $(LIB)
-	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -lvfs -lclient -ldataserver -ldatamaster -lmachinerole -o $@ -lpthread -lm
+	$(CC) $(CFLAGS) $^ -L$(LIBDIR) -lcommon -lvfs -lclient -ldataserver -ldatamaster -lmachinerole -o $@_$(name) -lpthread -lm
 
 include $(TOPDIR)/GlobalRules
 

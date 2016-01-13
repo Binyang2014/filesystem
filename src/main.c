@@ -19,6 +19,7 @@
 #include "data_master_request.h"
 #include "mpi_communication.h"
 #include "user_func.h"
+#include "test_conf.h"
 
 static c_d_register_t* get_register_cmd(int rank, uint64_t freeblock, int tag, char *net_name)
 {
@@ -32,12 +33,13 @@ static c_d_register_t* get_register_cmd(int rank, uint64_t freeblock, int tag, c
 }
 
 int main(argc, argv)
-	int argc;char ** argv; {
+	int argc;char ** argv;
+{
 	int data_master_free_blocks = 0;
-	int data_server_free_blocks = SMALL;
+	int data_server_free_blocks = MEMORY_SIZE;
 	int rank;
 	int size;
-	char *file_path = "topo.conf";
+//	char *file_path = "topo.conf";
 	char *net_name = "eth0";
 	pthread_t *thread_data_master = (pthread_t *)zmalloc(sizeof(*thread_data_master));
 	pthread_t *thread_data_server = (pthread_t *)zmalloc(sizeof(*thread_data_master));
@@ -50,7 +52,8 @@ int main(argc, argv)
 	log_init("", LOG_OFF);
 	log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
 
-	if (rank == 0) {
+	if (rank == 0)
+	{
 		map_role->type = DATA_MASTER;
 		map_role->master_rank = 0;
 		map_role->group_size = size - 1;
@@ -63,7 +66,8 @@ int main(argc, argv)
 		//pthread_create(thread_client, NULL, fclient_run, fclient);
 		pthread_join(*thread_data_master, NULL);
 		pthread_join(*thread_client, NULL);
-	} else {
+	} else
+	{
 		map_role->type = DATA_SERVER;
 		map_role->master_rank = 0;
 		map_role->group_size = size - 1;

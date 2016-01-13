@@ -47,7 +47,7 @@ static void get_file_name(char *result, char *name, uint64_t block_size, uint64_
  * select rank to execute as client
  * try best to make a balance, it's a ideal situation
  */
-static int select_execute_process(int rank)
+static int select_execute_process(int rank, int client_num)
 {
 	if(rank == 0)
 	{
@@ -56,8 +56,8 @@ static int select_execute_process(int rank)
 	int size = get_mpi_size();
 	int node_num = size / NODE_PROCESS_NUM;
 	int rank_node_seq = rank / NODE_PROCESS_NUM;
-	int node_execute_process = CLIENT_NUM / NODE_PROCESS_NUM;
-	int remain = CLIENT_NUM % node_num;
+	int node_execute_process = client_num / NODE_PROCESS_NUM;
+	int remain = client_num % node_num;
 	int node_in_remain = rank % NODE_PROCESS_NUM;
 
 	if(remain == 0)
@@ -185,18 +185,26 @@ void system_test(int rank)
 	}
 #endif
 
-#ifdef MULTI_SAME_TEST
-	if(select_execute_process(rank))
+#ifdef MULTI_SAME_TEST_BLOCK
+	puts("MULTI_CLIENT_SAME_FILE_TEST");
+	if(select_execute_process(rank, MULTI_SAME_CLIENT_NUM))
 	{
 		char *file_name = MULTI_SAME_FILE_NAME;
-		multi_client_same_file(file_name, 1 << 10, 10);
+		timeval_t *t_start = get_timestamp();
+		multi_client_same_file(file_name, MULTI_SAME_TEST_BLOCK, MULTI_SAME_TEST_FILE_SIZE);
+		timeval_t *t_end = get_timestamp();
+		printf("multi client same file test end;\nfile name is %s;\ntime cost is %d\n;block size is %d;\n", file_name, cal_time(t_end, t_start), MULTI_SAME_TEST_BLOCK);
 	}
 #endif
 
-#ifdef MULTI_DIFF_TEST
-	if(select_execute_process(rank))
+#ifdef MULTI_DIFF_TEST_BLOCK
+	puts("MULTI_CLIENT_DIFF_FILE_TEST");
+	if(select_execute_process(rank, MULTI_DIFF_CLIENT_NUM))
 	{
-		//multi_client_diff_file();
+		timeval_t *t_start = get_timestamp();
+		multi_client_diff_file(MULTI_DIFF_TEST_BLOCK, MULTI_DIFF_TEST_FILE_SIZE / MULTI_DIFF_TEST_BLOCK);
+		timeval_t *t_end = get_timestamp();
+		printf("multi client diff file test end;\nfile name is %s;\ntime cost is %d;\n;block size is %d;\n", file_name, cal_time(t_end, t_start), MULTI_DIFF_TEST_BLOCK);
 	}
 #endif
 }
