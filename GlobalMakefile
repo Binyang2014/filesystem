@@ -20,4 +20,4 @@ INCLUDE = -I$(TOPDIR)/src -I$(TOPDIR)/src/common/structure_tool \
 -I$(TOPDIR)/src/common/ipc -I$(TOPDIR)/src/data-server/structure \
 -I$(TOPDIR)/src/data-master -I$(TOPDIR)/src/master \
 -I$(TOPDIR)/src/data-server/server -I$(TOPDIR)/src/client
-CFLAGS = -Wall -g -O0 $(INCLUDE)
+CFLAGS = -Wall -g $(CFLAG) -O0 $(INCLUDE) -lpthread -lm 

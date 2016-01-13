@@ -11,8 +11,8 @@ ${ld}/libmachinerole.a ${ld}/libvfs.a
 
 default::
 	cd src;\
-	make || exit 1;\
-	make system || exit 1;\
+	make CFLAG=-DWRITE_SPEED_TEST || exit 1;\
+	make CFLAG=-DWRITE_SPEED_TEST system || exit 1;\
 	
 install::
 

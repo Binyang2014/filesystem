@@ -27,7 +27,7 @@ struct rpc_client {
 	uint32_t second_send_buff_len;
 	void* send_buff;
 	uint32_t send_buff_len;
-	void* second_send_buff;
+	const void* second_send_buff;
 	void* recv_buff;
 	uint32_t recv_buff_len;
 	struct rpc_client_op *op;
@@ -37,7 +37,7 @@ struct rpc_client_op {
 	int (*execute)(struct rpc_client *client, enum execute_type exe_type);
 	void (*set_recv_buff)(struct rpc_client* , void* , uint32_t);
 	void (*set_send_buff)(struct rpc_client* , void* , uint32_t);
-	void (*set_second_send_buff)(struct rpc_client*, void*, uint32_t);
+	void (*set_second_send_buff)(struct rpc_client*, const void*, uint32_t);
 };
 
 typedef struct rpc_client rpc_client_t;

@@ -12,27 +12,15 @@
 #include "log.h"
 #include "client.h"
 #include "zmalloc.h"
-#include "fifo_ipc.h"
-
-static int fifo_wfd;
-static int fifo_rfd;
+#include "client_server.h"
 
 static int open_file(const char *path, open_mode_t open_mode, int *fd);
 static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, int *fd);
-/*static void read_tmp_file();
-static void read_persistent_file();
-static void delete_tmp_file();
-static void delete_persistent_file();
-static void consistent_persistent_file();
-
-static void merge_file();
-static void read_disk_file();*/
 
 static int open_file(const char *path, open_mode_t open_mode, int *fd)
 {
 	openfile_msg_t openfile_msg;
-	file_ret_msg_t file_ret_msg;
-	int path_len;
+	int path_len, ret_code;
 
 	openfile_msg.operation_code = FOPEN_OP;
 	path_len = strlen(path);
@@ -43,22 +31,16 @@ static int open_file(const char *path, open_mode_t open_mode, int *fd)
 	strcpy(openfile_msg.file_path, path);
 	openfile_msg.open_mode = open_mode;
 
-	if( write(fifo_wfd, &openfile_msg, sizeof(openfile_msg_t)) < 0 )
-	{
-		return -1;
-	}
-	//get return code
-	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg));
-	*fd = file_ret_msg.fd;
+	ret_code = fs_open(&openfile_msg, fd);
+	log_write(LOG_DEBUG, "the fd is %d", *fd);
 
-	return file_ret_msg.ret_code;
+	return ret_code;
 }
 
 static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, int *fd)
 {
 	createfile_msg_t createfile_msg;
-	file_ret_msg_t file_ret_msg;
-	int path_len;
+	int path_len, ret_code;
 
 	createfile_msg.operation_code = FCREATE_OP;
 	path_len = strlen(path);
@@ -70,41 +52,14 @@ static int create_file(const char *path, open_mode_t open_mode, f_mode_t mode, i
 	createfile_msg.open_mode = open_mode;
 	createfile_msg.mode = mode;
 
-	if( write(fifo_wfd, &createfile_msg, sizeof(createfile_msg_t)) < 0 )
-	{
-		return -1;
-	}
-	//get return code
-	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg));
-	log_write(LOG_DEBUG, "the fd is %d", file_ret_msg.fd);
-	*fd = file_ret_msg.fd;
+	//call client server functions
+	ret_code = fs_create(&createfile_msg, fd);
+	log_write(LOG_DEBUG, "the fd is %d", *fd);
 
-	return file_ret_msg.ret_code;
+	return ret_code;
 }
 
 //===========================================================================================
-
-int init_client()
-{
-	fifo_wfd = open_fifo(FIFO_PATH_C_TO_S, O_RDWR);
-	fifo_rfd = open_fifo(FIFO_PATH_S_TO_C, O_RDWR);
-	if(fifo_wfd < 0 || fifo_rfd < 0)
-	{
-		log_write(LOG_ERR, "could not connect to client server");
-		return -1;
-	}
-	else
-	{
-		log_write(LOG_INFO, "connect to server successfully");
-	}
-	return 0;
-}
-
-void close_client()
-{
-	close_fifo(fifo_wfd);
-	close_fifo(fifo_rfd);
-}
 
 int f_open(const char *path, open_mode_t open_mode, ...)
 {
@@ -137,62 +92,64 @@ int f_open(const char *path, open_mode_t open_mode, ...)
 int f_close(int fd)
 {
 	closefile_msg_t closefile_msg;
-	file_ret_msg_t file_ret_msg;
+	int ret_code;
 
 	closefile_msg.operation_code = FCLOSE_OP;
 	closefile_msg.fd = fd;
-	write(fifo_wfd, &closefile_msg, sizeof(closefile_msg_t));
-	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
-	return file_ret_msg.ret_code;
+	ret_code = fs_close(&closefile_msg);
+	if(ret_code != 0)
+		return -1;
+	else
+		return 0;
 }
 
+//This function maybe not return actually read charictors
+//should be modified later
 ssize_t f_read(int fd, void *buf, size_t nbytes)
 {
 	readfile_msg_t readfile_msg;
-	file_ret_msg_t file_ret_msg;
-	int read_times, i;
-	size_t offset = 0;
+	ssize_t ret_code;
 
 	readfile_msg.operation_code = FREAD_OP;
 	readfile_msg.data_len = nbytes;
 	readfile_msg.fd = fd;
 
-	write(fifo_wfd, &readfile_msg, sizeof(readfile_msg_t));
-	read(fifo_rfd, &read_times, sizeof(int));
-	for(i = 0; i < read_times; i++)
-	{
-		offset = offset + read(fifo_rfd, buf + offset, nbytes - offset);
-	}
-	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
-	return file_ret_msg.ret_code;
+	ret_code = fs_read(&readfile_msg, buf);
+	if(ret_code != 0)
+		return -1;
+	else
+		return nbytes;
 }
 
+//This function maybe not return actually append charictors
+//should be modified later
 ssize_t f_append(int fd, const void *buf, size_t nbytes)
 {
 	appendfile_msg_t appendfile_msg;
-	file_ret_msg_t file_ret_msg;
-	int ret;
+	int ret_code;
 
 	appendfile_msg.operation_code = FAPPEND_OP;
 	appendfile_msg.data_len = nbytes;
 	appendfile_msg.fd = fd;
 
-	write(fifo_wfd, &appendfile_msg, sizeof(appendfile_msg_t));
-	read(fifo_rfd, &ret, sizeof(int));
-	write(fifo_wfd, buf, nbytes);
-	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
-	return file_ret_msg.ret_code;
+	ret_code = fs_append(&appendfile_msg, buf);
+	if(ret_code != 0)
+		return -1;
+	else
+		return nbytes;
 }
 
 int f_remove(const char *pathname)
 {
 	removefile_msg_t removefile_msg;
-	file_ret_msg_t file_ret_msg;
+	int ret_code;
 
 	removefile_msg.operation_code = FREMOVE_OP;
 	strcpy(removefile_msg.file_path, pathname);
 
-	write(fifo_wfd, &removefile_msg, sizeof(removefile_msg_t));
-	read(fifo_rfd, &file_ret_msg, sizeof(file_ret_msg_t));
-	return file_ret_msg.ret_code;
+	ret_code = fs_remove(&removefile_msg);
+	if(ret_code != 0)
+		return -1;
+	else
+		return 0;
 }

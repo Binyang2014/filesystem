@@ -27,31 +27,53 @@ void append_file_handler(event_handler_t *event_handler)
 {
 	client_append_file_t *client_append_file;
 	file_ret_t *file_ret;
+	size_t size;
+	uint64_t *head;
+	position_des_t *position;
 
 	log_write(LOG_DEBUG, "append file handler stub");
 	client_append_file = event_handler->special_struct;
 	log_write(LOG_INFO, "file name is %s", client_append_file->file_name);
 	log_write(LOG_INFO, "unique tag is %d", client_append_file->unique_tag);
-	file_ret = zmalloc(sizeof(file_ret_t));
+	size = sizeof(uint64_t) + sizeof(file_ret_t) + sizeof(position_des_t);
+	head = (uint64_t *)zmalloc(size);
+	*head = size;
+	file_ret = (file_ret_t *)(head + 1);
+	file_ret->read_write_len = 21;
 	file_ret->offset = 0;
 	file_ret->dataserver_num = 1;
-	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t), ANS);
-	zfree(file_ret);
+	position = (position_des_t *)(head + 4);
+	position->start = 0;
+	position->end = 0;
+	position->rank = 2;
+	local_server->op->send_result(head, 1, 13, size, ANS);
+	zfree(head);
 }
 void read_file_handler(event_handler_t *event_handler)
 {
 	client_read_file_t *client_read_file;
 	file_ret_t *file_ret;
+	size_t size;
+	uint64_t *head;
+	position_des_t *position;
 
 	log_write(LOG_DEBUG, "read file handler stub");
 	client_read_file = event_handler->special_struct;
 	log_write(LOG_INFO, "file name is %s", client_read_file->file_name);
 	log_write(LOG_INFO, "unique tag is %d", client_read_file->unique_tag);
-	file_ret = zmalloc(sizeof(file_ret_t));
+	size = sizeof(uint64_t) + sizeof(file_ret_t) + sizeof(position_des_t);
+	head = (uint64_t *)zmalloc(size);
+	*head = size;
+	file_ret = (file_ret_t *)(head + 1);
+	file_ret->read_write_len = 21;
 	file_ret->offset = 0;
 	file_ret->dataserver_num = 1;
-	local_server->op->send_result(file_ret, 1, 13, sizeof(file_ret_t), ANS);
-	zfree(file_ret);
+	position = (position_des_t *)(head + 4);
+	position->start = 0;
+	position->end = 0;
+	position->rank = 2;
+	local_server->op->send_result(head, 1, 13, size, ANS);
+	zfree(head);
 }
 
 void *resolve_handler(event_handler_t *event_handler, void *msg_queue)

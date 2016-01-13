@@ -18,6 +18,7 @@
 #include "zmalloc.h"
 #include "data_master_request.h"
 #include "mpi_communication.h"
+#include "user_func.h"
 
 static c_d_register_t* get_register_cmd(int rank, uint64_t freeblock, int tag, char *net_name)
 {
@@ -46,7 +47,7 @@ int main(argc, argv)
 	rank = get_mpi_rank();
 	size = get_mpi_size();
 
-	log_init("", LOG_TRACE);
+	log_init("", LOG_OFF);
 	log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
 
 	if (rank == 0) {
@@ -78,8 +79,11 @@ int main(argc, argv)
 
 		data_server_t *server = alloc_dataserver(data_server_free_blocks, rank);
 		//fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
-
 		pthread_create(thread_data_server, NULL, dataserver_run, server);
+
+		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
+		fclient_run(fclient);
+
 		//pthread_create(thread_client, NULL, fclient_run, fclient);
 		pthread_join(*thread_data_server, NULL);
 		pthread_join(*thread_client, NULL);

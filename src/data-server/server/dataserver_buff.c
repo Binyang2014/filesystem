@@ -98,14 +98,14 @@ void* get_f_arr_buff(data_server_t* data_server, int num)
 	pos = bitmap_find_next_zero_area(data_server->f_arr_bitmap, F_ARR_SIZE, 0, num, 0);
 
 #ifdef DATASERVER_BUFF_DEBUG
-	printf("The start position is %ld\n", pos);
+	log_write(LOG_DEBUG, "The start position is %ld\n", pos);
 #endif
 
 	//if pos == size, do something, maybe realloc
 	f_arr_buffer->blocks_arr = &summary_table.blocks_arr[pos];
 	f_arr_buffer->chunks_arr = &summary_table.chunks_arr[pos];
 #ifdef DATASERVER_BUFF_DEBUG
-	printf("The blocks buffer address is %p\n", &summary_table.blocks_arr[pos]);
+	log_write(LOG_DEBUG, "The blocks buffer address is %p\n", &summary_table.blocks_arr[pos]);
 #endif
 	bitmap_set(data_server->f_arr_bitmap, pos, num);
 	return f_arr_buffer;
@@ -149,7 +149,7 @@ void return_f_arr_buff(data_server_t* data_server, vfs_hashtable_t* buff)
 			sizeof(uint32_t);
 
 #ifdef DATASERVER_BUFF_DEBUG
-	printf("The release position is %ld\n", pos);
+	log_write(LOG_DEBUG, "The release position is %ld\n", pos);
 #endif
 
 	bitmap_clear(data_server->f_arr_bitmap, pos, num);

@@ -20,8 +20,6 @@
 struct fclient
 {
 	rpc_client_t *rpc_client;
-	int fifo_rfd;
-	int fifo_wfd;
 	zclient_t *zclient;
 	list_t *file_list;
 	unsigned long *bitmap;
@@ -31,6 +29,14 @@ struct fclient
 typedef struct fclient fclient_t;
 
 fclient_t *create_fclient(int client_id, int target, int tag);
-void destroy_fclient(fclient_t *fclient);
-void *fclient_run(void *fclient);
+
+int fs_create(createfile_msg_t *createfile_msg, int *ret_fd);
+int fs_open(openfile_msg_t *openfile_msg, int *ret_fd);
+int fs_append( appendfile_msg_t *writefile_msg, const char *data);
+int fs_read(readfile_msg_t *readfile_msg, char *data);
+int fs_close(closefile_msg_t *closefile_msg);
+int fs_remove(removefile_msg_t *removefile_msg);
+
+void destroy_fclient();
+void *fclient_run();
 #endif

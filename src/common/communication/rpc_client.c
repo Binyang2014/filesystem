@@ -16,7 +16,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type);
 static void set_recv_buff(rpc_client_t* client, void* buff , uint32_t
 		recv_buff_len);
 static void set_send_buff(rpc_client_t* client, void* buff, uint32_t);
-static void set_second_send_buff(rpc_client_t* client, void* buff, uint32_t
+static void set_second_send_buff(rpc_client_t* client, const void* buff, uint32_t
 		second_send_buff_len);
 static void recv_data(rpc_client_t* client, uint32_t len);
 static void send_data(rpc_client_t* client, uint32_t len);
@@ -56,7 +56,7 @@ static void recv_data(rpc_client_t* client, uint32_t len)
 static void send_data(rpc_client_t* client, uint32_t len)
 {
 	msg_data_t* data_msg;
-	void* send_buff = client->second_send_buff;
+	const void* send_buff = client->second_send_buff;
 	uint32_t msg_offset = 0, offset = 0, send_buff_len = client->second_send_buff_len;
 	int send_count, rest_bytes, i;
 	write_c_to_d_t* cmd_msg;
@@ -114,7 +114,7 @@ static int execute(rpc_client_t *client, execute_type_t exe_type)
 		return -1;
 	}
 #if RPC_CLIENT_DEBUG
-	log_write(LOG_DEBUG, "RPC CLIENT SEND CMD, buff = %d, target = %d, len = %d, type is %d", 
+	log_write(LOG_DEBUG, "RPC CLIENT SEND CMD, buff = %p, target = %d, len = %d, type is %d", 
 			client->send_buff, client->target, client->send_buff_len, exe_type);
 #endif
 	send_cmd_msg(client->send_buff, client->target, client->send_buff_len);
@@ -243,7 +243,9 @@ rpc_client_t *create_rpc_client(int client_id, int target, int tag)
 	this->client_id = client_id;
 	this->target = target;
 	this->tag = tag;
-	this->send_buff = this->second_send_buff = this->recv_buff = NULL;
+	this->send_buff = NULL;
+	this->second_send_buff = NULL;
+	this->recv_buff = NULL;
 	this->recv_buff_len = this->second_send_buff_len = 0;
 	if(tag == CMD_TAG)
 	{
@@ -271,7 +273,7 @@ static void set_send_buff(struct rpc_client* client, void* buff, uint32_t send_b
 	client->send_buff_len = send_buff_len;
 }
 
-static void set_second_send_buff(struct rpc_client* client, void* buff, uint32_t second_send_buff_len)
+static void set_second_send_buff(struct rpc_client* client, const void* buff, uint32_t second_send_buff_len)
 {
 	client->second_send_buff = buff;
 	client->second_send_buff_len = second_send_buff_len;
