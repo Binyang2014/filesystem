@@ -10,7 +10,7 @@
 static int block_size_type[] = {1 << 10, 1 << 11, 1 << 12, 1 << 13,
 		1 << 14, 1 << 15, 1 << 16, 1 << 17, 1 << 18,
 		1 << 19, 1<< 20, 1 << 21, 1 << 22, 1 << 23};
-static int file_size_type[] = {1 << 20, 1 << 28, 1 << 29, 1 << 30};
+static int file_size_type[] = {1 << 25, 1 << 28, 1 << 29, 1 << 30};
 
 static void fill_buff(char *buff, uint64_t buff_size)
 {
@@ -193,7 +193,7 @@ void system_test(int rank)
 		timeval_t *t_start = get_timestamp();
 		multi_client_same_file(file_name, MULTI_SAME_TEST_BLOCK, MULTI_SAME_TEST_FILE_SIZE / (ULTI_SAME_TEST_BLOCK * MULTI_SAME_CLIENT_NUM));
 		timeval_t *t_end = get_timestamp();
-		printf("multi client same file test end;\nfile name is %s;\ntime cost is %d\n;block size is %d;\n", file_name, cal_time(t_end, t_start), MULTI_SAME_TEST_BLOCK);
+		printf("multi client same file test end;file name is %s;time cost is %d;block size is %d;\n", file_name, cal_time(t_end, t_start), MULTI_SAME_TEST_BLOCK);
 	}
 #endif
 
@@ -204,7 +204,7 @@ void system_test(int rank)
 		timeval_t *t_start = get_timestamp();
 		multi_client_diff_file(MULTI_DIFF_TEST_BLOCK, MULTI_DIFF_TEST_FILE_SIZE / (MULTI_DIFF_TEST_BLOCK * MULTI_DIFF_CLIENT_NUM));
 		timeval_t *t_end = get_timestamp();
-		printf("multi client diff file test end;\ntime cost is %d;\n;block size is %d;\n", cal_time(t_end, t_start), MULTI_DIFF_TEST_BLOCK);
+		printf("multi client diff file test end;time cost is %d;block size is %d;\n", cal_time(t_end, t_start), MULTI_DIFF_TEST_BLOCK);
 	}
 #endif
 }
