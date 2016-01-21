@@ -186,12 +186,12 @@ void system_test(int rank)
 #endif
 
 #ifdef MULTI_SAME_TEST_BLOCK
-	puts("MULTI_CLIENT_SAME_FILE_TEST %d", MULTI_SAME_TEST_BLOCK);
+	printf("MULTI_CLIENT_SAME_FILE_TEST %d", MULTI_SAME_TEST_BLOCK);
 	if(select_execute_process(rank, MULTI_SAME_CLIENT_NUM))
 	{
 		char *file_name = MULTI_SAME_FILE_NAME;
 		timeval_t *t_start = get_timestamp();
-		multi_client_same_file(file_name, MULTI_SAME_TEST_BLOCK, MULTI_SAME_TEST_FILE_SIZE / (ULTI_SAME_TEST_BLOCK * MULTI_SAME_CLIENT_NUM));
+		multi_client_same_file(file_name, MULTI_SAME_TEST_BLOCK, MULTI_SAME_TEST_FILE_SIZE / (MULTI_SAME_TEST_BLOCK * MULTI_SAME_CLIENT_NUM));
 		timeval_t *t_end = get_timestamp();
 		printf("multi client same file test end;file name is %s;time cost is %d;block size is %d;\n", file_name, cal_time(t_end, t_start), MULTI_SAME_TEST_BLOCK);
 	}
