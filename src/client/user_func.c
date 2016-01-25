@@ -24,8 +24,8 @@ static void fill_buff(char *buff, uint64_t buff_size)
 static char *generate_name()
 {
 	char *file_name = malloc(200);
-	fill_buff(file_name, 100);
-	file_name[100] = 0;
+	fill_buff(file_name, 30);
+	file_name[30] = 0;
 	return file_name;
 }
 
