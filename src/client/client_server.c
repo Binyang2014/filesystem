@@ -445,14 +445,17 @@ int fs_create(createfile_msg_t *createfile_msg, int *ret_fd)
 	//have not used data structure now
 	data = sds_new("msg:");
 	zclient = fclient->zclient;
-	if(zclient->op->create_parent(zclient, path, data, PERSISTENT, NULL) != ZOK)
+	if(zclient->op->exists_znode(zclient, path, NULL, 0, NULL, NULL) == ZNO_EXISTS)
 	{
-		ret_code = FSERVER_ERR;
+		if(zclient->op->create_parent(zclient, path, data, PERSISTENT, NULL) != ZOK)
+		{
+			ret_code = FSERVER_ERR;
+		}
+		//create lock for this file
+		path = sds_cat(path, ":lock");
+		data = sds_cpy(data, "This is a lock");
+		zclient->op->create_parent(zclient, path, "", PERSISTENT, NULL);
 	}
-	//create lock for this file
-	path = sds_cat(path, ":lock");
-	data = sds_cpy(data, "This is a lock");
-	zclient->op->create_parent(zclient, path, "", PERSISTENT, NULL);
 	sds_free(path);
 	sds_free(data);
 #if CLIENT_DEBUG
@@ -776,6 +779,7 @@ void *fclient_run()
 	log_write(LOG_INFO, "===client server start run===");
 	zclient = fclient->zclient;
 	zclient->op->start_zclient(zclient);
+	//user_func();
 	system_test(zclient->client_id);
 	return 0;
 }

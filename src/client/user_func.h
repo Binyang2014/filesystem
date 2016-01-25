@@ -10,5 +10,6 @@
 
 
 void system_test();
+//void user_func();
 
 #endif /* SRC_CLIENT_USER_FUNC_H_ */

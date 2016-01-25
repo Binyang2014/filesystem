@@ -222,6 +222,7 @@ void user_func()
 		log_write(LOG_ERR, "open file failed");
 		exit(1);
 	}
+	fd = f_open("/temp/a.txt", CREATE_TEMP | RDWR, RUSR | WUSR);
 	log_write(LOG_DEBUG, "file open successfully");
 	f_close(fd);
 	f_open("/temp/a.txt", RDWR);
