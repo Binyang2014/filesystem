@@ -56,6 +56,7 @@ static file_node_t *add_file(name_space_t *space, sds file_name, enum file_type_
 	node->file_type = type;
 	node->consistent_size = 0;
 	space->file_num++;
+	node->position = NULL;
 	return node;
 }
 
@@ -158,7 +159,7 @@ static void set_file_location(name_space_t *space, sds file_name, list_t *list)
 
 	assert(node != NULL);
 
-	if(node->position == NULL)
+	if(node->file_size == 0)
 	{
 		node->position = list;
 	}else
