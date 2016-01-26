@@ -65,32 +65,36 @@ int main(argc, argv)
 		pthread_create(thread_data_master, NULL, data_master_init, master);
 		//pthread_create(thread_client, NULL, fclient_run, fclient);
 		pthread_join(*thread_data_master, NULL);
-		pthread_join(*thread_client, NULL);
+//		pthread_join(*thread_client, NULL);
 	} else
 	{
-		map_role->type = DATA_SERVER;
-		map_role->master_rank = 0;
-		map_role->group_size = size - 1;
-		map_role->rank = rank;
-		log_write(LOG_DEBUG, "ROLE DATA_SERVER and ID IS %d and master rank = %d", rank, map_role->master_rank);
-		usleep(10);
-		//register to master
-		c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
-		data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, 169 + rank);
-		request->op->register_to_master(request, re);
-		destroy_data_master_request(request);
-		zfree(re);
+		if(rank %2 == 1)
+		{
+			map_role->type = DATA_SERVER;
+			map_role->master_rank = 0;
+			map_role->group_size = size - 1;
+			map_role->rank = rank;
+			log_write(LOG_DEBUG, "ROLE DATA_SERVER and ID IS %d and master rank = %d", rank, map_role->master_rank);
+			usleep(10);
+			//register to master
+			c_d_register_t* re = get_register_cmd(rank, data_server_free_blocks, rank, net_name);
+			data_master_request_t *request = create_data_master_request(rank, map_role->master_rank, 169 + rank);
+			request->op->register_to_master(request, re);
+			destroy_data_master_request(request);
+			zfree(re);
 
-		data_server_t *server = alloc_dataserver(data_server_free_blocks, rank);
-		//fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
-		pthread_create(thread_data_server, NULL, dataserver_run, server);
+			data_server_t *server = alloc_dataserver(data_server_free_blocks, rank);
+			//fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
+			pthread_create(thread_data_server, NULL, dataserver_run, server);
 
-		fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
-		fclient_run(fclient);
-
-		//pthread_create(thread_client, NULL, fclient_run, fclient);
-		pthread_join(*thread_data_server, NULL);
-		pthread_join(*thread_client, NULL);
+			//pthread_create(thread_client, NULL, fclient_run, fclient);
+			pthread_join(*thread_data_server, NULL);
+			//pthread_join(*thread_client, NULL);
+		}else
+		{
+			fclient_t *fclient = create_fclient(rank, map_role->master_rank, CLIENT_LISTEN_TAG);
+			fclient_run(fclient);
+		}
 	}
 
 	mpi_finish();
