@@ -55,12 +55,13 @@ static int select_execute_process(int rank, int client_num)
 	{
 		return 0;
 	}
-	int size = get_mpi_size();
+	rank = rank / 2;
+	int size = get_mpi_size() / 2;
 	int node_num = size / NODE_PROCESS_NUM;
 	int rank_node_seq = rank / NODE_PROCESS_NUM;
-	int node_execute_process = client_num / NODE_PROCESS_NUM;
+	int node_execute_process = client_num / node_num;
 	int remain = client_num % node_num;
-	int node_in_remain = rank % NODE_PROCESS_NUM - 1;
+	int node_in_remain = rank % NODE_PROCESS_NUM;
 
 	if(remain == 0)
 	{
