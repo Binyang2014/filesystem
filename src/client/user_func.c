@@ -63,6 +63,14 @@ static int select_execute_process(int rank, int client_num)
 	int remain = client_num % node_num;
 	int node_in_remain = rank % NODE_PROCESS_NUM;
 
+	if(node_execute_process == NODE_PROCESS_NUM - 1 && remain != 0)
+	{
+		if(rank == (remain - 1) * NODE_PROCESS_NUM + node_execute_process + 1)
+		{
+			return 1;
+		}
+	}
+
 	if(remain == 0)
 	{
 		if(rank_node_seq == 0)
@@ -190,9 +198,9 @@ void system_test(int rank)
 #endif
 
 #ifdef MULTI_SAME_TEST_BLOCK
-	printf("MULTI_CLIENT_SAME_FILE_TEST %d\n", MULTI_SAME_TEST_BLOCK);
 	if(select_execute_process(rank, MULTI_SAME_CLIENT_NUM))
 	{
+		printf("MULTI_CLIENT_SAME_FILE_TEST %d, rank id is %d\n", MULTI_SAME_TEST_BLOCK, rank);
 		char *file_name = MULTI_SAME_FILE_NAME;
 		timeval_t *t_start = get_timestamp();
 		multi_client_same_file(rank, file_name, MULTI_SAME_TEST_BLOCK, MULTI_SAME_TEST_FILE_SIZE / (MULTI_SAME_TEST_BLOCK * MULTI_SAME_CLIENT_NUM));
@@ -202,9 +210,9 @@ void system_test(int rank)
 #endif
 
 #ifdef MULTI_DIFF_TEST_BLOCK
-	printf("MULTI_CLIENT_DIFF_FILE_TEST %d\n", MULTI_DIFF_TEST_BLOCK);
 	if(select_execute_process(rank, MULTI_DIFF_CLIENT_NUM))
 	{
+		printf("MULTI_CLIENT_DIFF_FILE_TEST %d, rank id is %d\n", MULTI_DIFF_TEST_BLOCK, rank);
 		timeval_t *t_start = get_timestamp();
 		multi_client_diff_file(rank, MULTI_DIFF_TEST_BLOCK, MULTI_DIFF_TEST_FILE_SIZE / (MULTI_DIFF_TEST_BLOCK * MULTI_DIFF_CLIENT_NUM));
 		timeval_t *t_end = get_timestamp();
