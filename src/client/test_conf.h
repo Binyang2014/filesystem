@@ -20,8 +20,8 @@
 #define MULTI_SAME_FILE_NAME "multi_same_file"
 
 #define MULTI_SAME_CLIENT_NUM (1 << 5)
-#define MULTI_SAME_TEST_FILE_SIZE (1 << 34)
+#define MULTI_SAME_TEST_FILE_SIZE (1UL << 34)
 
 #define MULTI_DIFF_CLIENT_NUM (1 << 5)
-#define MULTI_DIFF_TEST_FILE_SIZE (1 << 34)
+#define MULTI_DIFF_TEST_FILE_SIZE (1UL << 34)
 #endif /* SRC_CLIENT_TEST_CONF_H_ */
