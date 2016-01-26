@@ -23,5 +23,5 @@
 #define MULTI_SAME_TEST_FILE_SIZE (1 << 30)
 
 #define MULTI_DIFF_CLIENT_NUM (1 << 3)
-#define MULTI_DIFF_TEST_FILE_SIZE (1 << 30)
+#define MULTI_DIFF_TEST_FILE_SIZE (1 << 27)
 #endif /* SRC_CLIENT_TEST_CONF_H_ */

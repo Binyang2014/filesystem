@@ -638,6 +638,7 @@ int fs_append(appendfile_msg_t *appendfile_msg, const char *data)
 
 	//6.delete lock
 	zclient->op->delete_znode(zclient, lock_name, -1);
+	printf("lock name is %s\n", lock_name);
 
 	//7.copy result to share memory
 	if(ret_code != FSERVER_ERR)
