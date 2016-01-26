@@ -65,7 +65,7 @@ static int select_execute_process(int rank, int client_num)
 
 	if(node_execute_process == NODE_PROCESS_NUM - 1 && remain != 0)
 	{
-		if(rank == (remain - 1) * NODE_PROCESS_NUM + node_execute_process + 1)
+		if(rank == remain * NODE_PROCESS_NUM + node_execute_process)
 		{
 			return 1;
 		}
