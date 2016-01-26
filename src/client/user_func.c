@@ -18,7 +18,7 @@ static void fill_buff(char *buff, uint64_t buff_size, int rank)
 	int index = 0;
 	while(index < buff_size)
 	{
-		buff[index++] = (rand() + rank % 26) + 'A';
+		buff[index++] = (rand() + rank) % 26 + 'A';
 	}
 }
 
