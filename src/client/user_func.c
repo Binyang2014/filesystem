@@ -189,7 +189,7 @@ void system_test(int rank)
 #endif
 
 #ifdef MULTI_SAME_TEST_BLOCK
-	printf("MULTI_CLIENT_SAME_FILE_TEST %d", MULTI_SAME_TEST_BLOCK);
+	printf("MULTI_CLIENT_SAME_FILE_TEST %d\n", MULTI_SAME_TEST_BLOCK);
 	if(select_execute_process(rank, MULTI_SAME_CLIENT_NUM))
 	{
 		char *file_name = MULTI_SAME_FILE_NAME;

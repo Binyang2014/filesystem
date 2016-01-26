@@ -259,6 +259,7 @@ static int delete_znode(zserver_t *zserver, const sds path, int version)
 	ztree_t *ztree;
 	zvalue_t *zvalue;
 
+	printf("in zserver.c and path is %s\n", path);
 	ztree = zserver->ztree;
 	zvalue = ztree->op->find_znode(ztree, path);
 	if(zvalue == NULL)
