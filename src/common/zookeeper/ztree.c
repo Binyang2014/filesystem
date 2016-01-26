@@ -247,6 +247,8 @@ static int add_znode(ztree_t *tree, const sds path, zvalue_t *value, sds return_
 	map_t *child_map = NULL;
 	char reserve;
 
+	if(find_znode(tree, path) != NULL)
+		return 0;
 	len = sds_len(path);
 	parent_path = sds_dup(path);
 	//if the path is like "/temp/tmp"

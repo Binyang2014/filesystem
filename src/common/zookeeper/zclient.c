@@ -308,6 +308,7 @@ static int exists_znode(zclient_t *zclient, const sds path, znode_status_t
 		zstatus_dup(status, &zreturn->status);
 	if(watch_flag && !(zreturn->return_code & ZSET_WATCH_ERROR) && !(zreturn->return_code &ZNO_EXISTS))
 	{
+		//printf("watch code need is %d, pid is %lu\n", exists_msg->watch_code, getpid());
 		log_write(DEBUG, "watch code is %d", exists_msg->watch_code);
 		add_to_watch_list(zclient, watch_flag, exists_msg->watch_code, watch_handler, args);
 	}
@@ -340,11 +341,13 @@ static void *handle_watch_event(void *args)
 		{
 			continue;
 		}
+		//printf("watch code is %d, pid = %lu\n", watch_key.watch_code, getpid());
 		node = watch_list->list_ops->list_search_key(watch_list, &watch_key);
-		if(node == NULL)
+		while(node == NULL)
 		{
 			usleep(50);
 			node = watch_list->list_ops->list_search_key(watch_list, &watch_key);
+			//printf("watch code is %d, pid = %lu\n", watch_key.watch_code, getpid());
 		}
 		if(node == NULL)
 			continue;
