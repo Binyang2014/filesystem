@@ -49,7 +49,7 @@ int main(argc, argv)
 	rank = get_mpi_rank();
 	size = get_mpi_size();
 
-	log_init("", 5);
+	log_init("", LOG_OFF);
 	log_write(LOG_DEBUG, "get role success and role id is %d role ip is %s ", map_role->rank, map_role->ip);
 
 	if (rank == 0)

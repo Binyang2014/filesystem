@@ -133,7 +133,7 @@ static int add_write_lock(zclient_t *zclient, const char *file_path, pthread_mut
 	path = sds_new(file_path);
 	path = sds_cat(path, ":lock/write-");
 	data = sds_new("This is a write lock");
-	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
+	return_data = sds_new_len(NULL, MAX_RET_CHILDREN_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	ret_num = zclient->op->create_parent(zclient, path, data, PERSISTENT_SQUENTIAL, return_name);
 	//copy lock name
@@ -142,7 +142,7 @@ static int add_write_lock(zclient_t *zclient, const char *file_path, pthread_mut
 	path = sds_cat(path, ":lock");
 	ret_num = zclient->op->get_children(zclient, path, return_data);
 	children = sds_split_len(return_data, strlen(return_data), " ", 1, &count);
-	log_write(DEBUG, "lock name is %s, count number is %d", lock_name, count);
+	log_write(LOG_DEBUG, "lock name is %s, count number is %d", lock_name, count);
 	//no more other lock
 	if(count == 1)
 	{
@@ -210,7 +210,7 @@ static int add_read_lock(zclient_t *zclient, const char *file_path,
 	path = sds_cat(path, ":lock/read-");
 	data = sds_new("This is a read lock");
 	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
-	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
+	return_name = sds_new_len(NULL, MAX_RET_CHILDREN_LEN);
 	ret_num = zclient->op->create_parent(zclient, path, data, PERSISTENT_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
