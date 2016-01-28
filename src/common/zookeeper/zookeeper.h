@@ -223,7 +223,7 @@ typedef struct zreturn_sim zreturn_sim_t;
 typedef struct zreturn_complex zreturn_complex_t;
 typedef struct zreturn_base zreturn_base_t;
 typedef struct zreturn_mid zreturn_mid_t;
-typedef struct zretrun_children zreturn_children_t;
+typedef struct zreturn_children zreturn_children_t;
 typedef void *(*watch_handler_t)(void *);
 typedef struct watch_node watch_node_t;
 

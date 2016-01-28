@@ -258,7 +258,7 @@ static int get_children(zclient_t *zclient, const sds path, sds return_data)
 {
 	rpc_client_t *rpc_client;
 	zoo_get_children_t *get_children_msg;
-	zreturn_sim_t *zreturn;
+	zreturn_children_t *zreturn;
 
 	rpc_client = zclient->rpc_client;
 	get_children_msg = zclient->send_buff;

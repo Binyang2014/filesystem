@@ -635,20 +635,22 @@ static void get_children_handler(event_handler_t *event_handler)
 	common_msg_t *common_msg = list_node_value(list->list_ops->list_index(list, 0));
 	zoo_get_children_t *zmsg = (void*)MSG_COMM_TO_CMD(common_msg);
 	int return_code, source;
-	zreturn_sim_t *zreturn = zmalloc(sizeof(zreturn_sim_t));
+	zreturn_children_t *zreturn;
 	rpc_server_t *rpc_server = zserver->rpc_server;
 
 	source = common_msg->source;
 	path = sds_new((const char*)zmsg->path);
-	return_data = sds_new_len(NULL, MAX_RET_DATA_LEN);
+	return_data = sds_new_len(NULL, MAX_RET_CHILDREN_LEN);
 	return_code = get_children(zserver, path, return_data);
 
+	zreturn = zmalloc(sizeof(zreturn_base_t) + strlen(return_data));
 	zreturn->return_code = return_code;
-	memset(zreturn->data, 0, sizeof(zreturn->data));
+	memset(zreturn->data, 0, strlen(return_data));
 	if(return_code == ZOK)
-		memcpy(zreturn->data, return_data, sds_len(return_data));
+		memcpy(zreturn->data, return_data, strlen(return_data));
 
-	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag, sizeof(zreturn_sim_t));
+	rpc_server->op->send_to_queue(rpc_server, zreturn, source, zmsg->unique_tag,
+			strlen(return_data) + sizeof(zreturn_base_t));
 #if ZSERVER_DEBUG
 	printf_sim(zreturn);
 #endif
