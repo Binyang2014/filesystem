@@ -48,8 +48,12 @@
 //notice type
 #define NOTICE_CHANGED 0x1
 #define NOTICE_DELETE 0x2
+//max client receive message length
+#define MAX_RECV_MSG_LEN 1024
 //max return message data length
 #define MAX_RET_DATA_LEN 128
+//max children message data length
+#define MAX_RET_CHILDREN_LEN 1024
 //max watch code
 #define MAX_WATCH_CODE 65535
 //zclient define
@@ -177,6 +181,12 @@ struct zreturn_mid
 	struct znode_status status;
 };
 
+struct zreturn_children
+{
+	int return_code;
+	char data[1];//this filed is used to store data
+};
+
 struct zreturn_base
 {
 	int return_code;
@@ -213,6 +223,7 @@ typedef struct zreturn_sim zreturn_sim_t;
 typedef struct zreturn_complex zreturn_complex_t;
 typedef struct zreturn_base zreturn_base_t;
 typedef struct zreturn_mid zreturn_mid_t;
+typedef struct zretrun_children zreturn_children_t;
 typedef void *(*watch_handler_t)(void *);
 typedef struct watch_node watch_node_t;
 

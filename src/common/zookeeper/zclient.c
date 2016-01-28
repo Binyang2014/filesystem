@@ -262,7 +262,7 @@ static int get_children(zclient_t *zclient, const sds path, sds return_data)
 
 	rpc_client = zclient->rpc_client;
 	get_children_msg = zclient->send_buff;
-	zreturn = (zreturn_sim_t *)zclient->recv_buff;
+	zreturn = (zreturn_children_t *)zclient->recv_buff;
 
 	//construct command message and let rpc client to excuse it
 	get_children_msg->operation_code = ZOO_GET_CHILDREN_CODE;
@@ -273,7 +273,7 @@ static int get_children(zclient_t *zclient, const sds path, sds return_data)
 	rpc_client->op->set_send_buff(rpc_client, get_children_msg, sizeof(zoo_get_children_t));
 	rpc_client->op->execute(rpc_client, COMMAND_WITHOUT_RETURN);
 	recv_msg(zreturn, rpc_client->target, rpc_client->tag,
-			sizeof(zreturn_sim_t));
+			MAX_RET_CHILDREN_LEN);
 
 	if(zreturn->return_code & ZOK)
 		sds_cpy(return_data, zreturn->data);
@@ -426,7 +426,7 @@ zclient_t *create_zclient(int client_id)
 	this->client_id = client_id;
 	this->client_stop = 0;
 	this->send_buff = zmalloc(MAX_CMD_MSG_LEN);
-	this->recv_buff = zmalloc(sizeof(zreturn_complex_t));
+	this->recv_buff = zmalloc(MAX_RECV_MSG_LEN);
 	this->unique_watch_num = 1;
 	this->watch_list = list_create();
 	list_set_free_method(this->watch_list, watch_node_free);
