@@ -136,6 +136,8 @@ static int add_write_lock(zclient_t *zclient, const char *file_path, pthread_mut
 	return_data = sds_new_len(NULL, MAX_RET_CHILDREN_LEN);
 	return_name = sds_new_len(NULL, MAX_RET_DATA_LEN);
 	ret_num = zclient->op->create_parent(zclient, path, data, PERSISTENT_SQUENTIAL, return_name);
+	while(ret_num != ZOK)
+		ret_num = zclient->op->create_parent(zclient, path, data, PERSISTENT_SQUENTIAL, return_name);
 	//copy lock name
 	lock_name = sds_cpy(lock_name, return_name);
 	path = sds_cpy(path, file_path);
@@ -621,6 +623,7 @@ int fs_append(appendfile_msg_t *appendfile_msg, const char *data)
 	//add write lock, process maybe block here
 	add_write_lock(zclient, opened_file->f_info.file_path, mutex, lock_name);
 	//TODO why lock another time?
+	//printf("lock name is %s\n", lock_name);
 	pthread_mutex_lock(mutex);
 	pthread_mutex_unlock(mutex);
 	pthread_mutex_destroy(mutex);

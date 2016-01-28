@@ -40,11 +40,11 @@
 //number of zpath stored in ztree
 #define ZPATH_COUNT 32
 #define ZVALUE_CHILD_COUNT 8
-#define SEQUENCE_MAX 512
+#define SEQUENCE_MAX 65535
 #define MAX_VER_NUM 65535
 //zserver define
-#define RECV_QUEUE_SIZE 128
-#define SEND_QUEUE_SIZE 64
+#define RECV_QUEUE_SIZE 256
+#define SEND_QUEUE_SIZE 256
 //notice type
 #define NOTICE_CHANGED 0x1
 #define NOTICE_DELETE 0x2

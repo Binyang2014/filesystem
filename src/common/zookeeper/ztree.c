@@ -274,7 +274,7 @@ static int add_znode(ztree_t *tree, const sds path, zvalue_t *value, sds return_
 	parent_node = find_znode(tree, parent_path);
 	if(parent_node == NULL)
 	{
-		log_write(LOG_ERR, "path is incorrect");
+		log_write(LOG_ERR, "path is incorrect, path is %s", parent_path);
 		return -1;
 	}
 	child_map = parent_node->child;
